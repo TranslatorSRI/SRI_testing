@@ -7,13 +7,22 @@ from pydantic import BaseModel
 
 import uvicorn
 from fastapi import FastAPI
-
+from fastapi.middleware.cors import CORSMiddleware
 from reasoner_validator.util import latest
 from app.util import OneHopTestHarness, DEFAULT_WORKER_TIMEOUT, SRITestReport
 
 app = FastAPI()
 
-
+origins = [
+    "http://localhost:8080",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 #
 # We don't instantiate the full TRAPI models here but
 # just use an open-ended dictionary which should have
