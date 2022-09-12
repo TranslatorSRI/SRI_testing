@@ -4,4 +4,5 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 EXPOSE 80
+USER node
 CMD [ "npm", "run", "start" ]
