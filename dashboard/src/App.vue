@@ -354,7 +354,8 @@
                   </v-row>
 
                   <v-row no-gutter>
-                    <v-col>
+                    <!-- <v-col :cols="data_table_current_item === null ? 'auto' : 8"> -->
+                    <v-col :cols="8">
                       <v-data-table
                         :headers="_headers"
                         :items="denormalized_cells"
@@ -385,10 +386,10 @@
                                        ...countResultMessages(item)
                                        }))"
                                 v-bind:key="`${test}_${result}`"
-                                :style="cellStyle(result.status)">
+                                :style="cellStyle(result.outcome)">
 
-                              <a v-if="!!result.status">
-                                {{ stateIcon(result.status) }}
+                              <a v-if="!!result.outcome">
+                                {{ stateIcon(result.outcome) }}
                                 <!-- {{ -->
                                 <!-- Object.entries(result.validation) -->
                                 <!-- .reduce((a, i) => { -->
@@ -408,76 +409,78 @@
                                   </template>
                                   <b>Test Edge:</b>
                                   <span>
-                                    ({{result.subject}})--[{{result.predicate}}]->({{result.object}})<br>
+                                    {{ formatConcreteEdge(result) }}
                                   </span>
                                 </v-tooltip>
                               </span>
 
                               <span v-else>
-                               {{ result }}
+                                {{ result }}
                               </span>
                             </td>
                           </tr>
                         </template>
                       </v-data-table>
                     </v-col>
-                    <v-col :hidden="data_table_current_item === null">
-                      <v-card class="mx-auto" max-width="374">
+                    <v-col :cols="4">
+                    <!-- <v-col :cols="4" :hidden="data_table_current_item === null"> -->
+                      <v-card class="mx-auto" style="{ maxHeight: 'inherit' }">
                         <v-card-text v-if="data_table_current_item === null">
-                          Hover over a row to show its test results.
-                          Click a row to keep its test results displayed.
+                          Hover over a row to show its test results.<br>
+                          Click a row to keep its test results displayed.<br>
+                          Click it again to unselect it.
                         </v-card-text>
                         <v-card-text v-else>
-                          <h3>{{ formatEdge(data_table_current_item["spec"]) }}</h3><br>
+                          <h2>{{ formatEdge(data_table_current_item["spec"]) }}</h2><br>
+                          <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
                           <v-chip-group>
-                            <v-chip>Errors: {{ selected_result_message_summary.errors }}</v-chip>
                             <v-chip>Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
+                            <v-chip>Errors: {{ selected_result_message_summary.errors }}</v-chip>
                             <v-chip>Information: {{ selected_result_message_summary.information }}</v-chip>
                           </v-chip-group>
-                          <div v-for="entry in Object.entries(data_table_current_item).filter(([key, _]) => key !== 'spec' && key !== '_id')"
-                               v-bind:key="hash(entry[0])+Math.random()">
-                            <span v-if="!!entry[1].status">
-                              <b>{{entry[0]}}: </b>{{stateIcon(entry[1].status)}}
-                            </span>
-                            <span v-if="!!entry[1].validation">
-                              <ul>
-                                <span v-if="!!entry[1].validation.errors.length > 0">Errors</span>
-                                <li v-if="!!entry[1].validation.errors.length > 0" v-for="error in entry[1].validation.errors" :key="hash(error)+Math.random()">
-                                  <span v-for="data in Object.entries(error)" :key="`${entry[0]}${data[0]}${data[1]}`">
-                                    <span v-if="data[0] === 'code'">
-                                      <b>{{ data[0] }}: </b> {{parseResultCode(data[1]).subcode}}<br>
-                                    </span>
-                                    <span v-else>
-                                      <b>{{ data[0] }}: </b> {{data[1]}}<br>
-                                    </span>
-                                  </span>
-                                </li>
-                                <span v-if="!!entry[1].validation.warnings.length > 0">Warnings</span>
-                                <li v-if="!!entry[1].validation.warnings.length > 0" v-for="warning in entry[1].validation.warnings" :key="hash(warning)+Math.random()">
-                                  <span v-for="data in Object.entries(warning)" :key="`${entry[0]}${data[0]}${data[1]}`">
-                                    <span v-if="data[0] === 'code'">
-                                      <b>{{ data[0] }}: </b> {{parseResultCode(data[1]).subcode}}<br>
-                                    </span>
-                                    <span v-else>
-                                      <b>{{ data[0] }}: </b> {{data[1]}}<br>
-                                    </span>
-                                  </span>
-                                </li>
-                                <span v-if="!!entry[1].validation.information.length > 0">Information</span>
-                                <li v-if="!!entry[1].validation.information.length > 0" v-for="information in entry[1].validation.information" :key="hash(information)+Math.random()">
-                                  <span v-for="data in Object.entries(information)" :key="`${entry[0]}${data[0]}${data[1]}`">
-                                    <span v-if="data[0] === 'code'">
-                                      <b>{{ data[0] }}: </b> {{parseResultCode(data[1]).subcode}}<br>
-                                    </span>
-                                    <span v-else>
-                                      <b>{{ data[0] }}: </b> {{data[1]}}<br>
-                                    </span>
-                                  </span>
-                                </li>
-                              </ul>
-
-                            </span>
-                          </div>
+                          <v-treeview :items="selected_result_treeview" dense>
+                            <template v-slot:prepend="{ item, open }">
+                              <span v-if="!!item.data"></span>
+                              <div v-else-if="!!item.outcome">
+                                {{ stateIcon(item.outcome, icon_only=true) }}
+                              </div>
+                              <v-icon v-else-if="item.name === 'warnings'" small>
+                                mdi-alert
+                              </v-icon>
+                              <v-icon v-else-if="item.name === 'errors'" small>
+                                mdi-cancel
+                              </v-icon>
+                              <v-icon v-else-if="item.name === 'information'" small>
+                                mdi-information
+                              </v-icon>
+                              <v-icon v-else-if="!!item.children && item.children.length === 0" small>
+                                mdi-checkbox-blank-circle
+                              </v-icon>
+                            </template>
+                            <template v-slot:label="{ item }">
+                              <span v-if="!!item.data">
+                                <ul class="noindent">
+                                  <li>{{parseResultCode(item.data.code).subcode}}</li>
+                                  <ul class="noindent">
+                                    <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="hash(result_data)+Math.random()">
+                                      <b>{{ result_data[0] }}: </b> {{ result_data[1] }}<br>
+                                    </li>
+                                  </ul>
+                                </ul>
+                              </span>
+                              <span v-else>
+                                {{ item.name }}
+                              </span>
+                            </template>
+                            <template v-slot:append="{ item }">
+                              <span v-if="['warnings', 'errors', 'information'].includes(item.name)">
+                                {{ item.children.length }}
+                              </span>
+                              <span v-else-if="!!!item.data">
+                                {{ !!item.children && item.children.length > 0 ? item.children.reduce((a, i) => !!i.children ? a += i.children.length : a, 0) : ''}}
+                              </span>
+                            </template>
+                          </v-treeview>
                         </v-card-text>
       </v-card>
     </v-col>
@@ -533,244 +536,238 @@ const FEATURE_RUN_TEST_BUTTON = process.env._FEATURE_RUN_TEST_BUTTON;
 const FEATURE_RUN_TEST_SELECT = process.env._FEATURE_RUN_TEST_SELECT;
 
 export default {
-  name: 'App',
-  components: {
-    SizeProvider,
-    SizeObserver,
-    TranslatorFilter,
-    TranslatorCategoriesList,
-    VcPiechart,
-    LaCartesian: Cartesian,
-    LaBar: Bar,
-  },
-  data() {
-    return {
-      MOCK,
-      FEATURE_RUN_TEST_BUTTON,
-      FEATURE_RUN_TEST_SELECT,
-      hover: false,
-      id: null,
-      loading: null,
-      headers: [],
-      cells: [],
-      token: null,
-      search: '',
-      tab: '',
-      registryResults: [],
-      kp_selections: [],
-      ara_selections: [],
-      test_runs_selections: [],
-      kps_only: true,
-      status_interval: -1,
-      status: -1,
-      outcome_filter: "all",
-      ara_filter: [],
-      kp_filter: [],
-      predicate_filter: [],
-      subject_category_filter: [],
-      object_category_filter: [],
-      index: null,
-      stats_summary: null,
-      subject_categories: [],
-      object_categories: [],
-      predicates: [],
-      categories_index: null,
-      resources: {},
-      data_table_selected_item: null,
-      data_table_current_item: null,
-      data_table_hold_selection: false,
-    }
-  },
-  created () {
-    // initialize application
-    if (!(this._FEATURE_RUN_TEST_BUTTON || this._FEATURE_RUN_TEST_SELECT)) {
-      axios.get(`/test_runs`).then(async response => {
-        const test_runs = response.data.test_runs;
-        this.test_runs_selections = response.data.test_runs;
-        // TODO: Feature flag
-        // if (!!test_runs && test_runs.length > 0) {
-        // } else {
-        //   await axios.post(`/run_tests`, {}).then(response => {
-        //     this.id = response.data.test_run_id;
-        //     axios.get(`/test_runs`).then(response => {
-        //       this.test_runs_selections = response.data.test_runs;
-        //     })
-        //   })
-        // }
-      })
-    }
-  },
-  mounted() {
-    this.$forceUpdate()
-  },
-  watch: {
-    id(id, oldId) {
-      this.loading = true;
-      this.status_interval = setInterval(() => axios.get(`/status?test_run_id=${id}`).then(response => {
-        this.status = response.data.percent_complete;
-        if (this.status >= 100) {
-          window.clearInterval(this.status_interval)
-        }
-      }), 3000);
+    name: 'App',
+    components: {
+        SizeProvider,
+        SizeObserver,
+        TranslatorFilter,
+        TranslatorCategoriesList,
+        VcPiechart,
+        LaCartesian: Cartesian,
+        LaBar: Bar,
     },
-    status(newStatus, oldStatus) {
-      if (!!this.id && newStatus >= 100 && (this.headers.length === 0 && this.cells.length === 0)) {
-        axios.get(`/index?test_run_id=${this.id}`).then(response => {
-          this.index = {
-            "KP": {},
-            "ARA": {},
-            ...response.data.summary
-          }
-        })
-        axios.get(`/summary?test_run_id=${this.id}`).then(response => {
-          // override a summary that is by default empty, but accessible
-          // necessary because the summary API could return only KPs or only ARAs, and return only those
-          // to avoid conditionals we make the object total
-          this.stats_summary = {
-            "KP": {},
-            "ARA": {},
-            ...response.data.summary
-          }
-          // forcing the table data to be synchronous with receiving summary data, since making it reactive lead to problems
-          this.makeTableData(this.id, this.stats_summary)
-        })
-        this.loading = false;
-        this.status = -1;
-      }
-    },
-    index(newIndex, oldIndex) {
-      if (newIndex !== null) {
-        this.getAllCategories(this.id, newIndex);
-      };
-    }
-  },
-  computed: {
-    selected_result_message_summary() {
-      if (!!!this.data_table_selected_item) {
+    data() {
         return {
-          "information": 0,
-          "errors": 0,
-          "warnings": 0,
+            MOCK,
+            FEATURE_RUN_TEST_BUTTON,
+            FEATURE_RUN_TEST_SELECT,
+            hover: false,
+            id: null,
+            loading: null,
+            headers: [],
+            cells: [],
+            token: null,
+            search: '',
+            tab: '',
+            registryResults: [],
+            kp_selections: [],
+            ara_selections: [],
+            test_runs_selections: [],
+            kps_only: true,
+            status_interval: -1,
+            status: -1,
+            outcome_filter: "all",
+            ara_filter: [],
+            kp_filter: [],
+            predicate_filter: [],
+            subject_category_filter: [],
+            object_category_filter: [],
+            index: null,
+            stats_summary: null,
+            subject_categories: [],
+            object_categories: [],
+            predicates: [],
+            categories_index: null,
+            resources: {},
+            data_table_selected_item: null,
+            data_table_current_item: null,
+            data_table_hold_selection: false,
         }
-      }
-      return this.countResultMessages(this.data_table_selected_item)
+    },
+    created () {
+        // initialize application
+        if (!(this._FEATURE_RUN_TEST_BUTTON || this._FEATURE_RUN_TEST_SELECT)) {
+            axios.get(`/test_runs`).then(async response => {
+                const test_runs = response.data.test_runs;
+                this.test_runs_selections = response.data.test_runs;
+                // TODO: Feature flag
+                // if (!!test_runs && test_runs.length > 0) {
+                // } else {
+                //   await axios.post(`/run_tests`, {}).then(response => {
+                //     this.id = response.data.test_run_id;
+                //     axios.get(`/test_runs`).then(response => {
+                //       this.test_runs_selections = response.data.test_runs;
+                //     })
+                //   })
+                // }
+            })
+        }
+    },
+    mounted() {
+        this.$forceUpdate()
+    },
+    watch: {
+        id(id, oldId) {
+            this.loading = true;
+            this.status_interval = setInterval(() => axios.get(`/status?test_run_id=${id}`).then(response => {
+                this.status = response.data.percent_complete;
+                if (this.status >= 100) {
+                    window.clearInterval(this.status_interval)
+                }
+            }), 3000);
+        },
+        status(newStatus, oldStatus) {
+            if (!!this.id && newStatus >= 100 && (this.headers.length === 0 && this.cells.length === 0)) {
+                axios.get(`/index?test_run_id=${this.id}`).then(response => {
+                    this.index = {
+                        "KP": {},
+                        "ARA": {},
+                        ...response.data.summary
+                    }
+                })
+                axios.get(`/summary?test_run_id=${this.id}`).then(response => {
+                    // override a summary that is by default empty, but accessible
+                    // necessary because the summary API could return only KPs or only ARAs, and return only those
+                    // to avoid conditionals we make the object total
+                    this.stats_summary = {
+                        "KP": {},
+                        "ARA": {},
+                        ...response.data.summary
+                    }
+                    // forcing the table data to be synchronous with receiving summary data, since making it reactive lead to problems
+                    this.makeTableData(this.id, this.stats_summary)
+                })
+                this.loading = false;
+                this.status = -1;
+            }
+        },
+        index(newIndex, oldIndex) {
+            if (newIndex !== null) {
+                this.getAllCategories(this.id, newIndex);
+            };
+        }
+    },
+    computed: {
+        selected_result_message_summary() {
+            if (!!!this.data_table_current_item) {
+                return {
+                    "information": 0,
+                    "errors": 0,
+                    "warnings": 0,
+                }
+            }
+            return this.countResultMessages(this.data_table_current_item)
 
-    },
-    // selected_result_codes_summary() {
-    //   if (!!!this.data_table_selected_item)
-    //     return null
-    //   else
-    //     return this.countResultMessagesByCode(this.data_table_selected_item)
-    // },
-    // TODO: merge these range computations into one scope
-    trapi_range() {
-      let trapi_versions = [];
-      if (!!this.stats_summary && !_.isEmpty(this.stats_summary)) {
-        trapi_versions.push(Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.trapi_version));
-        trapi_versions.push(Object.entries(this.stats_summary.ARA).map(([_, entry]) => entry.trapi_version));
-      }
-      return _(trapi_versions).flatten().uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values()
-    },
-    biolink_range() {
-      let biolink_versions = [];
-      if (!!this.stats_summary && !_.isEmpty(this.stats_summary)) {
-        biolink_versions.push(Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.biolink_version));
-        biolink_versions.push(Object.entries(this.stats_summary.ARA).map(([_, entry]) => entry.biolink_version));
-      }
-      return _(biolink_versions).flatten().uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values();
-    },
-    all_categories() {
-      if (!!this.id && !!this.index) {
-        return this.getAllCategories(this.id, this.index)
-      } else {
-        return {
-          subject_categories: [],
-          object_categories: [],
-          predicates: [],
-        }
-      }
-    },
-    denormalized_stats_summary() {
-      if (this.stats_summary !== null) {
-        const combined_results = {
-          ...this.stats_summary.KP,
-          // TODO reduce across keys in 'kp'; split the denormalization below between KP and ARA then concat
-          ...this.stats_summary.ARA,
-        };
-        return Object.keys(combined_results)
-                     .flatMap(provider_key => this.denormalize_provider_summary(combined_results[provider_key], provider_key));
-      } else {
-        return [];
-      }
-    },
-    reduced_stats_summary() {
-      return this.reduce_provider_summary(this.denormalized_stats_summary)
-    },
-    registryItems() {
-      return this.registryResults.map(el => {
-        return {
-          text: el.info.title,
-          value: el.info["x-translator"].infores,
-          component: el.info["x-translator"].component
-        }
-      })
-    },
-    _headers() {
-      return this.headers.concat(["information", "errors", "warnings"]).map(el => ({
-        text: el,
-        value: el,
-        filterable: true,
-        sortable: true,
-        sort: (a, b) => {
-          if (!!a.status && !!b.status)
-            return a.status.localeCompare(b.status)
-          if (!!a.spec && !!b.spec)
-            return `${a.spec.subject}--${a.spec.predicate}->${a.spec.object}`.localeCompare(`${b.spec.subject}--${b.spec.predicate}->${b.spec.object}`)
-          else
-            return a - b;
-        }
-      }))
+        },
+        selected_result_treeview() {
+            if (!!!this.data_table_current_item) return []
+            console.log(this.data_table_current_item)
+            return Object.entries(this.data_table_current_item)
+                .filter(a => !['spec', '_id', 'information', 'errors', 'warnings'].includes(a[0]))
+                .map(a => ({
+                    'name': a[0],
+                    'outcome': a[1].outcome,
+                    'children': Object.entries(a[1].validation)
+                        .map(a => ({
+                            'name': a[0],
+                            'children': a[1]
+                                .map(el => ({
+                                    'name': "",
+                                    'data': el,
+                                }))
+                        }))
+                        .sort((a,b) => a.children.length <= b.children.length)
+                }))
+        },
+        // TODO: merge these range computations into one scope
+        trapi_range() {
+            let trapi_versions = [];
+            if (!!this.stats_summary && !_.isEmpty(this.stats_summary)) {
+                trapi_versions.push(Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.trapi_version));
+                trapi_versions.push(Object.entries(this.stats_summary.ARA).map(([_, entry]) => entry.trapi_version));
+            }
+            return _(trapi_versions).flatten().uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values()
+        },
+        biolink_range() {
+            let biolink_versions = [];
+            if (!!this.stats_summary && !_.isEmpty(this.stats_summary)) {
+                biolink_versions.push(Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.biolink_version));
+                biolink_versions.push(Object.entries(this.stats_summary.ARA).map(([_, entry]) => entry.biolink_version));
+            }
+            return _(biolink_versions).flatten().uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values();
+        },
+        all_categories() {
+            if (!!this.id && !!this.index) {
+                return this.getAllCategories(this.id, this.index)
+            } else {
+                return {
+                    subject_categories: [],
+                    object_categories: [],
+                    predicates: [],
+                }
+            }
+        },
+        denormalized_stats_summary() {
+            if (this.stats_summary !== null) {
+                const combined_results = {
+                    ...this.stats_summary.KP,
+                    // TODO reduce across keys in 'kp'; split the denormalization below between KP and ARA then concat
+                    ...this.stats_summary.ARA,
+                };
+                return Object.keys(combined_results)
+                    .flatMap(provider_key => this.denormalize_provider_summary(combined_results[provider_key], provider_key));
+            } else {
+                return [];
+            }
+        },
+        reduced_stats_summary() {
+            return this.reduce_provider_summary(this.denormalized_stats_summary)
+        },
+        registryItems() {
+            return this.registryResults.map(el => {
+                return {
+                    text: el.info.title,
+                    value: el.info["x-translator"].infores,
+                    component: el.info["x-translator"].component
+                }
+            })
+        },
+        _headers() {
+            return this.headers
+                .concat(["information", "errors", "warnings"])
+                .sort(orderByArrayFunc(['spec', 'information', 'errors', 'warnings']))
+                .map(el => ({
+                    text: el,
+                    value: el,
+                    filterable: true,
+                    sortable: true,
+                    sort: (a, b) => {
+                        if (!!a.outcome && !!b.outcome)
+                            return a.outcome.localeCompare(b.outcome)
+                        if (!!a.spec && !!b.spec)
+                            return `${a.spec.subject}--${a.spec.predicate}->${a.spec.object}`.localeCompare(`${b.spec.subject}--${b.spec.predicate}->${b.spec.object}`)
+                        else
+                            return a - b;
+                    }
+            }))
     },
     denormalized_cells() {
-      // TODO: eliminate
-      const denormalize_result = (result) => {
-        const denormalized_result = ["outcome"]
-              .some(status => Object.keys(result).includes(status)) ?
-              {
-                status: result.outcome,
-                messages: !!result.validations ? result.validations.errors : [],
-                ...result
-              }
-              : result;
-        return denormalized_result;
-      }
-      const _cells = this.cells.map(el => {
-        const cell = Object.entries(JSON.parse(JSON.stringify(el)))
-        const _el = Object.fromEntries(
-          cell.map(
-            entry => [
-              entry[0],
-              denormalize_result(entry[1])
-            ]
-          )
-        )
-        return _el;
-      })
-      const __cells = _cells.map(el => ({
-        ...Object.fromEntries(this.headers.map(header => [header, {
-          status: null,
-          messages: []
-        }])),
+
+      // inject new columns for message counts
+      const __cells = this.cells.map(el => ({
+        ...Object.fromEntries(this.headers.map(header => [header, {}])),
         ...el,
-      }))
-      const ___cells = __cells.map(cell => ({
-        ...cell,
-        ...this.countResultMessages(cell)
-      }))
+        ...this.countResultMessages(el),
+      }));
+
+      // sort keys
+      const ___cells = __cells.map(cell =>
+          Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'information', 'errors', 'warnings'])(a, b))));
+
       const denormalized_cells = ___cells
       // TODO: combine into one loop
             .filter(el => !isString(el))
-            .filter(cell => Object.entries(cell).some(entry => this.outcome_filter !== "all" ? entry[1].status === this.outcome_filter : true))
+            .filter(cell => Object.entries(cell).some(entry => this.outcome_filter !== "all" ? entry[1].outcome === this.outcome_filter : true))
             .filter(el => {
               return this.subject_category_filter.length > 0 ? this.subject_category_filter.includes(el.spec.subject_category) : true
                 && this.predicate_filter.length > 0 ? this.predicate_filter.includes(el.spec.predicate) : true
@@ -1012,13 +1009,13 @@ export default {
         borderRight: 'solid 1px white'
       }
     },
-    stateIcon (state) {
+    stateIcon (state, icon_only=false) {
       if (state === "passed") {
-        return `✅ Pass`
+        return `✅${!icon_only ? ' Pass' : ''}`
       } else if (state === "skipped") {
-        return `⚠️ Skip`
+        return `⚠️${!icon_only ? ' Skip' : ''}`
       } else if (state === "failed") {
-        return `🚫 Fail`
+        return `🚫${!icon_only ? ' Fail' : ''}`
       } else if (state === null) {
         return "NONE";
       }
@@ -1026,6 +1023,9 @@ export default {
     },
     formatEdge (result) {
       return `(${this.formatCurie(result.subject_category)})--[${this.formatCurie(result.predicate)}]->(${this.formatCurie(result.object_category)})`
+    },
+    formatConcreteEdge (result) {
+      return `(${result.subject})--[${result.predicate}]->(${result.object})`
     },
     formatCurie (curie) {
       return curie.split(':')[1];
@@ -1080,6 +1080,26 @@ export default {
   }
 }
 
+const orderByArrayFunc = array => {
+    if (array.length === 0) return (a, b) => 0;
+    const sortMap = Object.fromEntries(Object.entries(array.reverse()).map(([a, b]) => [b, a]))
+    const sortFunc = (a, b) => {
+        const [_a, _b] = [_.get(sortMap, a, -1), _.get(sortMap, b, -1)]
+        return _a < _b
+    };
+    return sortFunc;
+}
+function orderByPlaceInArray(iterable, array) {
+    if (array.length === 0 || iterable.length === 0) return iterable;
+    return iterable.sort(orderByArrayFunc(array))
+}
+
+// console.warn(orderByPlaceInArray([], ['spec', 'information', 'warnings', 'errors']))
+// console.warn(orderByPlaceInArray(['spec', 'information', 'warnings', 'errors'], ['spec', 'information', 'warnings', 'errors']))
+// console.warn(orderByPlaceInArray(['a', 'b', 'c'], ['spec', 'information', 'warnings', 'errors']))
+// console.warn(orderByPlaceInArray(['spec', 'information', 'warnings', 'errors'].reverse(), ['spec', 'information', 'warnings', 'errors']))
+// console.warn(orderByPlaceInArray(['spec', 'information', 'warnings', 'errors'].concat(['a', 'b', 'c']), ['spec', 'information', 'warnings', 'errors']))
+
 // jsonpath
 // queries based on schema circa Aug 5th 2022
 const query_all_tests = "$.*..tests";
@@ -1125,6 +1145,15 @@ function _makeTableData(resource_id, report) {
     };
 }
 
+Object.defineProperty(Array.prototype, 'precat', {
+  configurable: true,
+  writable: true,
+  value: function precat() {
+    return Array.prototype.concat.call([], ...arguments, this)
+  }
+})
+
+
 </script>
 
 <style>
@@ -1162,9 +1191,21 @@ tr.v-row-group__header > td.text-start > button > span > i.mdi-close {
     opacity: 1.0;
 }
 
-/* g.x-axis > g:last-child text { */
-/*     transform: rotate(-45deg); */
-/*     transform-origin: left bottom; */
-/*     transform-box: fill-box; */
-/* } */
+/* For the barcharts so long names don't overlap */
+g.x-axis > g > g:nth-child(2n) text {
+    transform: translateY(12px);
+    transform-origin: left bottom;
+    transform-box: fill-box;
+}
+g.x-axis > g > g:nth-child(2n) line {
+    transform: scaleY(3.25);
+    transform-origin: top;
+    transform-box: fill-box;
+}
+ul.noindent {
+    margin-left: 5px;
+    margin-right: 0px;
+    padding-left: 10px;
+    padding-right: 0px;
+}
 </style>
