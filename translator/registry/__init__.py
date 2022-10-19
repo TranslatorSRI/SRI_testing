@@ -6,6 +6,7 @@ from datetime import datetime
 
 import requests
 import yaml
+from reasoner_validator.versioning import SemVer
 
 from requests.exceptions import RequestException
 
@@ -17,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 SMARTAPI_URL = "https://smart-api.info/api/"
 SMARTAPI_QUERY_PARAMETERS = "q=__all__&tags=%22trapi%22&" + \
-                            "fields=info,_meta,_status,paths,tags,openapi,swagger&size=1000&from=0"
+                            "fields=servers,info,_meta,_status,paths,tags,openapi,swagger&size=1000&from=0"
+
+MINIMUM_BIOLINK_VERSION = "2.2.11"  # use RTX-KG2 as the minimum version
 
 
 def set_timestamp():
@@ -239,9 +242,14 @@ _infores_catalog: Dict[str, List[RegistryEntryId]] = dict()
 
 # Some ARA's and KP's may be tagged tp be ignored for practical reasons
 _ignored_resources: Set[str] = {
-    "rtx-kg2",  # the test_data_location released for RTX-KG2 is relatively unusable, as of September 2022
+    "empty",
+    # "rtx-kg2",  # the test_data_location released for RTX-KG2 is relatively unusable, as of September 2022
     # "molepro",  # TODO: temporarily skip MolePro...
-    "arax",     # temporarily skip ARAX ARA
+    # "arax",     # temporarily skip ARAX ARA
+    # "sri-reference-kg",
+    # "automat-icees-kg",
+    # "cohd",
+    # "service-provider-trapi",
 }
 
 
@@ -276,10 +284,10 @@ def extract_component_test_metadata_from_registry(
             logger.warning(f"Service {index} lacks a 'service_title'... Skipped?")
             continue
 
-        # Grab additional service metadata, then store it all
-        service_version = tag_value(service, "info.version")
-        trapi_version = tag_value(service, "info.x-trapi.version")
-        biolink_version = tag_value(service, "info.x-translator.biolink-version")
+        if 'servers' not in service:
+            logger.warning(f"Service {index} lacks a 'servers' block... Skipped?")
+            continue
+        servers: Optional[List[Dict]] = service['servers']
 
         infores = tag_value(service, "info.x-translator.infores")
         # Internally, within SRI Testing, we only track the object_id of the infores CURIE
@@ -293,6 +301,29 @@ def extract_component_test_metadata_from_registry(
             logger.warning(f"Registry {component} entry with {infores} is tagged to be ignored. Skipping?")
             continue
 
+        raw_test_data_location: Optional[str] = tag_value(service, "info.x-trapi.test_data_location")
+
+        # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
+        test_data_location = validate_test_data_location(raw_test_data_location)
+        if not test_data_location:
+            logger.warning(
+                f"Empty, invalid or inaccessible test data resource '{test_data_location}' " +
+                f"for Service {index}: '{service_title}'... Service entry skipped?")
+            continue
+
+        # Once past the test_data_location gauntlet, we start
+        # to collect the remaining Registry metadata
+
+        # Grab additional service metadata, then store it all
+        service_version = tag_value(service, "info.version")
+        trapi_version = tag_value(service, "info.x-trapi.version")
+        biolink_version = tag_value(service, "info.x-translator.biolink-version")
+
+        # TODO: temporary hack to deal with resources which are somewhat sloppy or erroneous in their declaration
+        #       of the applicable Biolink Model version for validation: enforce a minimium Biolink Model version.
+        if not biolink_version or SemVer.from_string(MINIMUM_BIOLINK_VERSION) >= SemVer.from_string(biolink_version):
+            biolink_version = MINIMUM_BIOLINK_VERSION
+
         if infores not in _infores_catalog:
             _infores_catalog[infores] = list()
         else:
@@ -302,14 +333,16 @@ def extract_component_test_metadata_from_registry(
                 f"TRAPI version '{str(trapi_version)}' and Biolink Version '{str(biolink_version)}'."
             )
 
-        raw_test_data_location: Optional[str] = tag_value(service, "info.x-trapi.test_data_location")
+        url: Optional[str] = None
+        for server in servers:
+            # For the time being, we assume that the first 'url' encountered is a sensible testing target
+            # TODO: 'x-maturity' may later modify our approach for testing
+            if 'url' in server:
+                url = server['url']
+                break
 
-        # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
-        test_data_location = validate_test_data_location(raw_test_data_location)
-        if not test_data_location:
-            logger.warning(
-                f"Empty, invalid or inaccessible test data resource '{test_data_location}' " +
-                f"for Service {index}: '{service_title}'... Service entry skipped?")
+        if not url:
+            logger.warning(f"Service {index} lacks a 'testing' or 'staging' x-maturity endpoint... Skipped?")
             continue
 
         if test_data_location not in service_metadata:
@@ -327,6 +360,7 @@ def extract_component_test_metadata_from_registry(
 
         _infores_catalog[infores].append(entry_id)
 
+        capture_tag_value(service_metadata, test_data_location, "url", url)
         capture_tag_value(service_metadata, test_data_location, "service_title", service_title)
         capture_tag_value(service_metadata, test_data_location, "service_version", service_version)
         capture_tag_value(service_metadata, test_data_location, "component", component_type)

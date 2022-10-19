@@ -139,8 +139,12 @@ def inverse_by_new_subject(request):
     """Given a known triple, create a TRAPI message that inverts the predicate,
        then looks up the new object by the new subject (original object)"""
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
+    context: str = f"inverse_by_new_subject(predicate: '{request['predicate']}')"
     original_predicate_element = tk.get_element(request['predicate'])
-    if original_predicate_element['symmetric']:
+    if not original_predicate_element:
+        reason: str = "is an unknown element?"
+        return None, context, reason
+    elif original_predicate_element['symmetric']:
         transformed_predicate = request['predicate']
     else:
         transformed_predicate_name = original_predicate_element['inverse']
@@ -152,7 +156,8 @@ def inverse_by_new_subject(request):
 
     # Not everything has an inverse (it should, and it will, but it doesn't right now)
     if transformed_predicate is None:
-        return None, None, None
+        reason: str = "does not have an inverse?"
+        return None, context, reason
 
     # probably don't need to worry here but just-in-case
     # only work off a copy of the original request...
@@ -223,12 +228,15 @@ def raise_object_by_subject(request):
     """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
     original_object_element = tk.get_element(request['object_category'])
-    if not original_object_element:
+    if original_object_element:
+        original_object_element = asdict(original_object_element)
+    else:
+        original_object_element = dict()
         original_object_element['name'] = request['object_category']
         original_object_element['is_a'] = None
     if original_object_element['is_a'] is None:
         # This element may be a mixin or abstract, without any parent?
-        return no_parent_error("raise_object_by_subject", asdict(original_object_element))
+        return no_parent_error("raise_object_by_subject", original_object_element)
     transformed_request = request.copy()  # there's no depth to request, so it's ok
     parent = tk.get_element(original_object_element['is_a'])
     transformed_request['object_category'] = parent['class_uri']
@@ -246,12 +254,15 @@ def raise_predicate_by_subject(request):
     transformed_request = request.copy()  # there's no depth to request, so it's ok
     if request['predicate'] != 'biolink:related_to':
         original_predicate_element = tk.get_element(request['predicate'])
-        if not original_predicate_element:
+        if original_predicate_element:
+            original_predicate_element = asdict(original_predicate_element)
+        else:
+            original_predicate_element = dict()
             original_predicate_element['name'] = request['predicate']
             original_predicate_element['is_a'] = None
         if original_predicate_element['is_a'] is None:
             # This element may be a mixin or abstract, without any parent?
-            return no_parent_error("raise_predicate_by_subject", asdict(original_predicate_element))
+            return no_parent_error("raise_predicate_by_subject", original_predicate_element)
         parent = tk.get_element(original_predicate_element['is_a'])
         transformed_request['predicate'] = parent['slot_uri']
     message = create_one_hop_message(transformed_request)

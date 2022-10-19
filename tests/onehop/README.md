@@ -2,49 +2,32 @@
 
 This suite tests the ability to retrieve given triples, which we know exist, from instances of **Translator Knowledge Provider** ("KP") under a variety of transformations, both directly, and indirectly, via instances of **Translator Autonomous Relay Agent** ("ARA").
 
-- [How the Framework works](#how-the-testing-harness-works)
 - [Configuring the Tests](#configuring-the-tests)
-    - [KP Instructions](#kp-instructions)
+    - [Translator SmartAPI Registry Configuration](#translator-smartapi-registry-configuration)
+    - [KP Test Data Format](#kp-test-data-format)
         - [Excluding Tests](#excluding-tests)
-    - [ARA Instructions](#ara-instructions)
+    - [ARA Test Configuration File](#ara-test-configuration-file)
 - [Running the Tests](#running-the-tests)
     - [Running only the KP tests](#running-only-the-kp-tests)
     - [Running only the ARA tests](#running-only-the-ara-tests)
-
-## How the Testing Harness Works
-
-The overall strategy of the SRI Testing Harness is explained in a [slide presentation here](https://docs.google.com/presentation/d/1p9n-UjMNlhWCyQrbI2GonsQKXz0PFdi4-ydDcrF5_tc).
-
-The tests are dynamically generated from sample data Subject-Predicate-Object ("S-P-O") statement triples for each KP with test data currently recorded in JSON files located within the folder `test_triples/KP`.  
-
-The KP files contain sample data for each triple that the KP can provide.  Each triple noted therein is used to build a set of distinct types of unit tests (see the [One Hop utility module](util.py) for the specific code dynamically generating each specific TRAPI query test message within the unit test set for that triple).  The following specific unit tests are currently available:
-
-- by subject
-- inverse by new subject
-- by object
-- raise subject entity
-- raise object by subject
-- raise predicate by subject
-
-See the [aforementioned slide presentation](https://docs.google.com/presentation/d/1p9n-UjMNlhWCyQrbI2GonsQKXz0PFdi4-ydDcrF5_tc) for specific details about each unit test.
-
-Instances of ARA being tested are configured for testing their expected outputs using the list of KPs noted in their corresponding JSON configuration files located within `test_triples/ARA`.
-
-For some KP resources or maybe, just specific instances of triples published by the KP, certain types of unit tests are expected to fail _a priori_ (i.e. the resource is not expected to have knowledge to answer the query). In such cases, such specific unit tests may be excluded from execution (see below).
-
-### Biolink Model Compliance (Test Input Edges)
-
-While being processed for inclusion into a test, every KP input S-P-O triple is screened for Biolink Model Compliance during the test setup by calling a function `check_biolink_model_compliance()` implemented in the **translator.sri.testing** package module. This method runs a series of tests against templated edge - using the currently defined Biolink Model Toolkit - capturing Biolink Model violations, in a list of returned error messages. This function is called within the `generate_trapi_kp_tests()` KP use case set up method in the **test.onehop.conftest** module. Edges with a non-zero list of error messages are so tagged as _'biolink_errors'_, which later advises the generic KP and ARA unit tests - within the PyTest run in the **tests.onehops.test_onehops** module - to formally skip the specific edge-data-template defined use case and report those errors. 
-
-**Note:** at the moment, the Test harness reports the identical Biolink Model violation for all unit tests on the defective edge. This test output duplication is a bit verbose but tricky to avoid (some clever Testing PyTest logic - as yet unimplemented - may be needed to avoid this).
-
-### Provenance Checking (ARA Level)
-
-Provenance checking is attempted on the edge attributes of the TRAPI knowledge graph, by the `check_provenance()` method, called by the `test_trapi_aras` method in **tests.onehops.test_onehops** module. The `check_provenance()` method directly raises `AssertError` exceptions to report specific TRAPI message failures to document the provenance of results (as proper `knowledge_source` related attributes expected for ARA and KP annotated edge attributes of the TRAPI knowledge graph).
+- [How the Framework works](#how-the-one-hop-tests-work)
+    - [Biolink Model Compliance (Test Input Edges)](#biolink-model-compliance-test-input-edges)
+    - [Provenance Checking (ARA Level)](#provenance-checking-ara-level)
 
 ## Configuring the Tests
 
-### KP Instructions
+### Translator SmartAPI Registry Configuration
+
+The default operation of SRI Testing now relies on the interrogation of the Translator SmartAPI Registry ("Registry") for test configuration (meta-)data compiled and hosted externally to the SRI Testing harness itself. For this reason, the following Registry properties **must** be properly set for the testing to proceed:
+
+- **info.x-translator.biolink-version:** _must_ be set to the actual Biolink Model release to which the given KP or ARA is asserting compliance. Validation to the 'wrong' Biolink Model version will generate unnecessary validation errors!
+- **info.x-trapi.version:** _must_ be set to the TRAPI version to which the given KP or ARA is asserting compliance.
+- **info.x-trapi.test_data_location:** _must_ be a public REST resource URL dereferencing the online JSON test configuration file (see KP and ARA instructions below). This can typically (although not necessarily) be a URL to a Github public repository hosted file (note: this can be 'rawdata' URL or a regular Github URL - the latter is automatically rewritten to a 'rawdata' access for file retrieval). If a non-Github URL is given, it should be visible on the internet without authentication.
+- **servers block:** testing now sets the TRAPI server endpoint for testing using a **`url`** specified in the Registry 'servers' block. Lack of standardization of testing targets means that the system is currently agnostic about **`x-maturity`** but simply takes the first **`servers`** block entry with a '**`url`**' property set. If there is more than one server entry in the **`servers`** block, then the wrong testing endpoint may be used. Note that future iterations of the system may follow a different heuristic which recognizes the **`x-maturity`** property.
+
+**Note:** the **info.x-trapi.test_data_location** may change in the near future to accommodate the need for differential testing across various `x-maturity` deployments of KPs and ARAs.
+
+### KP Test Data Format
 
 For each KP, we need a file with one triple of each type that the KP can provide.  For instance, `test_triples/KP/Test_KP/Automat_Human_GOA.json` contains the following json:
 
@@ -98,7 +81,6 @@ So the steps for a KP:
 
 Note: you can selectively exclude specific KP configuration files or whole subfolders of such files from execution by appending *_SKIP* to the specific file or subfolder name (see below for finer grained test exclusions).
 
-
 #### General Recommendations for Edge Test Data
 
 Experience with the SRI Testing harness suggests that KP test data curators (whether manual or script-based approaches) be mindful of the following guidelines for KP test edge data:
@@ -148,7 +130,7 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 | raise object by subject    |   ROBS    |
 | raise predicate by subject |   RPBS    |
 
-### ARA Instructions
+### ARA Test Configuration File
 
 For each ARA, we want to ensure that it is able to extract information correctly from the KPs.  To do this, we need to know which KPs each ARA interacts with.  We have generated template ARA json files under `templates/ARA` that contains annotations linking the ARA to all KPs.  For instance (under _tests/onehop/test_triples/ARA/Test_ARA/ARAGORN.json_):
 
@@ -249,3 +231,35 @@ These include the following Testing-specific custom options:
 ### Running only the ARA tests
 
 The ARA tests cannot generally be run in isolation of the above KP tests (given their dependency on the generation of the KP test cases).
+
+
+## How the One Hop Tests Work
+
+The overall strategy of the SRI Testing Harness is explained in a [slide presentation here](https://docs.google.com/presentation/d/1p9n-UjMNlhWCyQrbI2GonsQKXz0PFdi4-ydDcrF5_tc).
+
+The tests are dynamically generated from sample data Subject-Predicate-Object ("S-P-O") statement triples for each KP with test data rewtrieved from JSON test data/configuration files published online by KP (ARA) owners as web accessible JSON REST document resources (typically, a document in a Github repository) [dereferenced by a test data location configured as described above](#translator-smartapi-registry-configuration).
+
+The KP files contain sample data for each triple that the KP can provide.  Each triple noted therein is used to build a set of distinct types of unit tests (see the [One Hop utility module](util.py) for the specific code dynamically generating each specific TRAPI query test message within the unit test set for that triple).  The following specific unit tests are currently available:
+
+- by subject
+- inverse by new subject
+- by object
+- raise subject entity
+- raise object by subject
+- raise predicate by subject
+
+See the [aforementioned slide presentation](https://docs.google.com/presentation/d/1p9n-UjMNlhWCyQrbI2GonsQKXz0PFdi4-ydDcrF5_tc) for specific details about each unit test.
+
+Instances of ARA being tested are similarly configured for testing their expected outputs using the list of KPs noted a corresponding JSON configuration files also [dereferenced by a specified test data location](#translator-smartapi-registry-configuration).
+
+For some KP resources or maybe, just specific instances of triples published by the KP, some unit tests are anticipated _a priori_ to fail (i.e. the resource is not expected to have sufficient knowledge to answer the query). In such cases, such specific unit tests may be excluded from execution (see below).
+
+### Biolink Model Compliance (Test Input Edges)
+
+While being processed for inclusion into a test, every KP input S-P-O triple is screened for Biolink Model Compliance during the test setup by calling a function `check_biolink_model_compliance()` implemented in the **translator.sri.testing** package module. This method runs a series of tests against templated edge - using the specified release of the Biolink Model (see below) documenting validation - informational, warning and error - messages. This function is called within the `generate_trapi_kp_tests()` KP use case set up method in the **test.onehop.conftest** module. Edges with a non-zero list of error messages are so tagged as _'biolink_errors'_, which later advises the generic KP and ARA unit tests - within the PyTest run in the **tests.onehops.test_onehops** module - to formally skip the specific edge-data-template defined use case and report those errors. 
+
+**Note:** at the moment, the Test harness reports the identical Biolink Model violation for all unit tests on the defective edge. This test output duplication is a bit verbose but tricky to avoid (some clever Testing PyTest logic - as yet unimplemented - may be needed to avoid this).
+
+### Provenance Checking (ARA Level)
+
+Provenance checking is attempted on the edge attributes of the TRAPI knowledge graph, by the `check_provenance()` method, called by the `test_trapi_aras` method in **tests.onehops.test_onehops** module. The `check_provenance()` method directly raises `AssertError` exceptions to report specific TRAPI message failures to document the provenance of results (as proper `knowledge_source` related attributes expected for ARA and KP annotated edge attributes of the TRAPI knowledge graph).

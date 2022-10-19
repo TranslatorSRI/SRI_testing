@@ -13,5 +13,5 @@ pymongo
 kgx
 # bmt>=0.8.4
 -e git+https://github.com/biolink/biolink-model-toolkit.git@v0.8.4-patch-release#egg=bmt
-# reasoner-validator>=3.0.3
--e git+https://github.com/NCATSTranslator/reasoner-validator.git#egg=reasoner-validator
+reasoner-validator>=3.0.5
+# -e git+https://github.com/NCATSTranslator/reasoner-validator.git#egg=reasoner-validator

@@ -36,9 +36,8 @@ from translator.sri.testing.onehops_test_runner import (
 logger = logging.getLogger(__name__)
 
 
-# TODO: temporary circuit breaker for (currently 4-August-2022)
-#  undisciplined edge test data sets (like from RTX-KG2c)
-REASONABLE_NUMBER_OF_TEST_EDGES: int = 10
+# TODO: temporary circuit breaker for huge edge test data sets
+REASONABLE_NUMBER_OF_TEST_EDGES: int = 100
 
 
 def _new_kp_test_case_summary(trapi_version: str, biolink_version: str) -> Dict[str, Union[int, str, Dict]]:
@@ -534,7 +533,12 @@ def load_test_data_source(
 
     if test_data is not None:
 
-        # append test data to metadata
+        if 'url' in metadata and 'url' in test_data:
+            # Registry metadata 'url' value may now
+            # override the corresponding test_data value
+            test_data.pop('url')
+
+        # append/override test data to metadata
         metadata.update(test_data)
 
         metadata['location'] = source

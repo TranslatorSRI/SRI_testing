@@ -32,7 +32,15 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                     "test_data_location": "https://raw.githubusercontent.com/monarch-initiative/" +
                                           "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
                 }
-            }
+            },
+            "servers": [
+                {
+                    "description": "Default server",
+                    "url": "https://automat.renci.org/sri-reference-kg/1.3",
+                    "x-location": "ITRB",
+                    "x-maturity": "testing"
+                 }
+            ]
         },
         # {
         #     "info": {
@@ -49,7 +57,15 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
         #             "test_data_location": "https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/main/" +
         #                                   "tests/onehop/test_triples/KP/Unit_Test_KP/Test_KP_2.json"
         #         }
-        #     }
+        #     },
+        #     "servers": [
+        #         {
+        #             "description": "Default server",
+        #             "url": "https://automat.renci.org/sri-reference-kg/1.3",
+        #             "x-location": "ITRB",
+        #             "x-maturity": "testing"
+        #          }
+        #     ]
         # },
         #
         # Broken Mock ARA endpoint...
@@ -69,6 +85,14 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
         #                                   "tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json"
         #         }
         #     }
+        #     "servers": [
+        #         {
+        #             "description": "Default server",
+        #             "url": "https://automat.renci.org/sri-reference-kg/1.3",
+        #             "x-location": "ITRB",
+        #             "x-maturity": "testing"
+        #          }
+        #     ]
         # }
     ]
 }
