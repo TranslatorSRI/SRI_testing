@@ -139,8 +139,8 @@ For each ARA, we want to ensure that it is able to extract information correctly
     "url": "https://aragorn.renci.org/1.2",
     "infores": "aragorn",   
     "KPs": [
-        "Automat Panther",
-        "Automat Ontological Hierarchy"
+        "infores:automat-panther",
+        "infores:automat-ontological-hierarchy"
     ]
 }
 ```
