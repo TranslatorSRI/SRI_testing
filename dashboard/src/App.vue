@@ -1099,15 +1099,17 @@ export default {
                    }, {})
     },
     groupedResultMessagesByCode(resource_summary) {
-      return Object.entries(this.countResultMessagesByCode(resource_summary)).reduce((a, [code, frequency]) => {
+      const grouped_result_messages = Object.entries(this.countResultMessagesByCode(resource_summary)).reduce((a, [code, frequency]) => {
         const { type, subcode } = this.parseResultCode(code)
         a = _.set(a, [type, subcode], frequency)
         return a
       }, {
-        'warning': {},
         'error': {},
+        'warning': {},
         'info': {},
       })
+      // TODO: sort within group
+      return grouped_result_messages;
     },
   }
 }
