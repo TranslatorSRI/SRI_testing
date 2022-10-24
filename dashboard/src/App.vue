@@ -9,13 +9,7 @@
   <v-app>
 
     <v-container id="page-header">
-      <v-row no-gutter>
-        <span v-if="FEATURE_RUN_TEST_BUTTON">
-          <v-btn :class="['ml-36']"
-                 @click="triggerTestRun">Trigger new test run</v-btn>
-          &nbsp;&nbsp;</span>
-        <span v-if="FEATURE_RUN_TEST_BUTTON && FEATURE_RUN_TEST_SELECT" style="{ padding-top: 1px; }">OR
-          <span>&nbsp;&nbsp;</span></span>
+      <v-row>
         <!-- TODO: remove blur on click -->
         <v-select v-model="id"
                   :label="loading === null ? 'Choose a previous test run' : ''"
@@ -23,13 +17,21 @@
                   @click="handleTestRunSelection"
                   dense>
         </v-select>
-
+        <span v-if="FEATURE_RUN_TEST_BUTTON && FEATURE_RUN_TEST_SELECT" style="{ padding-top: 1px; }">
+          <span>&nbsp;&nbsp;</span>OR
+        </span>
+        <span v-if="FEATURE_RUN_TEST_BUTTON">
+          &nbsp;&nbsp;
+          <v-btn :class="['ml-36']"
+                 @click="triggerTestRun">
+            Trigger new test run
+          </v-btn>
+        </span>
       </v-row>
     </v-container>
 
     <v-container id="page-content">
-
-      <h1>{{ id }}</h1>
+      <h2>{{id}}</h2>
       <div class="subheading" v-if="loading === true">This may take a minute.</div>
       <v-progress-linear
         v-if="loading"
@@ -42,6 +44,21 @@
         <span class="subheading"><strong>BioLink:&nbsp;</strong></span><span>{{biolink_range}}</span>&nbsp;
         <span class="subheading"><strong>TRAPI:&nbsp;</strong></span><span>{{trapi_range}}</span>&nbsp;
       </span>
+      <v-row>
+
+                    <!-- TODO replace event handlers with single filter dispatch event -->
+                    <!-- Lift scope for translator filter to page scope -->
+                    <TranslatorFilter :index="index"
+                                      :subject_categories="subject_categories"
+                                      :predicates="predicates"
+                                      :object_categories="object_categories"
+                                      @kp_filter="$event => { kp_filter = $event }"
+                                      @ara_filter="$event => { ara_filter = $event }"
+                                      @predicate_filter="$event => { predicate_filter = $event }"
+                                      @subject_category_filter="$event => { subject_category_filter = $event }"
+                                      @object_category_filter="$event => { object_category_filter = $event }"
+                                      ></TranslatorFilter>
+      </v-row>
 
       <v-tabs v-if="!(loading === null)" v-model="tab">
         <v-tab v-for="item in ['Overview', 'Details']" v-bind:key="`${item}_tab`">
@@ -55,17 +72,20 @@
           v-bind:key="`${item}_tab_item`"
           >
           <div v-if="tab === 0" >
-            <v-row no-gutter>
+            <!-- <v-row no-gutter> -->
 
-              <!-- TODO replace event handlers with single filter dispatch event -->
-              <TranslatorFilter :index="index"
-                                @kp_filter="$event => { kp_filter = $event }"
-                                @ara_filter="$event => { ara_filter = $event }"
-                                @predicate_filter="$event => { predicate_filter = $event }"
-                                @subject_category_filter="$event => { subject_category_filter = $event }"
-                                @object_category_filter="$event => { object_category_filter = $event }"
-                                ></TranslatorFilter>
-            </v-row>
+            <!--   <\!-- TODO replace event handlers with single filter dispatch event -\-> -->
+            <!--   <TranslatorFilter :index="index" -->
+            <!--                     :subject_categories="subject_categories" -->
+            <!--                     :predicates="predicates" -->
+            <!--                     :object_categories="object_categories" -->
+            <!--                     @kp_filter="$event => { kp_filter = $event }" -->
+            <!--                     @ara_filter="$event => { ara_filter = $event }" -->
+            <!--                     @predicate_filter="$event => { predicate_filter = $event }" -->
+            <!--                     @subject_category_filter="$event => { subject_category_filter = $event }" -->
+            <!--                     @object_category_filter="$event => { object_category_filter = $event }" -->
+            <!--                     ></TranslatorFilter> -->
+            <!-- </v-row> -->
 
             <v-container v-bind:key="`${id}_overview`" id="page-overview" v-if="loading !== null">
 
@@ -76,8 +96,7 @@
                 ></v-skeleton-loader>
 
               <div v-else-if="stats_summary !== null && loading === false">
-                <h2>Test Results</h2>
-                <h3>All providers</h3><br>
+                <h2>All providers</h2><br>
 
                 <v-row no-gutter>
                   <v-col>
@@ -322,17 +341,7 @@
                 <v-col v-else-if="loading === false">
 
                   <v-row no-gutter>
-
-                    <!-- TODO replace event handlers with single filter dispatch event -->
-                    <TranslatorFilter :index="index"
-                                      @kp_filter="$event => { kp_filter = $event }"
-                                      @ara_filter="$event => { ara_filter = $event }"
-                                      @predicate_filter="$event => { predicate_filter = $event }"
-                                      @subject_category_filter="$event => { subject_category_filter = $event }"
-                                      @object_category_filter="$event => { object_category_filter = $event }"
-                                      ></TranslatorFilter>
-
-                    <v-col lg>
+                    <v-col sml>
                       <v-radio-group
                         v-model="outcome_filter"
                         row>
@@ -1221,7 +1230,7 @@ tr.v-row-group__header > td.text-start > button > span > i.mdi-close {
 
 /* For the barcharts so long names don't overlap */
 g.x-axis > g > g:nth-child(2n) text {
-    transform: translateY(12px);
+    transform: translateY(14px);
     transform-origin: left bottom;
     transform-box: fill-box;
 }
