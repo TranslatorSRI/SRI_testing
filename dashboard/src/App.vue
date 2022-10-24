@@ -431,7 +431,6 @@
                             <v-chip>Information: {{ selected_result_message_summary.information }}</v-chip>
                           </v-chip-group>
                           <v-treeview :items="selected_result_treeview" dense>
-
                             <template v-slot:prepend="{ item, open }">
                               <span v-if="!!item.data"></span>
                               <div v-else-if="!!item.outcome">
