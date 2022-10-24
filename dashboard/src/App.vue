@@ -16,10 +16,11 @@
           &nbsp;&nbsp;</span>
         <span v-if="FEATURE_RUN_TEST_BUTTON && FEATURE_RUN_TEST_SELECT" style="{ padding-top: 1px; }">OR
           <span>&nbsp;&nbsp;</span></span>
+        <!-- TODO: remove blur on click -->
         <v-select v-model="id"
                   :label="loading === null ? 'Choose a previous test run' : ''"
                   :items="test_runs_selections"
-                  @click="triggerReloadTestRunSelections"
+                  @click="handleTestRunSelection"
                   dense>
         </v-select>
 
@@ -55,6 +56,8 @@
           >
           <div v-if="tab === 0" >
             <v-row no-gutter>
+
+              <!-- TODO replace event handlers with single filter dispatch event -->
               <TranslatorFilter :index="index"
                                 @kp_filter="$event => { kp_filter = $event }"
                                 @ara_filter="$event => { ara_filter = $event }"
@@ -196,7 +199,6 @@
                         </v-col>
                       </v-row>
 
-
                       <!-- Not all ARAs have the same KPs. So need to check for the joint key explicitly. -->
                       <TranslatorCategoriesList
                         v-if="categories_index !== null && categories_index !== {} && !!categories_index[ara+'_'+kp]"
@@ -321,6 +323,7 @@
 
                   <v-row no-gutter>
 
+                    <!-- TODO replace event handlers with single filter dispatch event -->
                     <TranslatorFilter :index="index"
                                       @kp_filter="$event => { kp_filter = $event }"
                                       @ara_filter="$event => { ara_filter = $event }"
@@ -354,7 +357,6 @@
                   </v-row>
 
                   <v-row no-gutter>
-                    <!-- <v-col :cols="data_table_current_item === null ? 'auto' : 8"> -->
                     <v-col :cols="8">
                       <v-data-table
                         :headers="_headers"
@@ -367,8 +369,6 @@
                         dense>
 
                         <!-- TODO: group title formatting and tooltip. potentially just put in the summary? -->
-                        <template v-slot:group.summary="{ group }">
-                        </template>
 
                         <template v-slot:item="{ item }">
                           <tr @mouseover="() => {
@@ -390,13 +390,6 @@
 
                               <a v-if="!!result.outcome">
                                 {{ stateIcon(result.outcome) }}
-                                <!-- {{ -->
-                                <!-- Object.entries(result.validation) -->
-                                <!-- .reduce((a, i) => { -->
-                                <!-- if (!!a[i[0]]) { a[i[0]] += i[1].length } else { a[i[0]] = i[1].length } -->
-                                <!--   return a -->
-                                <!-- }, {}) -->
-                                <!-- }} -->
                               </a>
 
                               <span v-else-if="test === 'spec'">
@@ -423,8 +416,7 @@
                       </v-data-table>
                     </v-col>
                     <v-col :cols="4">
-                    <!-- <v-col :cols="4" :hidden="data_table_current_item === null"> -->
-                      <v-card class="mx-auto" style="{ maxHeight: 'inherit' }">
+                      <v-card class="details-sidebar-card" :style="{ maxHeight: `${height}`, overflow: 'scroll' }">
                         <v-card-text v-if="data_table_current_item === null">
                           Hover over a row to show its test results.<br>
                           Click a row to keep its test results displayed.<br>
@@ -434,27 +426,19 @@
                           <h2>{{ formatEdge(data_table_current_item["spec"]) }}</h2><br>
                           <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
                           <v-chip-group>
-                            <v-chip>Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
                             <v-chip>Errors: {{ selected_result_message_summary.errors }}</v-chip>
+                            <v-chip>Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
                             <v-chip>Information: {{ selected_result_message_summary.information }}</v-chip>
                           </v-chip-group>
                           <v-treeview :items="selected_result_treeview" dense>
+
                             <template v-slot:prepend="{ item, open }">
                               <span v-if="!!item.data"></span>
                               <div v-else-if="!!item.outcome">
                                 {{ stateIcon(item.outcome, icon_only=true) }}
                               </div>
-                              <v-icon v-else-if="item.name === 'warnings'" small>
-                                mdi-alert
-                              </v-icon>
-                              <v-icon v-else-if="item.name === 'errors'" small>
-                                mdi-cancel
-                              </v-icon>
-                              <v-icon v-else-if="item.name === 'information'" small>
-                                mdi-information
-                              </v-icon>
-                              <v-icon v-else-if="!!item.children && item.children.length === 0" small>
-                                mdi-checkbox-blank-circle
+                              <v-icon v-else small>
+                                {{ item.name === 'warnings' ? 'mdi-alerts' : item.name === 'errors' ? 'mdi-cancel' : item.name === 'information' ? 'mdi-information' : !!item.children && item.children.length === 0 ? 'mdi-checkbox-blank-circle' : '' }}
                               </v-icon>
                             </template>
                             <template v-slot:label="{ item }">
@@ -473,32 +457,29 @@
                               </span>
                             </template>
                             <template v-slot:append="{ item }">
-                              <span v-if="['warnings', 'errors', 'information'].includes(item.name)">
+                              <span v-if="['errors', 'warnings', 'information'].includes(item.name)">
                                 {{ item.children.length }}
                               </span>
                               <span v-else-if="!!!item.data">
                                 {{ !!item.children && item.children.length > 0 ? item.children.reduce((a, i) => !!i.children ? a += i.children.length : a, 0) : ''}}
                               </span>
                             </template>
+
                           </v-treeview>
                         </v-card-text>
-      </v-card>
-    </v-col>
-  </v-row>
-    </v-col>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                </v-col>
+              </v-row>
+            </v-container>
+          </div>
 
-  </v-row>
-  </v-container>
-  </div>
-
-  </v-tab-item>
-</v-tabs-items>
-  </v-container>
-
-<div id="app">
-
-</div>
-</v-app>
+        </v-tab-item>
+      </v-tabs-items>
+    </v-container>
+    <div id="app"></div>
+  </v-app>
 </div>
 </template>
 
@@ -579,6 +560,7 @@ export default {
             predicates: [],
             categories_index: null,
             resources: {},
+            data_table_selected: null,
             data_table_selected_item: null,
             data_table_current_item: null,
             data_table_hold_selection: false,
@@ -661,7 +643,6 @@ export default {
         },
         selected_result_treeview() {
             if (!!!this.data_table_current_item) return []
-            console.log(this.data_table_current_item)
             return Object.entries(this.data_table_current_item)
                 .filter(a => !['spec', '_id', 'information', 'errors', 'warnings'].includes(a[0]))
                 .map(a => ({
@@ -670,11 +651,11 @@ export default {
                     'children': Object.entries(a[1].validation)
                         .map(a => ({
                             'name': a[0],
-                            'children': a[1]
+                            'children': _(a[1]
                                 .map(el => ({
                                     'name': "",
                                     'data': el,
-                                }))
+                                }))).uniqBy(object_signature).value()
                         }))
                         .sort((a,b) => a.children.length <= b.children.length)
                 }))
@@ -734,8 +715,8 @@ export default {
         },
         _headers() {
             return this.headers
-                .concat(["information", "errors", "warnings"])
-                .sort(orderByArrayFunc(['spec', 'information', 'errors', 'warnings']))
+                .concat(['errors', 'information', 'warnings'])
+                .sort(orderByArrayFunc(['spec', 'errors', 'information', 'warnings']))
                 .map(el => ({
                     text: el,
                     value: el,
@@ -762,7 +743,7 @@ export default {
 
       // sort keys
       const ___cells = __cells.map(cell =>
-          Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'information', 'errors', 'warnings'])(a, b))));
+          Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'errors', 'information', 'warnings'])(a, b))));
 
       const denormalized_cells = ___cells
       // TODO: combine into one loop
@@ -788,6 +769,13 @@ export default {
 
   },
   methods: {
+    handleTestRunSelection ($event) {
+        // TODO:
+        // // undo focus to ensure scrolling with arrow keys won't suddenly change the user's selected dataset
+        // $event.target.blur()
+        // console.log($event.target.parentNode)
+        this.triggerReloadTestRunSelections()
+    },
     async triggerReloadTestRunSelections() {
       await axios.get(`/test_runs`).then(response => {
         this.test_runs_selections = response.data.test_runs;
@@ -952,9 +940,9 @@ export default {
                    .then(response => {
                      console.log("response")
                      if (response.status === "fulfilled") {
-                       const  { headers, cells, edges, tests } = _makeTableData(response.value.resource_id, response.value.data.summary);
-                       console.log("making table data", { headers, cells, edges, tests })
-                       this.headers = Array.from(new Set(this.headers.concat(headers)));
+                       const  { headers, cells  } = _makeTableData(response.value.resource_id, response.value.data.summary);
+                       console.log("making table data", { headers, cells })
+                       this.headers = Array.from(_.uniq(this.headers.concat(headers)));
                        this.cells = _.cloneDeep(this.cells).concat(cells);
                      }
                    })
@@ -980,7 +968,7 @@ export default {
     countBy: _.countBy,
 
     // custom methods for application testing
-    tap: el => { console.log("hello", el, VuePursue(el)); return el },
+    tap: el => { console.log("hello", el, this); return el },
 
     omit: (...keys) => object => omit(object, keys),
     pick: (...keys) => object => pick(object, keys),
@@ -1031,13 +1019,13 @@ export default {
       return curie.split(':')[1];
     },
     countResultMessages(edge_result) {
-      return Object.entries(edge_result).reduce((acc, item) => {
+      return Object.entries(edge_result).reduce(function (acc, item) {
         if (!!item[1] && !!item[1].validation) {
           const { validation } = item[1];
           const { information, errors, warnings } = validation;
-          acc.information += information.length;
-          acc.errors += errors.length;
-          acc.warnings += warnings.length;
+          acc.information += _.uniqBy(information, object_signature).length
+          acc.errors += _.uniqBy(errors, object_signature).length;
+          acc.warnings += _.uniqBy(warnings, object_signature).length;
         }
         return acc
       }, {
@@ -1049,7 +1037,7 @@ export default {
     parseResultCode(code) {
       const type = code.split('.')[0]
       const subcode = code.split('.').slice(1).join('.');
-      console.log(code, code.split('.'), type, subcode)
+      // console.log(code, code.split('.'), type, subcode)
       return {
         type,
         subcode
@@ -1094,11 +1082,16 @@ function orderByPlaceInArray(iterable, array) {
     return iterable.sort(orderByArrayFunc(array))
 }
 
-// console.warn(orderByPlaceInArray([], ['spec', 'information', 'warnings', 'errors']))
-// console.warn(orderByPlaceInArray(['spec', 'information', 'warnings', 'errors'], ['spec', 'information', 'warnings', 'errors']))
-// console.warn(orderByPlaceInArray(['a', 'b', 'c'], ['spec', 'information', 'warnings', 'errors']))
-// console.warn(orderByPlaceInArray(['spec', 'information', 'warnings', 'errors'].reverse(), ['spec', 'information', 'warnings', 'errors']))
-// console.warn(orderByPlaceInArray(['spec', 'information', 'warnings', 'errors'].concat(['a', 'b', 'c']), ['spec', 'information', 'warnings', 'errors']))
+function object_signature(el) {
+    return Object.entries(el).flatMap(i=>i).join(';')
+}
+
+// const orderByPlaceInArray_test_case = ['spec', 'information', 'warnings', 'errors']
+// console.warn(orderByPlaceInArray([], orderByPlaceInArray_test_case))
+// console.warn(orderByPlaceInArray(orderByPlaceInArray_test_case, orderByPlaceInArray_test_case))
+// console.warn(orderByPlaceInArray(['a', 'b', 'c'], orderByPlaceInArray_test_case))
+// console.warn(orderByPlaceInArray(orderByPlaceInArray_test_case.reverse(), orderByPlaceInArray_test_case))
+// console.warn(orderByPlaceInArray(orderByPlaceInArray_test_case.concat(['a', 'b', 'c']), orderByPlaceInArray_test_case))
 
 // jsonpath
 // queries based on schema circa Aug 5th 2022
@@ -1205,7 +1198,18 @@ g.x-axis > g > g:nth-child(2n) line {
 ul.noindent {
     margin-left: 5px;
     margin-right: 0px;
-    padding-left: 10px;
+    padding-left: 15px;
     padding-right: 0px;
+}
+
+.details-sidebar-card {
+    overflow-y: scroll;
+}
+.details-sidebar-card .v-treeview-node__content > .v-treeview-node__prepend {
+    min-width: 0;
+}
+
+.details-sidebar-card ul {
+    overflow-x: scroll
 }
 </style>
