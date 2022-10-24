@@ -357,6 +357,7 @@
                   </v-row>
 
                   <v-row no-gutter>
+
                     <v-col :cols="8">
                       <v-data-table
                         :headers="_headers"
@@ -415,8 +416,9 @@
                         </template>
                       </v-data-table>
                     </v-col>
+
                     <v-col :cols="4">
-                      <v-card class="details-sidebar-card" :style="{ maxHeight: `${height}`, overflow: 'scroll' }">
+                      <v-card class="details-sidebar-card">
                         <v-card-text v-if="data_table_current_item === null">
                           Hover over a row to show its test results.<br>
                           Click a row to keep its test results displayed.<br>
@@ -426,23 +428,31 @@
                           <h2>{{ formatEdge(data_table_current_item["spec"]) }}</h2><br>
                           <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
                           <v-chip-group>
-                            <v-chip>Errors: {{ selected_result_message_summary.errors }}</v-chip>
-                            <v-chip>Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
-                            <v-chip>Information: {{ selected_result_message_summary.information }}</v-chip>
+                            <v-chip><v-icon small>mdi-cancel</v-icon>&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
+                            <v-chip><v-icon small>mdi-alert</v-icon>&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
+                            <v-chip><v-icon small>mdi-information</v-icon>&nbsp;Information: {{ selected_result_message_summary.information }}</v-chip>
                           </v-chip-group>
                           <v-treeview :items="selected_result_treeview" dense>
+
                             <template v-slot:prepend="{ item, open }">
+
                               <span v-if="!!item.data"></span>
+
                               <div v-else-if="!!item.outcome">
                                 {{ stateIcon(item.outcome, icon_only=true) }}
                               </div>
+
                               <v-icon v-else small>
-                                {{ item.name === 'warnings' ? 'mdi-alerts' : item.name === 'errors' ? 'mdi-cancel' : item.name === 'information' ? 'mdi-information' : !!item.children && item.children.length === 0 ? 'mdi-checkbox-blank-circle' : '' }}
-                              </v-icon>
+                                 {{ item.name === 'warnings' ? 'mdi-alert'
+                                 : item.name === 'errors' ? 'mdi-cancel'
+                                 : item.name === 'information' ? 'mdi-information'
+                                 : !!item.children && item.children.length === 0 ? 'mdi-checkbox-blank-circle' : ''
+                                }}
+                             </v-icon>
                             </template>
                             <template v-slot:label="{ item }">
                               <span v-if="!!item.data">
-                                <ul class="noindent">
+                                <ul>
                                   <li>{{parseResultCode(item.data.code).subcode}}</li>
                                   <ul class="noindent">
                                     <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="hash(result_data)+Math.random()">
@@ -460,7 +470,17 @@
                                 {{ item.children.length }}
                               </span>
                               <span v-else-if="!!!item.data">
-                                {{ !!item.children && item.children.length > 0 ? item.children.reduce((a, i) => !!i.children ? a += i.children.length : a, 0) : ''}}
+                                <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="hash(item)+hash([name, val])+i">
+                                  <span v-if="val > 0">
+                                  <v-icon small>
+                                    {{ name === 'warnings' ? 'mdi-alert'
+                                    : name === 'errors' ? 'mdi-cancel'
+                                    : name === 'information' ? 'mdi-information'
+                                    : ''
+                                    }}
+                                  </v-icon>&nbsp;{{ val }}
+                                  </span>
+                                </span>
                               </span>
                             </template>
 
@@ -471,6 +491,7 @@
                   </v-row>
                 </v-col>
               </v-row>
+
             </v-container>
           </div>
 
@@ -632,9 +653,9 @@ export default {
         selected_result_message_summary() {
             if (!!!this.data_table_current_item) {
                 return {
-                    "information": 0,
                     "errors": 0,
                     "warnings": 0,
+                    "information": 0,
                 }
             }
             return this.countResultMessages(this.data_table_current_item)
@@ -650,11 +671,12 @@ export default {
                     'children': Object.entries(a[1].validation)
                         .map(a => ({
                             'name': a[0],
-                            'children': _(a[1]
+                            'children': _(a[1])
+                                .uniqBy(object_signature).value()
                                 .map(el => ({
                                     'name': "",
                                     'data': el,
-                                }))).uniqBy(object_signature).value()
+                                }))
                         }))
                         .sort((a,b) => a.children.length <= b.children.length)
                 }))
@@ -729,261 +751,261 @@ export default {
                         else
                             return a - b;
                     }
-            }))
-    },
-    denormalized_cells() {
+                }))
+        },
+        denormalized_cells() {
 
-      // inject new columns for message counts
-      const __cells = this.cells.map(el => ({
-        ...Object.fromEntries(this.headers.map(header => [header, {}])),
-        ...el,
-        ...this.countResultMessages(el),
-      }));
-
-      // sort keys
-      const ___cells = __cells.map(cell =>
-          Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'errors', 'information', 'warnings'])(a, b))));
-
-      const denormalized_cells = ___cells
-      // TODO: combine into one loop
-            .filter(el => !isString(el))
-            .filter(cell => Object.entries(cell).some(entry => this.outcome_filter !== "all" ? entry[1].outcome === this.outcome_filter : true))
-            .filter(el => {
-              return this.subject_category_filter.length > 0 ? this.subject_category_filter.includes(el.spec.subject_category) : true
-                && this.predicate_filter.length > 0 ? this.predicate_filter.includes(el.spec.predicate) : true
-                && this.object_category_filter > 0 ? this.object_category_filter.includes(el.spec.object_category) : true
-            })
-            .filter(el => this.ara_filter.length > 0 || this.kp_filter.length > 0 ?
-                    _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(el._id, provider_name)) || _.some(this.kp_filter, kp => _.includes(el._id, kp))
-                    : true);
-      return this.kp_selections.length > 0 || this.ara_selections.length > 0 ?
-        denormalized_cells
-        .filter(cell => this.kp_selections.some(el =>
-          (el.includes(cell._id)
-           || this.kps_only ? el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]) : false)
-            || this.ara_selections.some(el => el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]))))
-        : denormalized_cells
-
-    },
-
-  },
-  methods: {
-    handleTestRunSelection ($event) {
-        // TODO:
-        // // undo focus to ensure scrolling with arrow keys won't suddenly change the user's selected dataset
-        // $event.target.blur()
-        // console.log($event.target.parentNode)
-        this.triggerReloadTestRunSelections()
-    },
-    async triggerReloadTestRunSelections() {
-      await axios.get(`/test_runs`).then(response => {
-        this.test_runs_selections = response.data.test_runs;
-      })
-    },
-    async triggerTestRun() {
-      axios.post(`/run_tests`, {}).then(response => {
-        this.id = response.data.test_run_id;
-      }).then(() => {
-        // refresh the test runs list
-        this.triggerReloadTestRunSelections()
-      })
-    },
-    status_color: (status) => status === "passed" ? "#00ff00"
-      : status === "skipped" ? "#f0e68c"
-      : status === "failed" ? "#f08080"
-      : "#000000",
-    denormalize_provider_summary(provider_summary, provider_key) {
-      return Object.entries(provider_summary.results)
-                   .flatMap((([field, value]) => Object.keys(value)
-                                                       .map(i => [provider_key, field, i, value[i]])))
-                   .map(item => ({
-                     'provider': item[0],
-                     'test': item[1],
-                     'label': item[2],
-                     'value': item[3]
-                   }))
-    },
-    combine_provider_summaries(provider_summary) {
-      const denormalized_kps = Object.keys(provider_summary.KP).flatMap(kp => Object.entries(provider_summary.KP[kp].results).map(el => ({ 'name': el[0], ...el[1]})))
-      const denormalized_aras = Object.keys(provider_summary.ARA).flatMap(ara => {
-        return Object.keys(provider_summary.ARA[ara].kps).flatMap(kp => Object.entries(provider_summary.KP[kp].results).map(el => ({ 'name': el[0], ...el[1]})))
-      })
-      return [...denormalized_kps, ...denormalized_aras];
-    },
-    reduce_provider_summary(denormalized_provider_summary) {
-      const tally = {
-        "passed": 0,
-        "failed": 0,
-        "skipped": 0,
-      };
-      denormalized_provider_summary.forEach(({ label, value }) => {
-        tally[label] += value;
-      });
-      return Object.entries(tally).map(([label, value]) => ({
-        label,
-        value,
-        color: this.status_color(label)
-      }))
-    },
-    reduce_provider_by_group(data) {
-      const ans = _(data)
-            .groupBy('name')
-            .map((obj, id) => ({
-              name: id,
-              passed: _.sumBy(obj, 'passed'),
-              failed: _.sumBy(obj, 'failed'),
-              skipped: _.sumBy(obj, 'skipped'),
-            }))
-            .value()
-      return ans
-    },
-    async getAllCategories(id, index) {
-      const categories = {
-        subject_category: [],
-        predicate: [],
-        object_category: [],
-      };
-      const addFromKPs = (id, kpSummary) => {
-        Object.values(kpSummary.test_edges).forEach(el => {
-          if (isObject(el)) {
-
-            let pre_categories_index = _.clone(this.categories_index);
-
-            if (pre_categories_index === null) {
-              pre_categories_index = {};
-            }
-            if (!!!pre_categories_index[id]) {
-              pre_categories_index[id] = {};
-              pre_categories_index[id].subject_category = [];
-              pre_categories_index[id].object_category = [];
-              pre_categories_index[id].predicate = [];
-            }
-
-            pre_categories_index[id].subject_category.push(el.test_data.subject_category);
-            pre_categories_index[id].predicate.push(el.test_data.predicate);
-            pre_categories_index[id].object_category.push(el.test_data.object_category);
-            this.categories_index = pre_categories_index;
-
-            categories.subject_category.push(el.test_data.subject_category)
-            categories.predicate.push(el.test_data.predicate)
-            categories.object_category.push(el.test_data.object_category)
-          }
-        });
-
-      }
-      index.KP.forEach(async kp_id => {
-        await axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}`)
-                   .then(response => {
-                     this.resources = {
-                       ...this.resources,
-                       [kp_id]: response.data.summary
-                     }
-                     return response
-                   })
-                   .then(response => addFromKPs(kp_id, response.data.summary))
-      });
-      Object.keys(index.ARA)
-            .forEach(ara_id => {
-              index.ARA[ara_id].forEach(async kp_id => {
-                await axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}&ara_id=${ara_id}`)
-                           .then(response => {
-                             this.resources = {
-                               ...this.resources,
-                               [ara_id+'_'+kp_id]: response.data.summary
-                             }
-                             return response
-                           })
-                           .then(response => addFromKPs(`${ara_id}_${kp_id}`, response.data.summary))
-              })
-            });
-      // set the state directly for async updates
-      // TODO: turn into incremental?
-      this.subject_categories = categories.subject_category;
-      this.object_categories = categories.object_category;
-      this.predicates = categories.predicate;
-      return categories;
-    },
-    flatten_ara_keys(ARAIndex, delimiter='_') {
-      return Object.entries(ARAIndex).flatMap(([ara, entry]) => Object.values(entry).map(kp => ara+delimiter+kp))
-    },
-    makeTableData(id, stats_summary) {
-      console.log("call makeTableData", id)
-      const report = Promise.resolve(stats_summary).then(response => {
-        if (response !== null) {
-          const { KP={}, ARA={} } = response;
-          const kp_details = Object.entries(KP).map(([resource_id, value]) => {
-            return axios.get(`/resource?test_run_id=${id}&kp_id=${resource_id}`).then(el => {
-              return {
-                resource_id,  // inject the resource_id into the response
+            // inject new columns for message counts
+            const __cells = this.cells.map(el => ({
+                ...Object.fromEntries(this.headers.map(header => [header, {}])),
                 ...el,
-              }
-            })
-          });
-          const ara_details = Object.entries(ARA).map(([resource_id, value]) => {
-            return Object.keys(value.kps)
-                         .map(key => axios.get(`/resource?test_run_id=${id}&ara_id=${resource_id}&kp_id=${key}`)
-                                          .then(el => {
-                                            return {
-                                              resource_id: `${resource_id}>${key}`,
-                                              ...el,
-                                            }
-                                          }))
-          });
-          return Promise.all(
-            [...kp_details, ...ara_details.flatMap(i=>i)]
-              .map(p => p
-                   .then(value => ({
-                     status: "fulfilled",
-                     value
-                   }))
-                   .then(response => {
-                     console.log("response")
-                     if (response.status === "fulfilled") {
-                       const  { headers, cells  } = _makeTableData(response.value.resource_id, response.value.data.summary);
-                       console.log("making table data", { headers, cells })
-                       this.headers = Array.from(_.uniq(this.headers.concat(headers)));
-                       this.cells = _.cloneDeep(this.cells).concat(cells);
-                     }
-                   })
-                   .catch(reason => ({
-                     status: "rejected",
-                     reason
-                   })))
-          )
-        } else {
-          return null;
-        }
-      })
-                            .then(responses => {
-                              this.loading = false;
-                              this.status = -1;
-                            });
+                ...this.countResultMessages(el),
+            }));
+
+            // sort keys
+            const ___cells = __cells.map(cell =>
+                Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'errors', 'information', 'warnings'])(a, b))));
+
+            const denormalized_cells = ___cells
+            // TODO: combine into one loop
+                  .filter(el => !isString(el))
+                  .filter(cell => Object.entries(cell).some(entry => this.outcome_filter !== "all" ? entry[1].outcome === this.outcome_filter : true))
+                  .filter(el => {
+                      return this.subject_category_filter.length > 0 ? this.subject_category_filter.includes(el.spec.subject_category) : true
+                          && this.predicate_filter.length > 0 ? this.predicate_filter.includes(el.spec.predicate) : true
+                          && this.object_category_filter > 0 ? this.object_category_filter.includes(el.spec.object_category) : true
+                  })
+                  .filter(el => this.ara_filter.length > 0 || this.kp_filter.length > 0 ?
+                          _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(el._id, provider_name)) || _.some(this.kp_filter, kp => _.includes(el._id, kp))
+                          : true);
+            return this.kp_selections.length > 0 || this.ara_selections.length > 0 ?
+                denormalized_cells
+                .filter(cell => this.kp_selections.some(el =>
+                    (el.includes(cell._id)
+                     || this.kps_only ? el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]) : false)
+                        || this.ara_selections.some(el => el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]))))
+                : denormalized_cells
+
+        },
+
     },
+    methods: {
+        handleTestRunSelection ($event) {
+            // TODO:
+            // // undo focus to ensure scrolling with arrow keys won't suddenly change the user's selected dataset
+            // $event.target.blur()
+            // console.log($event.target.parentNode)
+            this.triggerReloadTestRunSelections()
+        },
+        async triggerReloadTestRunSelections() {
+            await axios.get(`/test_runs`).then(response => {
+                this.test_runs_selections = response.data.test_runs;
+            })
+        },
+        async triggerTestRun() {
+            axios.post(`/run_tests`, {}).then(response => {
+                this.id = response.data.test_run_id;
+            }).then(() => {
+                // refresh the test runs list
+                this.triggerReloadTestRunSelections()
+            })
+        },
+        status_color: (status) => status === "passed" ? "#00ff00"
+            : status === "skipped" ? "#f0e68c"
+            : status === "failed" ? "#f08080"
+            : "#000000",
+        denormalize_provider_summary(provider_summary, provider_key) {
+            return Object.entries(provider_summary.results)
+                .flatMap((([field, value]) => Object.keys(value)
+                          .map(i => [provider_key, field, i, value[i]])))
+                .map(item => ({
+                    'provider': item[0],
+                    'test': item[1],
+                    'label': item[2],
+                    'value': item[3]
+                }))
+        },
+        combine_provider_summaries(provider_summary) {
+            const denormalized_kps = Object.keys(provider_summary.KP).flatMap(kp => Object.entries(provider_summary.KP[kp].results).map(el => ({ 'name': el[0], ...el[1]})))
+            const denormalized_aras = Object.keys(provider_summary.ARA).flatMap(ara => {
+                return Object.keys(provider_summary.ARA[ara].kps).flatMap(kp => Object.entries(provider_summary.KP[kp].results).map(el => ({ 'name': el[0], ...el[1]})))
+            })
+            return [...denormalized_kps, ...denormalized_aras];
+        },
+        reduce_provider_summary(denormalized_provider_summary) {
+            const tally = {
+                "passed": 0,
+                "failed": 0,
+                "skipped": 0,
+            };
+            denormalized_provider_summary.forEach(({ label, value }) => {
+                tally[label] += value;
+            });
+            return Object.entries(tally).map(([label, value]) => ({
+                label,
+                value,
+                color: this.status_color(label)
+            }))
+        },
+        reduce_provider_by_group(data) {
+            const ans = _(data)
+                  .groupBy('name')
+                  .map((obj, id) => ({
+                      name: id,
+                      passed: _.sumBy(obj, 'passed'),
+                      failed: _.sumBy(obj, 'failed'),
+                      skipped: _.sumBy(obj, 'skipped'),
+                  }))
+                  .value()
+            return ans
+        },
+        async getAllCategories(id, index) {
+            const categories = {
+                subject_category: [],
+                predicate: [],
+                object_category: [],
+            };
+            const addFromKPs = (id, kpSummary) => {
+                Object.values(kpSummary.test_edges).forEach(el => {
+                    if (isObject(el)) {
+
+                        let pre_categories_index = _.clone(this.categories_index);
+
+                        if (pre_categories_index === null) {
+                            pre_categories_index = {};
+                        }
+                        if (!!!pre_categories_index[id]) {
+                            pre_categories_index[id] = {};
+                            pre_categories_index[id].subject_category = [];
+                            pre_categories_index[id].object_category = [];
+                            pre_categories_index[id].predicate = [];
+                        }
+
+                        pre_categories_index[id].subject_category.push(el.test_data.subject_category);
+                        pre_categories_index[id].predicate.push(el.test_data.predicate);
+                        pre_categories_index[id].object_category.push(el.test_data.object_category);
+                        this.categories_index = pre_categories_index;
+
+                        categories.subject_category.push(el.test_data.subject_category)
+                        categories.predicate.push(el.test_data.predicate)
+                        categories.object_category.push(el.test_data.object_category)
+                    }
+                });
+
+            }
+            index.KP.forEach(async kp_id => {
+                await axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}`)
+                    .then(response => {
+                        this.resources = {
+                            ...this.resources,
+                            [kp_id]: response.data.summary
+                        }
+                        return response
+                    })
+                    .then(response => addFromKPs(kp_id, response.data.summary))
+            });
+            Object.keys(index.ARA)
+                .forEach(ara_id => {
+                    index.ARA[ara_id].forEach(async kp_id => {
+                        await axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}&ara_id=${ara_id}`)
+                            .then(response => {
+                                this.resources = {
+                                    ...this.resources,
+                                    [ara_id+'_'+kp_id]: response.data.summary
+                                }
+                                return response
+                            })
+                            .then(response => addFromKPs(`${ara_id}_${kp_id}`, response.data.summary))
+                    })
+                });
+            // set the state directly for async updates
+            // TODO: turn into incremental?
+            this.subject_categories = categories.subject_category;
+            this.object_categories = categories.object_category;
+            this.predicates = categories.predicate;
+            return categories;
+        },
+        flatten_ara_keys(ARAIndex, delimiter='_') {
+            return Object.entries(ARAIndex).flatMap(([ara, entry]) => Object.values(entry).map(kp => ara+delimiter+kp))
+        },
+        makeTableData(id, stats_summary) {
+            console.log("call makeTableData", id)
+            const report = Promise.resolve(stats_summary).then(response => {
+                if (response !== null) {
+                    const { KP={}, ARA={} } = response;
+                    const kp_details = Object.entries(KP).map(([resource_id, value]) => {
+                        return axios.get(`/resource?test_run_id=${id}&kp_id=${resource_id}`).then(el => {
+                            return {
+                                resource_id,  // inject the resource_id into the response
+                                ...el,
+                            }
+                        })
+                    });
+                    const ara_details = Object.entries(ARA).map(([resource_id, value]) => {
+                        return Object.keys(value.kps)
+                            .map(key => axios.get(`/resource?test_run_id=${id}&ara_id=${resource_id}&kp_id=${key}`)
+                                 .then(el => {
+                                     return {
+                                         resource_id: `${resource_id}>${key}`,
+                                         ...el,
+                                     }
+                                 }))
+                    });
+                    return Promise.all(
+                        [...kp_details, ...ara_details.flatMap(i=>i)]
+                            .map(p => p
+                                 .then(value => ({
+                                     status: "fulfilled",
+                                     value
+                                 }))
+                                 .then(response => {
+                                     console.log("response")
+                                     if (response.status === "fulfilled") {
+                                         const  { headers, cells  } = _makeTableData(response.value.resource_id, response.value.data.summary);
+                                         console.log("making table data", { headers, cells })
+                                         this.headers = Array.from(_.uniq(this.headers.concat(headers)));
+                                         this.cells = _.cloneDeep(this.cells).concat(cells);
+                                     }
+                                 })
+                                 .catch(reason => ({
+                                     status: "rejected",
+                                     reason
+                                 })))
+                    )
+                } else {
+                    return null;
+                }
+            })
+                  .then(responses => {
+                      this.loading = false;
+                      this.status = -1;
+                  });
+        },
 
 
-    // import methods from packages
-    hash,
-    isObject,
-    countBy: _.countBy,
+        // import methods from packages
+        hash,
+        isObject,
+        countBy: _.countBy,
 
-    // custom methods for application testing
-    tap: el => { console.log("hello", el, this); return el },
+        // custom methods for application testing
+        tap: el => { console.log("hello", el, this); return el },
 
-    omit: (...keys) => object => omit(object, keys),
-    pick: (...keys) => object => pick(object, keys),
-    notEmpty: (list) => list.filter(el => el !== ""),
+        omit: (...keys) => object => omit(object, keys),
+        pick: (...keys) => object => pick(object, keys),
+        notEmpty: (list) => list.filter(el => el !== ""),
 
-    // `custom-filter` in v-data-table props: https://vuetifyjs.com/en/api/v-data-table/#props
-    searchMatches: _searchMatches,
+        // `custom-filter` in v-data-table props: https://vuetifyjs.com/en/api/v-data-table/#props
+        searchMatches: _searchMatches,
 
-    // adjust cell style:
-    // TODO - move on to use style classes instead
-    cellStyle (state) {
-      // getComputedStyle(document.querySelector("td")).backgroundColor
+        // adjust cell style:
+        // TODO - move on to use style classes instead
+        cellStyle (state) {
+            // getComputedStyle(document.querySelector("td")).backgroundColor
 
-      let color = "black";
-      let backgroundColor = "none";
-      if (state === "passed" || state=== "failed") {
+            let color = "black";
+            let backgroundColor = "none";
+            if (state === "passed" || state=== "failed") {
         color = "white";
         backgroundColor = this.status_color(state);
       } else if (state === "skipped") {
@@ -1028,10 +1050,24 @@ export default {
         }
         return acc
       }, {
-        information: 0,
         errors: 0,
         warnings: 0,
+        information: 0,
       })
+    },
+    countResultMessagesWithCode(messages) {
+        const initial_count = {
+            errors: 0,
+            warnings: 0,
+            information: 0,
+        }
+        if (!!!messages) return initial_count;
+        return messages.reduce((a, i) => {
+            if (i.code.startsWith('warning')) a['warnings'] += 1;
+            if (i.code.startsWith('info')) a['information'] += 1;
+            if (i.code.startsWith('error')) a['errors'] += 1;
+            return a;
+        }, initial_count)
     },
     parseResultCode(code) {
       const type = code.split('.')[0]
@@ -1194,11 +1230,13 @@ g.x-axis > g > g:nth-child(2n) line {
     transform-origin: top;
     transform-box: fill-box;
 }
+
 ul.noindent {
     margin-left: 5px;
     margin-right: 0px;
     padding-left: 15px;
     padding-right: 0px;
+    padding-bottom: 15px;
 }
 
 .details-sidebar-card {
@@ -1209,6 +1247,6 @@ ul.noindent {
 }
 
 .details-sidebar-card ul {
-    overflow-x: scroll
+    overflow-x: scroll;
 }
 </style>
