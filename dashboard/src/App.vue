@@ -516,7 +516,6 @@
 /* eslint-disable */
 
 import jp from 'jsonpath';
-import jsonQuery from 'json-query';
 import hash from "object-hash";
 
 import omit from "lodash.omit";
