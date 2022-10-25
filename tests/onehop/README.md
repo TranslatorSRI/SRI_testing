@@ -24,17 +24,21 @@ The default operation of SRI Testing now relies on the interrogation of the Tran
 - **info.x-translator.biolink-version:** _must_ be set to the actual Biolink Model release to which the given KP or ARA is asserting compliance. Validation to the 'wrong' Biolink Model version will generate unnecessary validation errors!
 - **info.x-trapi.version:** _must_ be set to the TRAPI version to which the given KP or ARA is asserting compliance.
 - **info.x-trapi.test_data_location:** _must_ be a public REST resource URL dereferencing the online JSON test configuration file (see KP and ARA instructions below). This can typically (although not necessarily) be a URL to a Github public repository hosted file (note: this can be 'rawdata' URL or a regular Github URL - the latter is automatically rewritten to a 'rawdata' access for file retrieval). If a non-Github URL is given, it should be visible on the internet without authentication.
-- **servers block:** testing now sets the TRAPI server endpoint for testing using a **`url`** specified in the Registry 'servers' block. Lack of standardization of testing targets means that the system is currently agnostic about **`x-maturity`** but simply takes the first **`servers`** block entry with a '**`url`**' property set. If there is more than one server entry in the **`servers`** block, then the wrong testing endpoint may be used. Note that future iterations of the system may follow a different heuristic which recognizes the **`x-maturity`** property.
+- **servers block:** the SRI Testing harness now sets the TRAPI server endpoint used for testing of KP and ARA resources by selecting a **`url`** specified in the Registry `servers` block. Lack of standardization of testing targets means that the system is currently agnostic about **`x-maturity`** but simply takes the first **`servers`** block entry with a '**`url`**' property set. If there is more than one server entry in the **`servers`** block, then the wrong testing endpoint may be used. Note that future iterations of the system may follow a different heuristic using the **`x-maturity`** property.
 
 **Note:** the **info.x-trapi.test_data_location** may change in the near future to accommodate the need for differential testing across various `x-maturity` deployments of KPs and ARAs.
 
 ### KP Test Data Format
 
-For each KP, we need a file with one triple of each type that the KP can provide.  For instance, `test_triples/KP/Test_KP/Automat_Human_GOA.json` contains the following json:
+For each KP, we need a file with one triple of each type that the KP can provide. Here is an example:
 
 ```
 {
-    "url": "https://automat.renci.org/ontological-hierarchy/1.2",
+    #
+    # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
+    #
+    # "url": "https://automat.renci.org/ontological-hierarchy/1.2",
+    
     "source_type": "original",
     "infores": "automat",
     "exclude_tests": ["RPBS"],
@@ -58,15 +62,13 @@ For each KP, we need a file with one triple of each type that the KP can provide
 }
 ```
 
-The `url` tag **must** be a well-formed _resolvable_ TRAPI URL (namely, with **http://** or **https://** scheme).
-
-For provenance testing, we need to declare the KP's infores CURIE as a value of the `infores` JSON tag (mandatory). 
+For provenance testing, we need to declare the reference ('object') identifier of the KP's InfoRes CURIE as a value of the `infores` JSON tag (mandatory). 
 
 In addition, the type of knowledge source is declared, by setting the `source_type` JSON tag, to the prefix of the knowledge source type, i.e. `"original"` for `biolink:original_knowledge_source`, `"primary"` for `biolink:primary_knowledge_source` or `"aggregator"` for `biolink:aggregator_knowledge_source`. Note that if the KP is a `biolink:aggregator_knowledge_source`, then the source_type tag-value is optional (since `"aggregator"` is the default value for a KP).
 
 This KP provides two kinds of edges for testing: `AnatomicalEntity-subclass_of->AnatomicalEntity` and `CellularComponent-subclass_of->AnatomicalEntity`. For each of these kinds of edges, we have an entry in the file with a specific `subject` and `object`, and from these, we can create a variety of tests.
 
-To aid KPs in creating these json files, we have generated templates in `templates/KP` using the predicates endpoint or smartAPI Registry MetaKG entries, which contains the edge types.
+To aid KPs in creating these json files, (some time ago) we generated templates in [templates/KP](templates/KP) using the predicates endpoint or smartAPI Registry MetaKG entries, which contains the edge types (now likely badly out of date).
 
 Note that the templates are built from KP metadata and are a good starting place, but they are not necessarily a perfect match to the desired test triples.
 In particular, if a template contains an entry for two edges, where one edge can be fully calculated given the other, then there is no reason to include 
@@ -77,9 +79,9 @@ more general level.  If, say, there are triples where all that is known is an "a
 
 So the steps for a KP:
 
-1. Copy the KP template from teh repository `templates` into a distinctly named file
+1. Copy the KP template from the repository  [templates/KP](templates/KP) into a distinctly named file. (Note: update the file to the latest standards as described above).
 2. Edit the copied file to add or remove test data edges using the KP's metaknowledge graph catalog of S-P-O patterns as a guide, and specifying subject and object entries for each triple with a real identifiers that should be retrievable from the KP.
-3. Publish the resulting file as a JSON resource dereferenced online by the KP's **info.x-trapi.test_data_location** property.
+3. Publish the resulting file as a JSON resource dereferenced online by the **info.x-trapi.test_data_location** property in the KP's Translator SmartAPI Registry entry.
 
 #### General Recommendations for Edge Test Data
 
@@ -132,11 +134,15 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 
 ### ARA Test Configuration File
 
-For each ARA, we want to ensure that it is able to extract information correctly from the KPs.  To do this, we need to know which KPs each ARA interacts with.  We have generated template ARA json files under `templates/ARA` that contains annotations linking the ARA to all KPs.  For instance (under _tests/onehop/test_triples/ARA/Test_ARA/ARAGORN.json_):
+For each ARA, we want to ensure that it is able to extract information correctly from the KPs.  To do this, we need to know which KPs each ARA interacts with.  Here is an example:
 
 ```
 {
-    "url": "https://aragorn.renci.org/1.2",
+    #
+    # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
+    #
+    # "url": "https://aragorn.renci.org/1.2",
+    
     "infores": "aragorn",   
     "KPs": [
         "infores:automat-panther",
@@ -144,14 +150,13 @@ For each ARA, we want to ensure that it is able to extract information correctly
     ]
 }
 ```
-Once again, the `url` tag **must** be a well-formed _resolvable_ TRAPI URL (namely, with **http://** or **https://** scheme).
 
 The `infores` given is mandatory and is the 'object identifier' of InfoRes CURIE referring to the ARA itself.
 
 In order to correctly link ARAs to KPs, ARAs will need to:
 
-1. Copy the ARA template from teh repository `templates` into a distinctly named file then edit the copied file to add or remove KPs that the ARA does not access.
-2. Publish the resulting file as a JSON resource dereferenced online by the ARA's **info.x-trapi.test_data_location**
+1. Copy the ARA template from the repository [templates/ARA](templates/ARA) into a distinctly named file then edit the copied file to add or remove KPs that the ARA does not access (Note: update the file to the latest standards as described above).
+2. Publish the resulting file as a JSON resource dereferenced online by the **info.x-trapi.test_data_location** property in the ARA's Translator SmartAPI Registry entry.
 
 ARA test templates do not explicitly show the edges to be be tested, but rather, inherit the test data of their dereferenced KP's.  Once again, an infores tag value should be specified, in this case, for the ARA. However, all ARA's are expected to be `biolink:aggregator_knowledge_source` types of knowledge sources, hence, no `source_type` tag is needed (nor expected) here; however, they are checked for proper `'biolink:aggregator_knowledge_source': '<ARA infores CURIE>'` provenance declarations of their TRAPI knowledge graph edge attributes.
 

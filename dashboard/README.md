@@ -1,7 +1,5 @@
 # SRI Testing Dashboard
 
-
-
 ## .env configuration
 
 The Dashboard relies on some site specific parameters - encoded in a **.env** environmental variable configuration file -to work properly.
