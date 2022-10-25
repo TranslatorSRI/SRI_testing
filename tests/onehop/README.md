@@ -5,7 +5,8 @@ This suite tests the ability to retrieve given triples, which we know exist, fro
 - [Configuring the Tests](#configuring-the-tests)
     - [Translator SmartAPI Registry Configuration](#translator-smartapi-registry-configuration)
     - [KP Test Data Format](#kp-test-data-format)
-        - [Excluding Tests](#excluding-tests)
+      - [General Recommendations for Edge Test Data](#general-recommendations-for-edge-test-data)
+      - [Excluding Tests](#excluding-tests)
     - [ARA Test Configuration File](#ara-test-configuration-file)
 - [Running the Tests](#running-the-tests)
     - [Running only the KP tests](#running-only-the-kp-tests)
@@ -66,6 +67,7 @@ In addition, the type of knowledge source is declared, by setting the `source_ty
 This KP provides two kinds of edges for testing: `AnatomicalEntity-subclass_of->AnatomicalEntity` and `CellularComponent-subclass_of->AnatomicalEntity`. For each of these kinds of edges, we have an entry in the file with a specific `subject` and `object`, and from these, we can create a variety of tests.
 
 To aid KPs in creating these json files, we have generated templates in `templates/KP` using the predicates endpoint or smartAPI Registry MetaKG entries, which contains the edge types.
+
 Note that the templates are built from KP metadata and are a good starting place, but they are not necessarily a perfect match to the desired test triples.
 In particular, if a template contains an entry for two edges, where one edge can be fully calculated given the other, then there is no reason to include 
 test data for the derived edge.  For instance, there is no need to include test data for an edge in one direction, and its inverse in the other direction. Here
@@ -75,11 +77,9 @@ more general level.  If, say, there are triples where all that is known is an "a
 
 So the steps for a KP:
 
-1. copy a template json from `templates` into a distinctly named file in a suitable (KP-specific) subfolder location inside `test_triples/KP`
-2. filter out logically derivable template entries
-3. fill in the subject and object entries for each triple with a real identifiers that should be retrievable from the KP
-
-Note: you can selectively exclude specific KP configuration files or whole subfolders of such files from execution by appending *_SKIP* to the specific file or subfolder name (see below for finer grained test exclusions).
+1. Copy the KP template from teh repository `templates` into a distinctly named file
+2. Edit the copied file to add or remove test data edges using the KP's metaknowledge graph catalog of S-P-O patterns as a guide, and specifying subject and object entries for each triple with a real identifiers that should be retrievable from the KP.
+3. Publish the resulting file as a JSON resource dereferenced online by the KP's **info.x-trapi.test_data_location** property.
 
 #### General Recommendations for Edge Test Data
 
@@ -139,8 +139,8 @@ For each ARA, we want to ensure that it is able to extract information correctly
     "url": "https://aragorn.renci.org/1.2",
     "infores": "aragorn",   
     "KPs": [
-        "Automat Panther",
-        "Automat Ontological Hierarchy"
+        "infores:automat-panther",
+        "infores:automat-ontological-hierarchy"
     ]
 }
 ```
@@ -150,19 +150,16 @@ The `infores` given is mandatory and is the 'object identifier' of InfoRes CURIE
 
 In order to correctly link ARAs to KPs, ARAs will need to:
 
-1. Copy the ARA template from `templates` into a distinctly named file, in a suitable (ARA-specific) subfolder location inside `test_triples/ARA`
-2. Edit the copied file to remove KPs that the ARA does not access.
-
-Note: as with the KP template files, you can selectively exclude complete ARA test files or whole subfolders of such files from execution, by appending *_SKIP* to the specific file or subfolder name. 
+1. Copy the ARA template from teh repository `templates` into a distinctly named file then edit the copied file to add or remove KPs that the ARA does not access.
+2. Publish the resulting file as a JSON resource dereferenced online by the ARA's **info.x-trapi.test_data_location**
 
 ARA test templates do not explicitly show the edges to be be tested, but rather, inherit the test data of their dereferenced KP's.  Once again, an infores tag value should be specified, in this case, for the ARA. However, all ARA's are expected to be `biolink:aggregator_knowledge_source` types of knowledge sources, hence, no `source_type` tag is needed (nor expected) here; however, they are checked for proper `'biolink:aggregator_knowledge_source': '<ARA infores CURIE>'` provenance declarations of their TRAPI knowledge graph edge attributes.
-
 
 ## Running the Tests
 
 Tests are implemented with pytest.  To run all tests, from _within_ the `tests/onehop` project subdirectory, simply run:
 
-```
+```bash
 pytest test_onehops.py
 ```
 
