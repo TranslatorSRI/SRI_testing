@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 _edge_error_seen_already: List = list()
 
 
-def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTestReport):
+def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTestReport, excluded_test: bool = False):
     """
     Wrapper to propagate in Pytest, any skipped test edges.
 
@@ -52,10 +52,10 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
     object_id = test_case['object']
     edge_id = f"({subject_id}${subject_category})--[{predicate}]->({object_id}${object_category})"
 
-    if 'pre-validation' in test_case:
-        test_report.skip(code="error.non_compliant", edge_id=edge_id, messages=test_case['pre-validation'])
-    else:
+    if excluded_test:
         test_report.skip(code="info.excluded", edge_id=edge_id)
+    else:
+        test_report.skip(code="error.non_compliant", edge_id=edge_id, messages=test_case['pre-validation'])
 
 
 def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
@@ -79,10 +79,22 @@ def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         }
     )
 
-    if not (
-            UnitTestReport.has_validation_errors("pre-validation", kp_trapi_case) or
-            in_excluded_tests(test=trapi_creator, test_case=kp_trapi_case)
-    ):
+    if in_excluded_tests(test=trapi_creator, test_case=kp_trapi_case):
+        _report_and_skip_edge(
+            "KP",
+            test=trapi_creator,
+            test_case=kp_trapi_case,
+            test_report=results_bag.unit_test_report,
+            excluded_test=True
+        )
+    elif UnitTestReport.has_validation_errors("pre-validation", kp_trapi_case):
+        _report_and_skip_edge(
+            "KP",
+            test=trapi_creator,
+            test_case=kp_trapi_case,
+            test_report=results_bag.unit_test_report
+        )
+    else:
         execute_trapi_lookup(
             case=kp_trapi_case,
             creator=trapi_creator,
@@ -90,13 +102,6 @@ def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report
         )
         results_bag.unit_test_report.assert_test_outcome()
-    else:
-        _report_and_skip_edge(
-            "KP",
-            test=trapi_creator,
-            test_case=kp_trapi_case,
-            test_report=results_bag.unit_test_report
-        )
 
 
 @pytest.mark.parametrize(
@@ -127,10 +132,22 @@ def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
                 "kp_source_type": ara_trapi_case['kp_source_type'],
         }
     )
-    if not (
-            UnitTestReport.has_validation_errors("pre-validation", ara_trapi_case) or
-            in_excluded_tests(test=trapi_creator, test_case=ara_trapi_case)
-    ):
+    if in_excluded_tests(test=trapi_creator, test_case=ara_trapi_case):
+        _report_and_skip_edge(
+            "ARA",
+            test=trapi_creator,
+            test_case=ara_trapi_case,
+            test_report=results_bag.unit_test_report,
+            excluded_test=True
+        )
+    elif UnitTestReport.has_validation_errors("pre-validation", ara_trapi_case):
+        _report_and_skip_edge(
+            "ARA",
+            test=trapi_creator,
+            test_case=ara_trapi_case,
+            test_report=results_bag.unit_test_report
+        )
+    else:
         execute_trapi_lookup(
             case=ara_trapi_case,
             creator=trapi_creator,
@@ -138,10 +155,3 @@ def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report
         )
         results_bag.unit_test_report.assert_test_outcome()
-    else:
-        _report_and_skip_edge(
-            "ARA",
-            test=trapi_creator,
-            test_case=ara_trapi_case,
-            test_report=results_bag.unit_test_report
-        )

@@ -4,7 +4,7 @@ Registry package
 
 # Setting the following flag to 'True' triggers use of the
 # local 'mock' Registry data entries immediately below
-MOCK_REGISTRY: bool = False
+MOCK_REGISTRY: bool = True
 
 
 def mock_registry(status: bool):
