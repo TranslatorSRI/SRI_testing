@@ -208,7 +208,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
 class TestRunStatus(BaseModel):
     test_run_id: str
-    percent_complete: int
+    percent_complete: float
 
 
 @app.get(
@@ -228,9 +228,9 @@ async def get_status(test_run_id: str) -> TestRunStatus:
                              an integer 0..100 indicating the percentage completion of the test run.
     """
 
-    percent_complete: int = OneHopTestHarness(test_run_id=test_run_id).get_status()
+    percent_complete: float = OneHopTestHarness(test_run_id=test_run_id).get_status()
 
-    return TestRunStatus(test_run_id=test_run_id, percent_complete=percent_complete)
+    return TestRunStatus(test_run_id=test_run_id, percent_complete=round(percent_complete, 4))
 
 
 class TestRunDeletion(BaseModel):

@@ -103,6 +103,7 @@ def _worker_process(
     report.open_logger()
 
     previous_percentage_complete: int = 0
+    sequential_progress: int = 0
 
     try:
         with Popen(
@@ -137,12 +138,20 @@ def _worker_process(
                     if percentage_complete is not None:
                         if int(percentage_complete) > previous_percentage_complete:
                             previous_percentage_complete = int(percentage_complete)
+                            sequential_progress = 0
+                        else:
+                            # add synthetic progress inside the 1 % increases
+                            # reported back by the Pytest background process
+                            sequential_progress += 1
 
-                            pipe.send(percentage_complete)
+                        # synthesize a float progress value that is
+                        # a hybrid of percentage and sequential progress
+                        overall_progress = float(f"{str(previous_percentage_complete)}.{str(sequential_progress)}")
+                        pipe.send(round(overall_progress, 4))
 
-                            # sleep briefly to temporarily
-                            # relinquish control to other threads
-                            sleep(0.01)
+                        # sleep briefly to temporarily
+                        # relinquish control to other threads
+                        sleep(0.01)
 
             return_code = proc.wait()
 
@@ -253,7 +262,7 @@ class WorkerProcess:
             while True:
                 try:
                     if self._parent_conn.poll(timeout):
-                        line: str = self._parent_conn.recv()
+                        line = self._parent_conn.recv()
                         yield line
                     else:
                         # The Generator iteration is stopped if

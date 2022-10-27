@@ -162,7 +162,7 @@ class OneHopTestHarness:
                 "command_line": None,
                 "worker_process": None,
                 "timeout": DEFAULT_WORKER_TIMEOUT,
-                "percentage_completion": 100,
+                "percentage_completion": 100.0,
                 "test_run_completed": True
             }
 
@@ -180,6 +180,7 @@ class OneHopTestHarness:
         self._command_line: Optional[str] = None
         self._process: Optional[WorkerProcess] = None
         self._timeout: Optional[int] = DEFAULT_WORKER_TIMEOUT
+        self._percentage_completion: float = 0.0
         self._test_run_completed: bool = False
         if test_run_id is not None:
             # should be an existing test run?
@@ -263,14 +264,14 @@ class OneHopTestHarness:
             "command_line": self._command_line,
             "worker_process": self._process,
             "timeout": self._timeout,
-            "percentage_completion": 0,  # Percentage Completion needs to be updated later?
+            "percentage_completion": 0.0,  # Percentage Completion needs to be updated later?
             "test_run_completed": False
         }
 
     def get_worker(self) -> Optional[WorkerProcess]:
         return self._process
 
-    def _set_percentage_completion(self, value: int):
+    def _set_percentage_completion(self, value: float):
         if self._test_run_id in self._test_run_id_2_worker_process:
             self._test_run_id_2_worker_process[self._test_run_id]["percentage_completion"] = value
         else:
@@ -278,11 +279,11 @@ class OneHopTestHarness:
                 f"_set_percentage_completion(): '{str(self._test_run_id)}' Worker Process is unknown!"
             )
     
-    def _get_percentage_completion(self) -> int:
+    def _get_percentage_completion(self) -> float:
         if self._test_run_id in self._test_run_id_2_worker_process:
             return self._test_run_id_2_worker_process[self._test_run_id]["percentage_completion"]
         else:
-            return -1  # signal unknown test run process?
+            return -1.0  # signal unknown test run process?
 
     def _reload_run_parameters(self):
         # TODO: do we also need to reconnect to the TestReportDatabase here?
@@ -300,7 +301,7 @@ class OneHopTestHarness:
             self._command_line = None
             self._process = None
             self._timeout = DEFAULT_WORKER_TIMEOUT
-            self._percentage_completion = -1
+            self._percentage_completion = -1.0
 
     def test_run_complete(self) -> bool:
         if not self._test_run_completed:
@@ -317,7 +318,7 @@ class OneHopTestHarness:
 
         return self._test_run_completed
 
-    def get_status(self) -> int:
+    def get_status(self) -> float:
         """
         If available, returns the percentage completion of the currently active OneHopTestHarness run.
 
@@ -326,18 +327,18 @@ class OneHopTestHarness:
         completed_test_runs: List[str] = self.get_completed_test_runs()
         if self._test_run_id in completed_test_runs:
             # Option 1: detection of a completed_test_run
-            self._set_percentage_completion(100)
+            self._set_percentage_completion(100.0)
 
-        elif 0 <= self._get_percentage_completion() < 95:
+        elif 0.0 <= self._get_percentage_completion() < 95.0:
             for percentage_complete in self._process.get_output(timeout=1):
                 logger.debug(f"Pytest % completion: {percentage_complete}")
                 # We deliberately hold back declaring 100% completion to allow
                 # the system to truly finish processing and return the full test report
-                self._set_percentage_completion(int(float(percentage_complete)*0.95))
+                self._set_percentage_completion(float(percentage_complete)*0.95)
 
         elif self.test_run_complete():
             # Option 2, fail safe: sets completion at 100% if the task is not (or no longer) running?
-            self._set_percentage_completion(100)
+            self._set_percentage_completion(100.0)
 
         return self._get_percentage_completion()
 
