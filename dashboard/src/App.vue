@@ -46,47 +46,32 @@
       </span>
       <v-row>
 
-                    <!-- TODO replace event handlers with single filter dispatch event -->
-                    <!-- Lift scope for translator filter to page scope -->
-                    <TranslatorFilter :index="index"
-                                      :subject_categories="subject_categories"
-                                      :predicates="predicates"
-                                      :object_categories="object_categories"
-                                      @kp_filter="$event => { kp_filter = $event }"
-                                      @ara_filter="$event => { ara_filter = $event }"
-                                      @predicate_filter="$event => { predicate_filter = $event }"
-                                      @subject_category_filter="$event => { subject_category_filter = $event }"
-                                      @object_category_filter="$event => { object_category_filter = $event }"
-                                      ></TranslatorFilter>
+        <!-- TODO replace event handlers with single filter dispatch event -->
+        <!-- Lift scope for translator filter to page scope -->
+        <TranslatorFilter :index="index"
+                          :subject_categories="subject_categories"
+                          :predicates="predicates"
+                          :object_categories="object_categories"
+                          @kp_filter="$event => { kp_filter = $event }"
+                          @ara_filter="$event => { ara_filter = $event }"
+                          @predicate_filter="$event => { predicate_filter = $event }"
+                          @subject_category_filter="$event => { subject_category_filter = $event }"
+                          @object_category_filter="$event => { object_category_filter = $event }"
+                          ></TranslatorFilter>
       </v-row>
 
       <v-tabs v-if="!(loading === null)" v-model="tab">
-        <v-tab v-for="item in ['Overview', 'Details']" v-bind:key="`${item}_tab`">
+        <v-tab v-for="item in tabs" v-bind:key="`${item}_tab`">
           {{ item }}
         </v-tab>
       </v-tabs>
 
       <v-tabs-items v-model="tab" >
         <v-tab-item
-          v-for="item in ['Overview','Details']"
+          v-for="item in tabs"
           v-bind:key="`${item}_tab_item`"
           >
           <div v-if="tab === 0" >
-            <!-- <v-row no-gutter> -->
-
-            <!--   <\!-- TODO replace event handlers with single filter dispatch event -\-> -->
-            <!--   <TranslatorFilter :index="index" -->
-            <!--                     :subject_categories="subject_categories" -->
-            <!--                     :predicates="predicates" -->
-            <!--                     :object_categories="object_categories" -->
-            <!--                     @kp_filter="$event => { kp_filter = $event }" -->
-            <!--                     @ara_filter="$event => { ara_filter = $event }" -->
-            <!--                     @predicate_filter="$event => { predicate_filter = $event }" -->
-            <!--                     @subject_category_filter="$event => { subject_category_filter = $event }" -->
-            <!--                     @object_category_filter="$event => { object_category_filter = $event }" -->
-            <!--                     ></TranslatorFilter> -->
-            <!-- </v-row> -->
-
             <v-container v-bind:key="`${id}_overview`" id="page-overview" v-if="loading !== null">
 
               <v-skeleton-loader
@@ -452,12 +437,12 @@
                               </div>
 
                               <v-icon v-else small>
-                                 {{ item.name === 'warnings' ? 'mdi-alert'
-                                 : item.name === 'errors' ? 'mdi-cancel'
-                                 : item.name === 'information' ? 'mdi-information'
-                                 : !!item.children && item.children.length === 0 ? 'mdi-checkbox-blank-circle' : ''
+                                {{ item.name === 'warnings' ? 'mdi-alert'
+                                : item.name === 'errors' ? 'mdi-cancel'
+                                : item.name === 'information' ? 'mdi-information'
+                                : !!item.children && item.children.length === 0 ? 'mdi-checkbox-blank-circle' : ''
                                 }}
-                             </v-icon>
+                              </v-icon>
                             </template>
                             <template v-slot:label="{ item }">
                               <span v-if="!!item.data">
@@ -481,13 +466,13 @@
                               <span v-else-if="!!!item.data">
                                 <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="hash(item)+hash([name, val])+i">
                                   <span v-if="val > 0">
-                                  <v-icon small>
-                                    {{ name === 'warnings' ? 'mdi-alert'
-                                    : name === 'errors' ? 'mdi-cancel'
-                                    : name === 'information' ? 'mdi-information'
-                                    : ''
-                                    }}
-                                  </v-icon>&nbsp;{{ val }}
+                                    <v-icon small>
+                                      {{ name === 'warnings' ? 'mdi-alert'
+                                      : name === 'errors' ? 'mdi-cancel'
+                                      : name === 'information' ? 'mdi-information'
+                                      : ''
+                                      }}
+                                    </v-icon>&nbsp;{{ val }}
                                   </span>
                                 </span>
                               </span>
@@ -503,7 +488,40 @@
 
             </v-container>
           </div>
+          <div v-if="tab === 2">
 
+            <v-container>
+              <span v-for="resource in Object.keys(recommendations_summary)" :key="resource">
+                <h2>{{ resource }}</h2><br>
+                <v-row>
+                  <v-col v-for="message_type in Object.keys(recommendations_summary[resource])" :key="resource+message_type">
+                    <v-card>
+                      <v-card-title>
+                        {{ message_type | capitalize }}
+                      </v-card-title>
+                      <v-card-text>
+                        <ul class="noindent">
+                        <li v-for="code in Object.keys(recommendations_summary[resource][message_type])" :key="resource+message_type+code">
+                          <h3>{{code}}</h3>
+                          <ul>
+                            <li v-for="el in recommendations_summary[resource][message_type][code]">
+                              {{ formatEdge(el.test_data) }}<br>
+                              {{ formatConcreteEdge(el.test_data) }}<br>
+                              <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason']))">
+                                <b>{{detail}}:</b> {{ el.message[detail] }}<br>
+                              </span>
+                            </li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </v-card-text>
+                  </v-card>
+                  </v-col>
+                </v-row>
+              </span>
+            </v-container>
+
+          </div>
         </v-tab-item>
       </v-tabs-items>
     </v-container>
@@ -538,11 +556,14 @@ import { SizeProvider, SizeObserver } from 'vue-size-provider'
 
 // API code in separate file so we can switch between live and mock instance,
 // also configure location for API in environment variables and build variables
+// TODO: migrate api calls to api library
 import axios from "./api.js";
 
+// TODO: provide feature flags as library
 const MOCK = process.env.isAxiosMock;
-const FEATURE_RUN_TEST_BUTTON = process.env._FEATURE_RUN_TEST_BUTTON;
+const FEATURE_RUN_TEST_BUTTON = false // process.env._FEATURE_RUN_TEST_BUTTON;
 const FEATURE_RUN_TEST_SELECT = process.env._FEATURE_RUN_TEST_SELECT;
+const FEATURE_RECOMMENDATIONS = true //process.env_FEATURE_RECOMMENDATIONS;
 
 export default {
     name: 'App',
@@ -555,11 +576,22 @@ export default {
         LaCartesian: Cartesian,
         LaBar: Bar,
     },
+    filters: {
+        capitalize: function (value) {
+            if (!value) return ''
+            value = value.toString()
+            return value.charAt(0).toUpperCase() + value.slice(1)
+        }
+    },
     data() {
+        let tabs = ['Overview', 'Details'];
+        if (!!FEATURE_RECOMMENDATIONS) tabs.push('Recommendations')
         return {
             MOCK,
             FEATURE_RUN_TEST_BUTTON,
             FEATURE_RUN_TEST_SELECT,
+            FEATURE_RECOMMENDATIONS,
+            tabs,
             hover: false,
             id: null,
             loading: null,
@@ -658,6 +690,82 @@ export default {
         }
     },
     computed: {
+        recommendations_summary() {
+            let aggregation = {
+                errors: [],
+                warnings: [],
+                information: [],
+            }
+
+            const query_test_edges = "$.*.test_edges.*";
+            const resources = this.resources
+            const test_edges = jp.nodes(this.resources, query_test_edges)
+            const processed_edges = test_edges
+                  .map(el => ({ id: el.path[1], value: el.value }))
+                  .flatMap(el => {
+                      let acc = []
+                      for (const property in el.value.results) {
+                          const { subject_category, object_category, predicate, subject, object } = el.value.test_data;
+                          acc.push({
+                              id: el.id,
+                              test_data: {
+                                  subject_category,
+                                  object_category,
+                                  predicate,
+                                  subject,
+                                  object,
+                              },
+                              test: property,
+                              validation: el.value.results[property].validation
+                          })
+                      }
+                      return acc;
+                  })
+                  .reduce((acc, el) => {
+                      const { test_data, test } = el;
+                      for (const message_type in el.validation) {
+                          el.validation[message_type].forEach(message => {
+                              acc[message_type].push({
+                                  id: el.id,
+                                  test,
+                                  message,
+                                  test_data,
+                              })
+                          })
+                      }
+                      return acc;
+                  }, aggregation)
+
+            let unique_aggregation = {};
+            const unique_recommendation_signature = el => object_signature(el.message)//+object_signature(el.test_data);
+            for (const message_type in aggregation) {
+                unique_aggregation[message_type] = _.uniqBy(aggregation[message_type], unique_recommendation_signature)
+            }
+
+            // TODO: groupBy
+            let flattened_aggregation = {};
+            for (const message_type in unique_aggregation) {
+                unique_aggregation[message_type].forEach(el => {
+                    if (!!!flattened_aggregation[el.id]) flattened_aggregation[el.id] = {};
+                    if (!!!flattened_aggregation[el.id][message_type]) flattened_aggregation[el.id][message_type] = [];
+                    flattened_aggregation[el.id][message_type].push({
+                        message: el.message,
+                        test_data: el.test_data,
+                        test: el.test,
+                    })
+                })
+            }
+
+            let grouped_aggregation = {};
+            for (const resource in flattened_aggregation) {
+                grouped_aggregation[resource] = {};
+                for (const message_type in flattened_aggregation[resource]) {
+                    const messages = flattened_aggregation[resource][message_type];
+                    grouped_aggregation[resource][message_type] = _.chain(messages).groupBy(el => el.message.code).value();
+                }
+            }
+            return grouped_aggregation;
+        },
         selected_result_message_summary() {
             if (!!!this.data_table_current_item) {
                 return {
@@ -775,17 +883,17 @@ export default {
                 Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'errors', 'information', 'warnings'])(a, b))));
 
             const denormalized_cells = ___cells
-            // TODO: combine into one loop
-                  .filter(el => !isString(el))
-                  .filter(cell => Object.entries(cell).some(entry => this.outcome_filter !== "all" ? entry[1].outcome === this.outcome_filter : true))
+                  .filter(el => Object.entries(el).some(entry => this.outcome_filter !== "all" ? entry[1].outcome === this.outcome_filter : true)
+                          && !isString(el))
                   .filter(el => {
                       return this.subject_category_filter.length > 0 ? this.subject_category_filter.includes(el.spec.subject_category) : true
                           && this.predicate_filter.length > 0 ? this.predicate_filter.includes(el.spec.predicate) : true
                           && this.object_category_filter > 0 ? this.object_category_filter.includes(el.spec.object_category) : true
+                          && (this.ara_filter.length > 0
+                              || this.kp_filter.length > 0 ? _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(el._id, provider_name))
+                              || _.some(this.kp_filter, kp => _.includes(el._id, kp))
+                              : true)
                   })
-                  .filter(el => this.ara_filter.length > 0 || this.kp_filter.length > 0 ?
-                          _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(el._id, provider_name)) || _.some(this.kp_filter, kp => _.includes(el._id, kp))
-                          : true);
             return this.kp_selections.length > 0 || this.ara_selections.length > 0 ?
                 denormalized_cells
                 .filter(cell => this.kp_selections.some(el =>
@@ -1002,7 +1110,9 @@ export default {
         omit: (...keys) => object => omit(object, keys),
         pick: (...keys) => object => pick(object, keys),
         notEmpty: (list) => list.filter(el => el !== ""),
-
+        orderObjectKeysBy(obj, keys) {
+            return Object.fromEntries(Object.entries(obj).sort(([a, _], [b, __]) => orderByArrayFunc(keys)(a, b)))
+        },
         // `custom-filter` in v-data-table props: https://vuetifyjs.com/en/api/v-data-table/#props
         searchMatches: _searchMatches,
 
