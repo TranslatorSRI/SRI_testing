@@ -37,31 +37,35 @@ TEST_CASE_PATTERN = re.compile(
 )
 
 
-def build_resource_key(component: str, ara_id: Optional[str], kp_id: str) -> str:
+def build_resource_key(component: str, ara_id: Optional[str], kp_id: str, target: Optional[str] = None) -> str:
     """
     Returns a key identifier ('path') to an test summary document of a given ARA and/or KP resource.
 
     :param component:
-    :param ara_id: str, may be empty (if the resource is directly a KP)
+    :param ara_id: Optional[str], may be empty (if the resource is directly a KP)
     :param kp_id: str, should not be empty either when directly accessed or indirectly via an ARA
+    :param target: Optional[str], if not empty, append to end of key path
     :return: str, resource-centric document key
     """
     resource_key: str = component
     resource_key += f"/{ara_id}" if ara_id else ""
     resource_key += f"/{kp_id}"
+
+    if target:
+        resource_key += f"/{target}"
     return resource_key
 
 
 def build_resource_summary_key(component: str, ara_id: Optional[str], kp_id: str) -> str:
     """
-    Returns a key identifier ('path') to an test summary document of a given ARA and/or KP resource.
+    Returns a key identifier ('path') to an resource summary document of a given ARA and/or KP resource.
 
     :param component:
     :param ara_id:
     :param kp_id:
     :return: str, resource-centric document key
     """
-    return f"{build_resource_key(component,ara_id,kp_id)}/resource_summary"
+    return build_resource_key(component, ara_id, kp_id, target="resource_summary")
 
 
 def build_edge_details_key(component: str, ara_id: Optional[str], kp_id: str, edge_num: str) -> str:
@@ -74,7 +78,19 @@ def build_edge_details_key(component: str, ara_id: Optional[str], kp_id: str, ed
     :param edge_num:
     :return: str, edge-centric document key
     """
-    return f"{build_resource_key(component,ara_id,kp_id)}/{kp_id}-{edge_num}"
+    return build_resource_key(component, ara_id, kp_id, target=f"{kp_id}-{edge_num}")
+
+
+def build_recommendations_key(component: str, ara_id: Optional[str], kp_id: str) -> str:
+    """
+    Returns a key identifier ('path') to an resource recommendations document of a given ARA and/or KP resource.
+
+    :param component:
+    :param ara_id:
+    :param kp_id:
+    :return: str, resource-centric document key
+    """
+    return build_resource_key(component, ara_id, kp_id, target="recommendations")
 
 
 def parse_unit_test_name(unit_test_key: str) -> Tuple[str, str, str, int, str, str]:
@@ -431,7 +447,7 @@ class OneHopTestHarness:
         :param kp_id: str, identifier of a KP resource being accessed.
         :param ara_id: Optional[str], identifier of the ARA resource being accessed. May be missing or None
 
-        :return: Optional[Dict], JSON structured document of test details for a specified test edge of a
+        :return: Optional[Dict], JSON structured document of the resource summary for a specified
                                  KP or ARA resource, or 'None' if the details are not (yet) available.
         """
         document_key: str = build_resource_summary_key(component, ara_id, kp_id)
@@ -488,3 +504,26 @@ class OneHopTestHarness:
         return self.get_test_report().stream_document(
             document_type="Details", document_key=f"{document_key}-{test_id}"
         )
+
+    def get_recommendations(
+            self,
+            component: str,
+            kp_id: str,
+            ara_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Returns the remedial test recommendations for a specified resource from an
+        identified test run, identified by a specific set of query parameters:
+
+        :param component: str, Translator component being tested: 'ARA' or 'KP'
+        :param kp_id: str, identifier of a KP resource being accessed.
+        :param ara_id: Optional[str], identifier of the ARA resource being accessed. May be missing or None
+
+        :return: Optional[Dict], JSON structured document of test recommendations for a specified
+                                 KP or ARA resource, or 'None' if the details are not (yet) available.
+        """
+        document_key: str = build_recommendations_key(component, ara_id, kp_id)
+        resource_summary: Optional[Dict] = self.get_test_report().retrieve_document(
+            document_type="Recommendations", document_key=document_key
+        )
+        return resource_summary

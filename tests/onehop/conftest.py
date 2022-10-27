@@ -75,6 +75,86 @@ def _new_kp_resource_summary(trapi_version: str, biolink_version: str) -> Dict[s
     return new_test_case_summary
 
 
+def _new_kp_recommendation_summary(trapi_version: str, biolink_version: str) -> Dict[str, Union[str, Dict]]:
+    """
+    Initialize a dictionary to capture recommendations for a single KP test case summary.
+
+    :param trapi_version: str, TRAPI version associated with the test case (SemVer)
+    :param biolink_version:  str, Biolink Model version associated with the test case (SemVer)
+
+    :return: Dict[str, Union[int, str, Dict]], initialized
+    """
+    new_recommendations: Dict[str, Union[str, Dict]] = {
+        'trapi_version': trapi_version,
+        'biolink_version': biolink_version,
+        'errors': dict(),
+        'warnings': dict(),
+        'information': dict()
+    }
+    return new_recommendations
+
+
+def _compile_recommendations(
+        recommendation_summary: Dict[str, Union[str, Dict]],
+        test_report: UnitTestReport,
+        test_case,
+        test_id: str
+):
+    #     "errors": {
+    #       "error.edge.predicate.unknown": [
+    #         {
+    #           "message": {
+    #             "context": "Query Graph",
+    #             "edge_id": "a--['biolink:has_active_component']->b",
+    #             "predicate": "biolink:has_active_component",
+    #             "code": "error.edge.predicate.unknown"
+    #           },
+    #           "test_data": {
+    #             "subject_category": "biolink:Gene",
+    #             "object_category": "biolink:CellularComponent",
+    #             "predicate": "biolink:active_in",
+    #             "subject": "ZFIN:ZDB-GENE-060825-345",
+    #             "object": "GO:0042645"
+    #           },
+    #           "test": "inverse_by_new_subject"
+    #         }
+    #       ],
+    # ...
+    #    }
+    # TODO: what if test_case lacks some of the keys?
+    test_data: Dict = {
+        "subject_category": test_case["subject_category"],
+        "object_category": test_case["object_category"],
+        "predicate": test_case["predicate"],
+        "subject": test_case["subject"],
+        "object": test_case["object"]
+    }
+
+    # Validation messages are list of dictionary objects with
+    # one 'code' key and optional (variable key) parameters
+    # Leveraging function closure here...
+    def _capture_messages(message_type: str, messages: List):
+        for entry in messages:
+            code: str = entry.pop('code')
+            if code not in recommendation_summary[message_type]:
+                recommendation_summary[message_type][code] = list()
+            item: Dict = {
+                "message": entry,
+                "test_data": test_data,
+                "test": test_id
+            }
+            recommendation_summary[message_type][code].append(item)
+
+    if test_report.has_errors():
+        _capture_messages(message_type="errors", messages=test_report.get_errors())
+
+    if test_report.has_warnings():
+        _capture_messages(message_type="warnings", messages=test_report.get_warnings())
+
+    if test_report.has_information():
+        _capture_messages(message_type="information", messages=test_report.get_info())
+
+
 def _new_unit_test_statistics() -> Dict[str, int]:
     """
     Initialize a dictionary to capture statistics for a single unit test category.
@@ -119,6 +199,7 @@ def _tally_unit_test_result(test_case_summary: Dict, test_id: str, edge_num: int
 # 2. Resource Summary: ARA or KP level summary across all edges
 # 3. Edge Details: details of test results for one edge in a given resource test dataset
 # 4. Response: TRAPI JSON response message (may be huge; use file streaming to access!)
+# 5. Recommendations: KP (or ARA/KP) non-redundant hierarchical summary of validation messages
 ##########################################################################################
 
 # Selective list of Resource Summary fields
@@ -147,6 +228,7 @@ def pytest_sessionfinish(session):
 
     test_run_summary: Dict = dict()
     resource_summaries: Dict = dict()
+    recommendation_summaries: Dict = dict()
     case_details: Dict = dict()
 
     for unit_test_key, details in session_results.items():
@@ -183,8 +265,11 @@ def pytest_sessionfinish(session):
         if component not in test_run_summary:
             test_run_summary[component] = dict()
 
-            # Set up indexed resource summaries in parallel
+            # Set up indexed resource summaries ...
             resource_summaries[component] = dict()
+
+            # ... and recommendation summaries in parallel
+            recommendation_summaries[component] = dict()
 
         case_summary: Dict
         if ara_id:
@@ -195,6 +280,7 @@ def pytest_sessionfinish(session):
                 test_run_summary[component][ara_id]['kps'] = dict()
 
                 resource_summaries[component][ara_id] = dict()
+                recommendation_summaries[component][ara_id] = dict()
 
             if kp_id not in test_run_summary[component][ara_id]['kps']:
                 test_run_summary[component][ara_id]['kps'][kp_id] = _new_kp_test_case_summary(
@@ -205,9 +291,14 @@ def pytest_sessionfinish(session):
                     trapi_version=trapi_version,
                     biolink_version=biolink_version
                 )
+                recommendation_summaries[component][ara_id][kp_id] = _new_kp_recommendation_summary(
+                    trapi_version=trapi_version,
+                    biolink_version=biolink_version
+                )
 
             case_summary = test_run_summary[component][ara_id]['kps'][kp_id]
             resource_summary = resource_summaries[component][ara_id][kp_id]
+            recommendation_summary = recommendation_summaries[component][ara_id][kp_id]
 
         else:
             if kp_id not in test_run_summary[component]:
@@ -222,9 +313,14 @@ def pytest_sessionfinish(session):
                     trapi_version=trapi_version,
                     biolink_version=biolink_version
                 )
+                recommendation_summaries[component][kp_id] = _new_kp_recommendation_summary(
+                    trapi_version=trapi_version,
+                    biolink_version=biolink_version
+                )
 
             case_summary = test_run_summary[component][kp_id]
             resource_summary = resource_summaries[component][kp_id]
+            recommendation_summary = recommendation_summaries[component][kp_id]
 
         # Tally up the number of test results of a given 'status' across 'test_id' unit test categories
         _tally_unit_test_result(case_summary, test_id, edge_num, details['status'])
@@ -248,8 +344,11 @@ def pytest_sessionfinish(session):
         resource_summary['test_edges'][idx]['results'][test_id]['outcome'] = details['status']
 
         test_report: UnitTestReport = rb['unit_test_report']
-        if test_report and test_report.has_messages:
+        if test_report and test_report.has_messages():
             resource_summary['test_edges'][idx]['results'][test_id]['validation'] = test_report.get_messages()
+
+            # Capture recommendations
+            _compile_recommendations(recommendation_summary, test_report, test_case, test_id)
 
         ###################################################
         # Full test details will still be indexed by edge #
@@ -321,6 +420,7 @@ def pytest_sessionfinish(session):
             document_key=edge_details_key
         )
 
+    # TODO: could the following resource test summaries and recommendations code be refactored to be more DRY?
     #
     # Save the various resource test summaries
     #
@@ -341,10 +441,37 @@ def pytest_sessionfinish(session):
         ara_summaries = resource_summaries["ARA"]
         for ara in ara_summaries:
             for kp in ara_summaries[ara]:
-                # Save embedded KP Resource Summary
+                # Save Test Run embedded KP Resource Summary
                 document_key: str = f"ARA/{ara}/{kp}/resource_summary"
                 test_run.save_json_document(
                     document_type="ARA Embedded KP Summary",
+                    document=ara_summaries[ara][kp],
+                    document_key=document_key
+                )
+    #
+    # Save the various recommendation summaries
+    #
+    # All KP's individually
+    if "KP" in recommendation_summaries:
+        kp_summaries = recommendation_summaries["KP"]
+        for kp in kp_summaries:
+            # Save Test Run Recommendations
+            document_key: str = f"KP/{kp}/recommendations"
+            test_run.save_json_document(
+                document_type="Direct KP Recommendations",
+                document=kp_summaries[kp],
+                document_key=document_key
+            )
+
+    # All KP's called by ARA's
+    if "ARA" in recommendation_summaries:
+        ara_summaries = recommendation_summaries["ARA"]
+        for ara in ara_summaries:
+            for kp in ara_summaries[ara]:
+                # Save Test Run embedded KP Resource Recommendations
+                document_key: str = f"ARA/{ara}/{kp}/recommendations"
+                test_run.save_json_document(
+                    document_type="ARA Embedded KP Recommendations",
                     document=ara_summaries[ara][kp],
                     document_key=document_key
                 )

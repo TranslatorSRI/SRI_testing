@@ -362,7 +362,7 @@ async def get_summary(test_run_id: str) -> Union[TestRunSummary, JSONResponse]:
     summary="Retrieve the test result summary for a specified resource from a specified SRI Testing Run.",
     responses={400: {"model": Message}, 404: {"model": Message}}
 )
-async def get_kp_resource_summary(
+async def get_resource_summary(
         test_run_id: str,
         ara_id: Optional[str] = None,
         kp_id: Optional[str] = None
@@ -378,8 +378,6 @@ async def get_kp_resource_summary(
         - Case 3 - non-empty ara_id, empty kp_id == return all the KPs being tested under the specified ARA
         - Case 4 - empty ara_id and kp_id == error ...at least one of 'ara_id' and 'kp_id' needs to be provided.
 
-    - **kp_id**: identifier of the KP resource being tested.
-
     \f
     :param test_run_id: test run identifier (as returned by /run_tests endpoint).
     :param ara_id: identifier of the ARA resource whose indirect KP test results are being accessed
@@ -389,21 +387,18 @@ async def get_kp_resource_summary(
         - Case 3 - non-empty ara_id, empty kp_id == return all the KPs being tested under the specified ARA
         - Case 4 - empty ara_id and kp_id == error ...at least one of 'ara_id' and 'kp_id' needs to be provided.
 
-    :return: TestRunResourceSummary, echoing input parameters alongside the requested 'details', the latter which is a
-                                 details JSON document for the specified unit test.
+    :return: TestRunSummary, echoing input parameters alongside the requested 'summary', the latter
+                             which is a resource summary JSON document for the specified unit test.
 
     :raises: HTTPException(404) if the requested edge unit test details are not (yet?) available.
     """
-    # TODO: maybe we can validate the ara_id and kp_id against the /index catalog?
+    # TODO: maybe we should validate the test_run_id, ara_id and kp_id against the /index catalog?
+    test_run = OneHopTestHarness(test_run_id=test_run_id)
     summary: Optional[Dict]
     if ara_id:
         if kp_id:
             # Case 2: return the one specific KP tested via the specified ARA
-            summary = OneHopTestHarness(test_run_id=test_run_id).get_resource_summary(
-                component="ARA",
-                ara_id=ara_id,
-                kp_id=kp_id
-            )
+            summary = test_run.get_resource_summary(component="ARA", ara_id=ara_id, kp_id=kp_id)
         else:
             # Case 3: return all the KPs being tested under the specified ARA
             # TODO: Merged ARA implementation without a specific kp_id, needs a bit more thought.
@@ -411,10 +406,7 @@ async def get_kp_resource_summary(
     else:  # empty 'ara_id'
         if kp_id:
             # Case 1: just return the summary of the one directly tested KP resource
-            summary: Optional[Dict] = OneHopTestHarness(test_run_id=test_run_id).get_resource_summary(
-                component="KP",
-                kp_id=kp_id
-            )
+            summary: Optional[Dict] = test_run.get_resource_summary(component="KP", kp_id=kp_id)
         else:
             # Case 4: error...at least one of 'ara_id' and 'kp_id' needs to be provided.
             return JSONResponse(
@@ -479,17 +471,13 @@ async def get_details(
              or HTTP Status Code(400) unsupported parameter configuration.
              or HTTP Status Code(404) if the requested TRAPI response JSON text data file is not (yet?) available.
     """
-    # TODO: maybe we can validate the ara_id and kp_id against the /index catalog?
+    # TODO: maybe we should validate the test_run_id, ara_id and kp_id against the /index catalog?
+    test_run = OneHopTestHarness(test_run_id=test_run_id)
     details: Optional[Dict]
     if ara_id:
         if kp_id:
             # Case 2: return the one specific KP tested via the specified ARA
-            details = OneHopTestHarness(test_run_id=test_run_id).get_details(
-                component="ARA",
-                ara_id=ara_id,
-                kp_id=kp_id,
-                edge_num=edge_num
-            )
+            details = test_run.get_details(component="ARA", ara_id=ara_id, kp_id=kp_id, edge_num=edge_num)
         else:
             # Case 3: return all the KPs being tested under the specified ARA
             # TODO: Merged ARA implementation without a specific kp_id, needs a bit more thought.
@@ -497,11 +485,7 @@ async def get_details(
     else:  # empty 'ara_id'
         if kp_id:
             # Case 1: just return the summary of the one directly tested KP resource
-            details: Optional[Dict] = OneHopTestHarness(test_run_id=test_run_id).get_details(
-                component="KP",
-                kp_id=kp_id,
-                edge_num=edge_num
-            )
+            details: Optional[Dict] = test_run.get_details(component="KP", kp_id=kp_id, edge_num=edge_num)
         else:
             # Case 4: error...at least one of 'ara_id' and 'kp_id' needs to be provided.
             return JSONResponse(status_code=400, content={"message": "At least a 'kp_id' must be specified!"})
@@ -564,13 +548,14 @@ async def get_response(
              or HTTP Status Code(400) unsupported parameter configuration.
              or HTTP Status Code(404) if the requested TRAPI response JSON text data file is not (yet?) available.
     """
-    # TODO: maybe we can validate the ara_id and kp_id against the /index catalog?
+    # TODO: maybe we should validate the test_run_id, ara_id and kp_id against the /index catalog?
+    test_run = OneHopTestHarness(test_run_id=test_run_id)
     try:
         content_generator: Generator
         if ara_id:
             if kp_id:
                 # Case 2: return the one specific KP tested via the specified ARA
-                content_generator = OneHopTestHarness(test_run_id=test_run_id).get_streamed_response_file(
+                content_generator = test_run.get_streamed_response_file(
                     component="ARA",
                     ara_id=ara_id,
                     kp_id=kp_id,
@@ -586,7 +571,7 @@ async def get_response(
         else:  # empty 'ara_id'
             if kp_id:
                 # Case 1: just return the summary of the one directly tested KP resource
-                content_generator = OneHopTestHarness(test_run_id=test_run_id).get_streamed_response_file(
+                content_generator = test_run.get_streamed_response_file(
                     component="KP",
                     kp_id=kp_id,
                     edge_num=edge_num,
@@ -607,6 +592,80 @@ async def get_response(
                 "message": f"TRAPI Response JSON text file for unit test {test_id} for edge {edge_num} " +
                            f"for ara_id '{str(ara_id)}' and kp_id '{str(kp_id)}', " +
                            f"from test run '{test_run_id}', is not (yet) available?"
+            }
+        )
+
+
+class TestRecommendations(BaseModel):
+    test_run_id: str
+    recommendations: Dict
+
+@app.get(
+    "/recommendations",
+    tags=['report'],
+    response_model=TestRecommendations,
+    summary="Retrieve the test run remedial recommendations for a specified resource from a specified SRI Testing Run.",
+    responses={400: {"model": Message}, 404: {"model": Message}}
+)
+async def get_recommendations(
+        test_run_id: str,
+        ara_id: Optional[str] = None,
+        kp_id: Optional[str] = None
+) -> Union[TestRecommendations, JSONResponse]:
+    """
+    Return the remedial recommendations for a specified resource from an
+    identified test run, identified by a specific set of query parameters:
+    - **test_run_id**: test run being accessed.
+    - **ara_id**: identifier of the ARA resource whose indirect KP test results are being accessed
+    - **kp_id**: identifier of the KP resource whose test results are specifically being accessed.
+        - Case 1 - non-empty kp_id, empty ara_id == just return the summary of the one directly tested KP resource
+        - Case 2 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
+        - Case 3 - non-empty ara_id, empty kp_id == return all the KPs being tested under the specified ARA
+        - Case 4 - empty ara_id and kp_id == error ...at least one of 'ara_id' and 'kp_id' needs to be provided.
+
+    \f
+    :param test_run_id: test run identifier (as returned by /run_tests endpoint).
+    :param ara_id: identifier of the ARA resource whose indirect KP test results are being accessed
+    :param kp_id: identifier of the KP resource whose test results are specifically being accessed.
+        - Case 1 - non-empty kp_id, empty ara_id == just return the summary of the one directly tested KP resource
+        - Case 2 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
+        - Case 3 - non-empty ara_id, empty kp_id == return all the KPs being tested under the specified ARA
+        - Case 4 - empty ara_id and kp_id == error ...at least one of 'ara_id' and 'kp_id' needs to be provided.
+
+    :return: TestRunSummary, echoing input parameters alongside the requested 'summary', the latter
+                             which is a recommendations JSON document for the specified unit test.
+
+    :raises: HTTPException(404) if the requested edge unit test details are not (yet?) available.
+    """
+    # TODO: maybe we should validate the test_run_id, ara_id and kp_id against the /index catalog?
+    test_run = OneHopTestHarness(test_run_id=test_run_id)
+    recommendations: Optional[Dict]
+    if ara_id:
+        if kp_id:
+            # Case 2: return the one specific KP tested via the specified ARA
+            recommendations = test_run.get_recommendations(component="ARA", ara_id=ara_id, kp_id=kp_id)
+        else:
+            # Case 3: return recommendations for all the KPs being tested under the specified ARA
+            # TODO: Merged ARA implementation without a specific kp_id, needs a bit more thought.
+            return JSONResponse(status_code=400, content={"message": "Null kp_id parameter is not yet supported?"})
+    else:  # empty 'ara_id'
+        if kp_id:
+            # Case 1: just return the recommendations of the one directly tested KP resource
+            recommendations: Optional[Dict] = test_run.get_recommendations(component="KP", kp_id=kp_id)
+        else:
+            # Case 4: error...at least one of 'ara_id' and 'kp_id' needs to be provided.
+            return JSONResponse(
+                status_code=400,
+                content={"message": "The 'ara_id' and 'kp_id' cannot both be empty parameters!"}
+            )
+    if recommendations is not None:
+        return TestRecommendations(test_run_id=test_run_id, recommendations=recommendations)
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "message": f"Resource summary, for ara_id '{str(ara_id)}' and kp_id '{str(kp_id)}', " +
+                           f"is not (yet) available from test run '{test_run_id}'?"
             }
         )
 

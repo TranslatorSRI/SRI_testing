@@ -6,7 +6,7 @@ import pytest
 from translator.sri.testing.onehops_test_runner import (
     parse_unit_test_name,
     build_resource_summary_key,
-    build_edge_details_key
+    build_edge_details_key, build_recommendations_key
 )
 
 
@@ -58,6 +58,30 @@ def test_get_edge_details_key(query):
         component=query[0], ara_id=query[1], kp_id=query[2], edge_num=query[3]
     )
     assert edge_details_file_path == query[4]
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        (
+            "KP",
+            None,
+            "Some_KP",
+            "KP/Some_KP/recommendations"
+        ),
+        (
+            "ARA",
+            "Some_ARA",
+            "Some_KP",
+            "ARA/Some_ARA/Some_KP/recommendations"
+        )
+    ]
+)
+def test_get_recommendations_key(query):
+    edge_details_file_path = build_recommendations_key(
+        component=query[0], ara_id=query[1], kp_id=query[2]
+    )
+    assert edge_details_file_path == query[3]
 
 
 @pytest.mark.parametrize(
