@@ -488,38 +488,38 @@ def pytest_addoption(parser):
     """
     :param parser:
     """
-    parser.addoption("--teststyle", action="store", default='all', help='Which Test to Run?')
-    parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
-    parser.addoption(
-        "--triple_source", action="store", default='REGISTRY',  # 'test_triples/KP',
-        help="'REGISTRY', directory or file from which to retrieve triples (Default: 'REGISTRY', which triggers " +
-             "the use of metadata, in KP entries from the Translator SmartAPI Registry, to configure the tests)."
-    )
-    parser.addoption(
-        "--ARA_source", action="store", default='REGISTRY',  # 'test_triples/ARA',
-        help="'REGISTRY', directory or file from which to retrieve ARA Config (Default: 'REGISTRY', which triggers " +
-             "the use of metadata, in ARA entries from the Translator SmartAPI Registry, to configure the tests)."
-    )
-    # We hard code a 'current' version (1.2 as of March 2022)
-    # but we'll eventually use an endpoint's SmartAPI published value 'x-trapi' published metadata value
-    parser.addoption(
-        "--TRAPI_Version", action="store", default=None,
-        help='TRAPI API Version to use for the tests '
-             '(Default: latest public release or REGISTRY metadata value).'
-    )
-    # We could eventually use a TRAPI/meta_knowledge_graph 'x-translator' published metadata value,
-    # but we'll use the Biolink Model Toolkit default for now?
-    parser.addoption(
-        "--Biolink_Version", action="store", default=None,
-        help='Biolink Model Version to use for the tests ' +
-             '(Default: latest Biolink Model Toolkit default or REGISTRY metadata value).'
-    )
     #  Mostly used when the SRI Testing harness is run by a web service
     parser.addoption(
         "--test_run_id", action="store", default="",
         help='Optional Test Run Identifier for internal use to index test results.'
     )
-
+    # Override the Translator SmartAPI Registry published
+    # 'x-trapi' TRAPI release property value of the target resources.
+    parser.addoption(
+        "--trapi_version", action="store", default=None,
+        help='TRAPI API version to use for validation, overriding' +
+             ' Translator SmartAPI Registry property value ' +
+             '(Default: latest public release or ).'
+    )
+    # Override the Translator SmartAPI Registry published
+    # 'x-translator' Biolink Model release property value of the target resources.
+    parser.addoption(
+        "--biolink_version", action="store", default=None,
+        help='Biolink Model version to use for validation, overriding' +
+             ' Translator SmartAPI Registry property value ' +
+             '(Default: latest public release or ).'
+    )
+    parser.addoption(
+        "--kp_id", action="store", default=None,  # 'test_triples/KP',
+        help='Knowledge Provider identifier ("KP") targeted for testing (Default: None).'
+    )
+    parser.addoption(
+        "--ara_id", action="store", default=None,  # 'test_triples/ARA',
+        help='Autonomous Relay Agent ("ARA") targeted for testing (Default: None).'
+    )
+    parser.addoption("--teststyle", action="store", default='all', help='Which Test to Run?')
+    parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
+    
 
 def _fix_path(file_path: str) -> str:
     """
@@ -554,13 +554,13 @@ def _build_filelist(entry):
 
 
 def get_test_data_sources(
-        source: str,
         component_type: str,
+        source: Optional[str] = None,
         trapi_version: Optional[str] = None,
         biolink_version: Optional[str] = None
 ) -> Dict[str, Dict[str, Optional[str]]]:
     """
-    Retrieves a dictionary of metadata of 'component_type', indexed by name.
+    Retrieves a dictionary of metadata of 'component_type', indexed by 'source' identifier.
 
     If the 'source' is specified to be the string 'REGISTRY', then
     this dictionary is populated from the Translator SmartAPI Registry,
@@ -569,7 +569,8 @@ def get_test_data_sources(
     Otherwise, a local file source of the metadata is assumed,
     using the local data file name as a key (these should be unique).
 
-    :param source: str, specific remote or local source from which the test data sources are to be retrieved.
+    :param source: Optional[str], ara_id or kp_id source of test configuration data in the registry.
+                                  Take 'all' of the given component type if the source is None
     :param component_type: str, component type 'KP' or 'ARA'
     :param trapi_version: SemVer caller override of TRAPI release target for validation (Default: None)
     :param biolink_version: SemVer caller override of Biolink Model release target for validation (Default: None)
@@ -578,38 +579,10 @@ def get_test_data_sources(
     """
     service_metadata: Dict[str, Dict[str, Optional[str]]]
 
-    if source == "REGISTRY":
-        # Access service metadata from the Translator SmartAPI Registry,
-        # indexed using the "test_data_location" field as the unique key
-        registry_data: Dict = get_the_registry_data()
-        service_metadata = extract_component_test_metadata_from_registry(registry_data, component_type)
-    else:
-        # Access local set of test data triples
-        if not path.exists(source):
-            print("No such location:", source, flush=True, file=stderr)
-            return dict()
-
-        filelist: List[str] = _build_filelist(source)
-
-        # Create an empty "mock" service metadata structure
-        # indexed using the local file name as the unique key
-        # We will try to populate this metadata later, from
-        # the file contents or from default test conditions
-
-        # Note: local templates don't specify their
-        # TRAPI and Biolink Model versions.
-        # The code later retrieves the default BMT
-        # Biolink Model version so None is ok here,
-        # however, TRAPI does need to be set here
-        metadata_template = {
-            "service_title": None,
-            "service_version": None,
-            "component": component_type,
-            "infores": None,
-            "biolink_version": None,
-            "trapi_version": latest.get(DEFAULT_TRAPI_VERSION)
-        }
-        service_metadata = {name: metadata_template.copy() for name in filelist}
+    # Access service metadata from the Translator SmartAPI Registry,
+    # indexed using the "test_data_location" field as the unique key
+    registry_data: Dict = get_the_registry_data()
+    service_metadata = extract_component_test_metadata_from_registry(registry_data, component_type, source)
 
     # Possible CLI override of the metadata value of
     # TRAPI and/or Biolink Model releases used for data validation
@@ -751,11 +724,11 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
     #       optional user session identifier for the test (can be an empty string)
     # test_run_id = metafunc.config.getoption('test_run_id')
 
-    triple_source = metafunc.config.getoption('triple_source')
+    kp_id = metafunc.config.getoption('kp_id')
 
     kp_metadata: Dict[str, Dict[str, Optional[str]]] = \
         get_test_data_sources(
-            source=triple_source,
+            source=kp_id,
             trapi_version=trapi_version,
             biolink_version=biolink_version,
             component_type="KP"
@@ -928,11 +901,11 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
     ara_edges = []
     idlist = []
 
-    ara_source = metafunc.config.getoption('ARA_source')
+    ara_id = metafunc.config.getoption('ara_id')
 
     ara_metadata: Dict[str, Dict[str, Optional[str]]] = \
         get_test_data_sources(
-            source=ara_source,
+            source=ara_id,
             trapi_version=trapi_version,
             biolink_version=biolink_version,
             component_type="ARA"
@@ -995,7 +968,7 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                     edge['pre-validation'] = biolink_validator.get_messages()
 
                 if 'infores' in arajson:
-                    edge['ara_source'] = f"infores:{arajson['infores']}"
+                    edge['ara_id'] = f"infores:{arajson['infores']}"
                 else:
                     logger.warning(
                         f"generate_trapi_ara_tests(): input file '{source}' " +
@@ -1008,7 +981,7 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                         logger.warning("generate_trapi_ara_tests(): ARA API Name is missing? Skipping entry...")
                         continue
                     ara_infores_object_id = ara_api_name.lower().replace("_", "-")
-                    edge['ara_source'] = f"infores:{ara_infores_object_id}"
+                    edge['ara_id'] = f"infores:{ara_infores_object_id}"
 
                 if 'kp_source' in kp_edge:
                     edge['kp_source'] = kp_edge['kp_source']
@@ -1027,7 +1000,7 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
 
                 # Start using the object_id of the Infores CURIEs of the ARA's and KP's, instead of their api_names...
                 # resource_id = f"{edge['ara_api_name']}|{edge['kp_api_name']}"
-                ara_id = edge['ara_source'].replace("infores:", "")
+                ara_id = edge['ara_id'].replace("infores:", "")
                 kp_id = edge['kp_source'].replace("infores:", "")
                 resource_id = f"{ara_id}|{kp_id}"
 
@@ -1047,13 +1020,13 @@ def pytest_generate_tests(metafunc):
 
     # KP/ARA TRAPI version may be overridden
     # on the command line; maybe 'None' => no override
-    trapi_version = metafunc.config.getoption('TRAPI_Version')
-    logger.debug(f"pytest_generate_tests(): caller specified TRAPI_Version == {str(trapi_version)}")
+    trapi_version = metafunc.config.getoption('trapi_version')
+    logger.debug(f"pytest_generate_tests(): caller specified trapi_version == {str(trapi_version)}")
 
     # KP/ARA Biolink Model version may be overridden
     # on the command line; maybe 'None' => no override
-    biolink_version = metafunc.config.getoption('Biolink_Version')
-    logger.debug(f"pytest_generate_tests(): caller specified Biolink_Version == {str(biolink_version)}")
+    biolink_version = metafunc.config.getoption('biolink_version')
+    logger.debug(f"pytest_generate_tests(): caller specified biolink_version == {str(biolink_version)}")
 
     trapi_kp_edges = generate_trapi_kp_tests(
         metafunc,

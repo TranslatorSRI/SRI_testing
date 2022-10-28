@@ -69,7 +69,6 @@ async def favicon():
 # query_graph, knowledge_graph and results JSON tag-values
 ###########################################################
 class TestRunParameters(BaseModel):
-
     # TODO: we ignore the other SRI Testing parameters
     #       for the initial design of the web service
     #
@@ -89,14 +88,22 @@ class TestRunParameters(BaseModel):
     # # from the Translator SmartAPI Registry, to configure the tests).
     # ara_source: Optional[str] = 'REGISTRY'
 
-    # Optional TRAPI version override override against which
+    # (Optional) reference (object) identifier of the ARA InfoRes CURIE
+    # designating an ARA which is the target of validation in the new test run.
+    ara_id: Optional[str] = None
+
+    # (Optional) reference (object) identifier of the ARA InfoRes CURIE
+    # designating a KP which is the target of validation in the new test run.
+    kp_id: Optional[str] = None
+
+    # (Optional) TRAPI version override against which
     # SRI Testing will be applied to Translator KPs and ARA's.
     # This version will override Translator SmartAPI Registry
     # KP or ARA entry specified 'x-trapi' metadata tag value
     # specified TRAPI version (Default: None).
     trapi_version: Optional[str] = None
 
-    # optional Biolink Model version override against which
+    # (Optional) Biolink Model version override against which
     # SRI Testing will be applied to Translator KPs and ARA's.
     # This version will override Translator SmartAPI Registry
     # KP entry specified 'x-translator' metadata tag value
@@ -151,15 +158,23 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     """
     Initiate an SRI Testing Run with TestRunParameters:
 
-    - **trapi_version**: Optional[str]
-    - **biolink_version**: Optional[str]
-    - **timeout**: Optional[int]
-    - **log**: Optional[str]
+    - **ara_id**: Optional[str], identifier of the ARA resource whose indirect KP test results are being accessed
+    - **kp_id**: Optional[str], identifier of the KP resource whose test results are specifically being accessed.
+        - Case 1 - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource
+        - Case 2 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
+        - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
+        - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
+    - **trapi_version**: Optional[str], possible TRAPI version overriding Translator SmartAPI 'Registry' specification.
+    - **biolink_version**: Optional[str], possible Biolink Model version overriding Registry specification.
+    - **timeout**: Optional[int], query timeout
+    - **log**: Optional[str], Python log setting
     \f
-    :param test_parameters:
+    :param test_parameters: TestRunParameters
     :return: TestRunSession (just 'test_run_id' for now)
     """
 
+    ara_id: Optional[str] = None
+    kp_id: Optional[str] = None
     trapi_version: Optional[str] = None
     biolink_version: Optional[str] = None
     log: Optional[str] = None
@@ -167,6 +182,12 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
     errors: List[str] = list()
     if test_parameters:
+
+        if test_parameters.ara_id:
+            ara_id = test_parameters.ara_id
+
+        if test_parameters.kp_id:
+            kp_id = test_parameters.kp_id
 
         if test_parameters.trapi_version:
             trapi_version = test_parameters.trapi_version
@@ -197,6 +218,8 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     test_harness = OneHopTestHarness()
 
     test_harness.run(
+        ara_id=ara_id,
+        kp_id=kp_id,
         trapi_version=trapi_version,
         biolink_version=biolink_version,
         log=log,

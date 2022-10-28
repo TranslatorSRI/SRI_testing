@@ -385,8 +385,26 @@ def test_get_translator_kp_test_data_metadata():
         "No 'KP' services found with a 'test_data_location' value in the Translator SmartAPI Registry?"
 
 
+def test_get_one_specific_target_kp():
+    registry_data: Dict = get_the_registry_data()
+    # we filter on the 'sri-reference-kg' since it is used both in the mock and real registry?
+    service_metadata = extract_component_test_metadata_from_registry(registry_data, "KP", source="sri-reference-kg")
+    assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
+    for service in service_metadata.values():
+        assert service["infores"] == "sri-reference-kg"
+
+
 def test_get_translator_ara_test_data_metadata():
     registry_data: Dict = get_the_registry_data()
     service_metadata = extract_component_test_metadata_from_registry(registry_data, "ARA")
     assert len(service_metadata) > 0, \
         "No 'ARA' services found with a 'test_data_location' value in the Translator SmartAPI Registry?"
+
+
+def test_get_one_specific_target_ara():
+    registry_data: Dict = get_the_registry_data()
+    # we filter on the 'arax' since it is used both in the mock and real registry?
+    service_metadata = extract_component_test_metadata_from_registry(registry_data, "ARA", source="arax")
+    assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
+    for service in service_metadata.values():
+        assert service["infores"] == "arax"
