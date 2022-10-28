@@ -2,7 +2,6 @@
 Configure one hop tests
 """
 from typing import Optional, Union, List, Set, Dict, Any
-from sys import stderr
 from os import path, walk, sep
 from collections import defaultdict
 
@@ -22,7 +21,7 @@ from translator.registry import (
     extract_component_test_metadata_from_registry
 )
 
-from translator.trapi import generate_edge_id, DEFAULT_TRAPI_VERSION, UnitTestReport
+from translator.trapi import generate_edge_id, UnitTestReport
 
 from tests.onehop import util as oh_util
 from tests.onehop.util import (
@@ -724,11 +723,13 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
     #       optional user session identifier for the test (can be an empty string)
     # test_run_id = metafunc.config.getoption('test_run_id')
 
-    kp_id = metafunc.config.getoption('kp_id')
+    # Here, the kp_id may be None, in which case,
+    # 'kp_metadata' returns all available KP's
+    target_kp_id = metafunc.config.getoption('kp_id')
 
     kp_metadata: Dict[str, Dict[str, Optional[str]]] = \
         get_test_data_sources(
-            source=kp_id,
+            source=target_kp_id,
             trapi_version=trapi_version,
             biolink_version=biolink_version,
             component_type="KP"
@@ -793,7 +794,7 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
             edge['biolink_version'] = kpjson['biolink_version']
 
             if 'infores' in kpjson:
-                edge['kp_source'] = f"infores:{kpjson['infores']}"
+                kp_id = kpjson['infores']
             else:
                 logger.warning(
                     f"generate_trapi_kp_tests(): input file '{source}' "
@@ -804,8 +805,9 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
                 if not kp_api_name:
                     logger.warning("generate_trapi_kp_tests(): KP API Name is missing? Skipping entry...")
                     continue
-                kp_infores_object_id = kp_api_name.lower().replace("_", "-")
-                edge['kp_source'] = f"infores:{kp_infores_object_id}"
+                kp_id = kp_api_name.lower().replace("_", "-")
+
+            edge['kp_source'] = f"infores:{kp_id}"
 
             if 'source_type' in kpjson:
                 edge['kp_source_type'] = kpjson['source_type']
@@ -831,12 +833,6 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
                 edge['exclude_tests'] = list(edge['exclude_tests'])
 
             edges.append(edge)
-
-            # Start using the object_id of the Infores
-            # CURIE of the KP instead of its api_name...
-            # resource_id = edge['kp_api_name']
-            kp_id = edge['kp_source'].replace("infores:", "")
-
             #
             # TODO: caching the edge here doesn't help parsing of the results into a report since
             #       the cache is not shared with the parent process.
@@ -901,6 +897,8 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
     ara_edges = []
     idlist = []
 
+    # Here, the ara_id may be None, in which case,
+    # 'ara_metadata' returns all available ARA's
     ara_id = metafunc.config.getoption('ara_id')
 
     ara_metadata: Dict[str, Dict[str, Optional[str]]] = \
@@ -968,7 +966,7 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                     edge['pre-validation'] = biolink_validator.get_messages()
 
                 if 'infores' in arajson:
-                    edge['ara_id'] = f"infores:{arajson['infores']}"
+                    ara_id = arajson['infores']
                 else:
                     logger.warning(
                         f"generate_trapi_ara_tests(): input file '{source}' " +
@@ -980,8 +978,9 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                     if not ara_api_name:
                         logger.warning("generate_trapi_ara_tests(): ARA API Name is missing? Skipping entry...")
                         continue
-                    ara_infores_object_id = ara_api_name.lower().replace("_", "-")
-                    edge['ara_id'] = f"infores:{ara_infores_object_id}"
+                    ara_id = ara_api_name.lower().replace("_", "-")
+
+                edge['ara_source'] = f"infores:{ara_id}"
 
                 if 'kp_source' in kp_edge:
                     edge['kp_source'] = kp_edge['kp_source']
@@ -1000,7 +999,6 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
 
                 # Start using the object_id of the Infores CURIEs of the ARA's and KP's, instead of their api_names...
                 # resource_id = f"{edge['ara_api_name']}|{edge['kp_api_name']}"
-                ara_id = edge['ara_id'].replace("infores:", "")
                 kp_id = edge['kp_source'].replace("infores:", "")
                 resource_id = f"{ara_id}|{kp_id}"
 
