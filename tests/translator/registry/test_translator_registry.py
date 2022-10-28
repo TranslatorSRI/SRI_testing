@@ -153,6 +153,8 @@ def shared_test_extract_component_test_data_metadata_from_registry(
         assert query[1] in service_metadata, \
             f"Missing test_data_location '{query[1]}' expected in {component_type} '{service_metadata}' dictionary?"
 
+        assert_tag(service_metadata, query[1], "url")
+        assert service_metadata[query[1]]['url'] == query[2]
         assert_tag(service_metadata, query[1], "service_title")
         assert_tag(service_metadata, query[1], "service_version")
         assert_tag(service_metadata, query[1], "infores")
@@ -168,38 +170,67 @@ def shared_test_extract_component_test_data_metadata_from_registry(
             {
                 "hits": [
                     {
-                        "info": {
-                            "title": "Some Valid KP",
-                            "version": "0.0.1",
-                            "x-translator": {
-                                "infores": "infores:some-kp",
-                                "component": "KP",
-                                "team": "some-translator-team",
-                                "biolink-version": "2.2.16"
+                        'info': {
+                            'contact': {
+                                'email': 'translator@broadinstitute.org',
+                                'name': 'Molecular Data Provider',
+                                'x-role': 'responsible organization'
                             },
-                            "x-trapi": {
-                                "version": "1.2.0",
-                                "test_data_location": "https://github.com/TranslatorSRI/SRI_testing/blob"
-                                                      "/main/tests/onehop/test_triples/KP/Unit_Test_KP/Test_KP_1.json"
+                            'description': 'Molecular Data Provider for NCATS Biomedical Translator',
+                            'title': 'MolePro',
+                            'version': '1.3.0.0',
+                            'x-translator': {
+                                'biolink-version': '2.4.7',
+                                'component': 'KP',
+                                'infores': 'infores:molepro',
+                                'team': ['Molecular Data Provider']
+                            },
+                            'x-trapi': {
+                                'test_data_location': 'https://github.com/broadinstitute/molecular-data-provider' +
+                                                      '/blob/master/test/data/MolePro-test-data.json',
+                                'version': '1.3.0'
                             }
-                        }
+                        },
+                        'servers': [
+                            {
+                                'description': 'TRAPI production service for MolePro',
+                                'url': 'https://molepro-trapi.transltr.io/molepro/trapi/v1.3',
+                                'x-maturity': 'production'
+                            },
+                            {
+                                'description': 'TRAPI test service for MolePro',
+                                'url': 'https://molepro-trapi.test.transltr.io/molepro/trapi/v1.3',
+                                'x-maturity': 'testing'
+                            },
+                            {
+                                'description': 'TRAPI staging service for MolePro',
+                                'url': 'https://molepro-trapi.ci.transltr.io/molepro/trapi/v1.3',
+                                'x-maturity': 'staging'
+                            },
+                            {
+                                'description': 'TRAPI development service for MolePro',
+                                'url': 'https://translator.broadinstitute.org/molepro/trapi/v1.3',
+                                'x-maturity': 'development'
+                            }
+                        ],
                     }
                 ]
             },
-            "https://raw.githubusercontent.com/TranslatorSRI/SRI_testing"
-            "/main/tests/onehop/test_triples/KP/Unit_Test_KP/Test_KP_1.json"   # KP test_data_location
+            'https://raw.githubusercontent.com/broadinstitute/molecular-data-provider/' +
+            'master/test/data/MolePro-test-data.json',   # KP test_data_location, converted to Github raw data link
+            'https://molepro-trapi.transltr.io/molepro/trapi/v1.3'  # 'production' endpoint url preferred for testing?
         ),
         (   # Query 1 - Empty "hits" List
             {
                 "hits": []
             },
-            None
+            None, None
         ),
         (   # Query 2 - Empty "hits" entry
             {
                 "hits": [{}]
             },
-            None
+            None, None
         ),
         (   # Query 3 - "hits" entry with missing 'component' (and 'infores')
             {
@@ -210,7 +241,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                     }
                 ]
             },
-            None
+            None, None
         ),
         (   # Query 4 - "hits" ARA component entry
             {
@@ -225,7 +256,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                     }
                 ]
             },
-            None
+            None, None
         ),
         (   # Query 5 - "hits" KP component entry with missing 'infores'
             {
@@ -239,7 +270,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                     }
                 ]
             },
-            None
+            None, None
         ),
         (   # Query 6 - "hits" KP component entry with missing 'info.x-trapi'
             {
@@ -255,7 +286,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                     }
                 ]
             },
-            None
+            None, None
         ),
         (   # Query 7 - "hits" KP component entry with missing info.x-trapi.test_data_location tag value
             {
@@ -274,7 +305,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                     }
                 ]
             },
-            None
+            None, None
         )
     ]
 )
@@ -290,27 +321,56 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                 {
                     "hits": [
                         {
-                            "info": {
-                                "title": "Some Valid ARA",
-                                "version": "0.0.1",
-                                "x-translator": {
-                                    "infores": "infores:some-ara",
-                                    "component": "ARA",
-                                    "team": "some-translator-team",
-                                    "biolink-version": "2.2.16"
+                            'info': {
+                                'contact': {
+                                    'email': 'edeutsch@systemsbiology.org'
                                 },
-                                "x-trapi": {
-                                    "version": "1.2.0",
-                                    "test_data_location": "https://github.com/TranslatorSRI/SRI_testing/blob" +
-                                                          "/main/tests/onehop/test_triples/ARA" +
-                                                          "/Unit_Test_ARA/Test_ARA.json"
+                                'description': 'TRAPI 1.3 endpoint for the NCATS Biomedical Translator Reasoner called ARAX',
+                                'license': {
+                                    'name': 'Apache 2.0',
+                                    'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                                },
+                                'termsOfService': 'https://github.com/RTXteam/RTX/blob/master/LICENSE',
+                                'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                                'version': '1.3.0',
+                                'x-translator': {
+                                    'biolink-version': '2.2.11',
+                                    'component': 'ARA',
+                                    'infores': 'infores:arax',
+                                    'team': ['Expander Agent']
+                                },
+                                'x-trapi': {
+                                    'test_data_location':
+                                        'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                        'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                                    'version': '1.3.0'
                                 }
-                            }
+                            },
+                            'servers': [
+                                {
+                                    'description': 'ARAX TRAPI 1.3 endpoint - production',
+                                    'url': 'https://arax.ncats.io/api/arax/v1.3',
+                                    'x-maturity': 'production'
+                                }, {
+                                    'description': 'ARAX TRAPI 1.3 endpoint - testing',
+                                    'url': 'https://arax.test.transltr.io/api/arax/v1.3',
+                                    'x-maturity': 'testing'
+                                }, {
+                                    'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                                    'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                                    'x-maturity': 'staging'
+                                }, {
+                                    'description': 'ARAX TRAPI 1.3 endpoint - development',
+                                    'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                                    'x-maturity': 'development'
+                                },
+                            ],
                         }
                     ]
                 },
-                "https://raw.githubusercontent.com/TranslatorSRI/SRI_testing" +
-                "/main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json"   # ARA test_data_location
+                'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                'https://arax.ncats.io/api/arax/v1.3'
         )
     ]
 )
