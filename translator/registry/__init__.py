@@ -253,6 +253,12 @@ _ignored_resources: Set[str] = {
 }
 
 
+# TODO: this is an ordered list giving 'production' testing priority but not sure about preferred testing priority
+#       See https://github.com/TranslatorSRI/SRI_testing/issues/61 and also
+#           https://github.com/TranslatorSRI/SRI_testing/issues/59
+DEPLOYMENT_TYPES: List[str] = ['production', 'staging', 'testing', 'development']
+
+
 def extract_component_test_metadata_from_registry(
         registry_data: Dict,
         component_type: str
@@ -333,16 +339,35 @@ def extract_component_test_metadata_from_registry(
                 f"TRAPI version '{str(trapi_version)}' and Biolink Version '{str(biolink_version)}'."
             )
 
-        url: Optional[str] = None
+        server_urls: Dict = dict()
         for server in servers:
-            # For the time being, we assume that the first 'url' encountered is a sensible testing target
-            # TODO: 'x-maturity' may later modify our approach for testing
-            if 'url' in server:
-                url = server['url']
+            if not (
+                    'url' in server and
+                    'x-maturity' in server and
+                    server['x-maturity'] in DEPLOYMENT_TYPES
+            ):
+                # sanity check!
+                continue
+            environment = server['x-maturity']
+            env_endpoint = server['url']
+            if environment not in server_urls:
+                # first url seen for a given for a given x-maturity
+                server_urls[environment] = env_endpoint
+            else:
+                logger.warning(
+                    f"Service {index} has duplicate server '{env_endpoint}' for x-maturity value '{environment}'?"
+                )
+
+        # Check the possible target testing environments in order
+        url: Optional[str] = None
+        for environment in DEPLOYMENT_TYPES:
+            if environment in server_urls:
+                url = server_urls[environment]
                 break
 
         if not url:
-            logger.warning(f"Service {index} lacks a 'testing' or 'staging' x-maturity endpoint... Skipped?")
+            # not likely, but another sanity check!
+            logger.warning(f"Service {index} lacks a suitable SRI Testing endpoint... Skipped?")
             continue
 
         if test_data_location not in service_metadata:

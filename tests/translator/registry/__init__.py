@@ -4,7 +4,7 @@ Registry package
 
 # Setting the following flag to 'True' triggers use of the
 # local 'mock' Registry data entries immediately below
-MOCK_REGISTRY: bool = True
+MOCK_REGISTRY: bool = False
 
 
 def mock_registry(status: bool):
@@ -137,7 +137,7 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                     'description': 'ARAX TRAPI 1.3 endpoint - development',
                     'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
                     'x-maturity': 'development'
-                },
+                }
             ],
         }
     ]
