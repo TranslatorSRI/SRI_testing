@@ -236,6 +236,9 @@ class OneHopTestHarness:
 
         :return: None
         """
+        # TODO: perhaps replace this embedded processing code with a FIFO job Queue
+        #       to allow for disciplined processing of multiple (sequential) test_runs
+
         # possible override of timeout here?
         self._timeout = timeout if timeout else self._timeout
 
@@ -257,7 +260,6 @@ class OneHopTestHarness:
         self._process.run_command(self._command_line)
 
         # Cache run parameters for later access as necessary
-        # TODO: what about the TestReportDatabase(?)
         self._test_run_id_2_worker_process[self._test_run_id] = {
             "command_line": self._command_line,
             "worker_process": self._process,
