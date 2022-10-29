@@ -72,9 +72,9 @@ class ResourceRegistry(BaseModel):
     "/registry",
     tags=['report'],
     response_model=ResourceRegistry,
-    summary="Retrieve the list of completed test runs."
+    summary="Retrieve the list of testable resources (KPs and ARAs) published in the Translator SmartAPI Registry."
 )
-async def get_test_run_list() -> ResourceRegistry:
+async def get_resources_from_registry() -> ResourceRegistry:
     """
     Returns a list of ARA and KP available for testing from the Translator SmartAPI Registry.
     Note that only Translator resources with their **info.x-trapi.test_data_location** properties set are reported.
@@ -263,7 +263,7 @@ class TestRunStatus(BaseModel):
     "/status",
     tags=['report'],
     response_model=TestRunStatus,
-    summary="Retrieve the summary of a specified SRI Testing run."
+    summary="Retrieve the percentage completion status of a specified SRI Testing run."
 )
 async def get_status(test_run_id: str) -> TestRunStatus:
     """
@@ -343,7 +343,7 @@ class TestRunSummary(BaseModel):
     "/index",
     tags=['report'],
     response_model=TestRunSummary,
-    summary="Retrieve the index - KP and ARA resource tags - of a completed specified OneHopTestHarness test run.",
+    summary="Retrieve the index - KP and ARA resource tags - within a completed specified OneHopTestHarness test run.",
     responses={404: {"model": Message}}
 )
 async def get_index(test_run_id: str) -> Union[TestRunSummary, JSONResponse]:
