@@ -2,7 +2,7 @@
 FastAPI web service wrapper for SRI Testing harness
 (i.e. for reports to a Translator Runtime Status Dashboard)
 """
-from typing import Optional, Dict, List, Generator, Union
+from typing import Optional, Dict, List, Generator, Union, Tuple
 
 from os.path import dirname, abspath
 
@@ -61,6 +61,31 @@ favicon_path = f"{abspath(dirname(__file__))}/img/favicon.ico"
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     return FileResponse(favicon_path)
+
+
+class ResourceRegistry(BaseModel):
+    KPs: List[str]
+    ARAs: List[str]
+
+
+@app.get(
+    "/registry",
+    tags=['report'],
+    response_model=ResourceRegistry,
+    summary="Retrieve the list of completed test runs."
+)
+async def get_test_run_list() -> ResourceRegistry:
+    """
+    Returns a list of ARA and KP available for testing from the Translator SmartAPI Registry.
+    Note that only Translator resources with their **info.x-trapi.test_data_location** properties set are reported.
+
+    - 2-Tuple(List[ara_id*], List[kp_id*]) of the reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    \f
+    :return: ResourceRegistry, Lists of Reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    """
+    resources: Tuple[List[str], List[str]] = OneHopTestHarness.get_resources_from_registry()
+
+    return ResourceRegistry(KPs=resources[0], ARAs=resources[1])
 
 
 ###########################################################
