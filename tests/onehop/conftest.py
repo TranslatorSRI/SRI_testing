@@ -815,11 +815,6 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
                 # If not specified, we assume that the KP is a "primary_knowledge_source"
                 edge['kp_source_type'] = "primary"
 
-            if 'query_opts' in kpjson:
-                edge['query_opts'] = kpjson['query_opts']
-            else:
-                edge['query_opts'] = {}
-
             if dataset_level_test_exclusions:
                 if 'exclude_tests' not in edge:
                     edge['exclude_tests']: Set = dataset_level_test_exclusions
@@ -991,11 +986,6 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                     )
                     edge['kp_source'] = f"infores:{kp}"
                 edge['kp_source_type'] = kp_edge['kp_source_type']
-
-                if 'query_opts' in arajson:
-                    edge['query_opts'] = arajson['query_opts']
-                else:
-                    edge['query_opts'] = {}
 
                 # Start using the object_id of the Infores CURIEs of the ARA's and KP's, instead of their api_names...
                 # resource_id = f"{edge['ara_api_name']}|{edge['kp_api_name']}"
