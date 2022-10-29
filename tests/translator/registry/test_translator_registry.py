@@ -1,7 +1,7 @@
 """
 Unit tests for Translator SmartAPI Registry
 """
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, List
 import logging
 import pytest
 
@@ -10,8 +10,9 @@ from translator.registry import (
     query_smart_api,
     SMARTAPI_QUERY_PARAMETERS,
     tag_value,
+    get_the_registry_data,
     extract_component_test_metadata_from_registry,
-    get_the_registry_data
+    get_testable_resource_ids_from_registry
 )
 
 logger = logging.getLogger(__name__)
@@ -376,6 +377,20 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
 )
 def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, str]):
     shared_test_extract_component_test_data_metadata_from_registry(query, "ARA")
+
+
+def test_get_testable_resource_ids_from_registry():
+    registry_data: Dict = get_the_registry_data()
+    resources: Tuple[List[str], List[str]] = get_testable_resource_ids_from_registry(registry_data)
+    assert resources
+    assert len(resources[0]) > 0, \
+        "No 'KP' services found with a 'test_data_location' value in the Translator SmartAPI Registry?"
+    assert len(resources[1]) > 0, \
+        "No 'ARA' services found with a 'test_data_location' value in the Translator SmartAPI Registry?"
+
+    # 'molepro' and 'arax' are in both the MOCK and regular registry so these assertions should pass
+    assert "molepro" in resources[0]
+    assert "arax" in resources[1]
 
 
 def test_get_translator_kp_test_data_metadata():

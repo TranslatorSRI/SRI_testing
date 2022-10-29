@@ -5,6 +5,7 @@ from typing import Optional, Dict, Tuple, List, Generator
 from datetime import datetime
 import re
 
+from translator.registry import get_the_registry_data, get_testable_resource_ids_from_registry
 from translator.sri.testing.processor import CMD_DELIMITER, WorkerProcess
 
 from tests.onehop import ONEHOP_TEST_DIRECTORY
@@ -528,3 +529,9 @@ class OneHopTestHarness:
             document_type="Recommendations", document_key=document_key
         )
         return resource_summary
+
+    @classmethod
+    def get_resources_from_registry(cls) -> Tuple[List[str], List[str]]:
+        registry_data: Dict = get_the_registry_data()
+        resources: Tuple[List[str], List[str]] = get_testable_resource_ids_from_registry(registry_data)
+        return resources

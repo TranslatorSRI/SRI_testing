@@ -1,7 +1,7 @@
 """
 Translator SmartAPI Registry access module.
 """
-from typing import Optional, List, Dict, NamedTuple, Set
+from typing import Optional, List, Dict, NamedTuple, Set, Tuple
 from datetime import datetime
 
 import requests
@@ -253,7 +253,132 @@ _ignored_resources: Set[str] = {
 }
 
 
-# TODO: this is an ordered list giving 'production' testing priority but not sure about preferred testing priority
+def testable_resource(index, service, component) -> Optional[Dict[str, str]]:
+    #
+    # This 'overloaded' function actually checks a number of parameters that need to be present for testable resources.
+    # If the validation of all parameters succeeds, it returns a dictionary of those values; otherwise, returns 'None'
+    #
+    resource_metadata: Dict = dict()
+
+    service_title = tag_value(service, "info.title")
+    if service_title:
+        resource_metadata['service_title'] = service_title
+    else:
+        logger.warning(f"Registry {component} entry '{index}' lacks a 'service_title'... Skipped?")
+        return None
+
+    if 'servers' not in service:
+        logger.warning(f"Registry {component} entry '{service_title}' lacks a 'servers' block... Skipped?")
+        return None
+
+    servers: Optional[List[Dict]] = service['servers']
+
+    infores = tag_value(service, "info.x-translator.infores")
+    # Internally, within SRI Testing, we only track the object_id of the infores CURIE
+    infores = infores.replace("infores:", "") if infores else None
+
+    if infores:
+        resource_metadata['infores'] = infores
+    else:
+        logger.warning(f"Registry {component} entry '{service_title}' has no 'infores' identifier. Skipping?")
+        return None
+
+    if infores in _ignored_resources:
+        logger.warning(
+            f"Registry {component} entry '{service_title}' with InfoRes '{infores}' is tagged to be ignored. Skipping?"
+        )
+        return None
+
+    raw_test_data_location: Optional[str] = tag_value(service, "info.x-trapi.test_data_location")
+
+    # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
+    test_data_location = validate_test_data_location(raw_test_data_location)
+    if test_data_location:
+        resource_metadata['test_data_location'] = test_data_location
+    else:
+        logger.warning(
+            f"Empty, invalid or inaccessible info.x-trapi.test_data_location '{str(raw_test_data_location)}' " +
+            f"for Registry {component} entry '{service_title}' ... Service entry skipped?")
+        return None
+
+    server_urls: Dict = dict()
+    for server in servers:
+        if not (
+                'url' in server and
+                'x-maturity' in server and
+                server['x-maturity'] in DEPLOYMENT_TYPES
+        ):
+            # sanity check!
+            continue
+        environment = server['x-maturity']
+        env_endpoint = server['url']
+        if environment not in server_urls:
+            # first url seen for a given for a given x-maturity
+            logger.info(
+                f"Registry {component} entry '{service_title}' server endpoint "
+                f"for environment '{environment}' set to url '{env_endpoint}'."
+            )
+            server_urls[environment] = env_endpoint
+        else:
+            logger.warning(
+                f"Registry {component} entry '{service_title}' has duplicate server " +
+                f"'{env_endpoint}' for x-maturity value '{environment}'? "
+                f"Still using '{server_urls[environment]}', the first server endpoint parsed..."
+            )
+
+    # Check the possible target testing environments in order
+    url: Optional[str] = None
+    for environment in DEPLOYMENT_TYPES:
+        if environment in server_urls:
+            url = server_urls[environment]
+            break
+
+    if url:
+        resource_metadata['url'] = url
+    else:
+        # not likely, but another sanity check!
+        logger.warning(f"Service {index} lacks a suitable SRI Testing endpoint... Skipped?")
+        return None
+
+    return resource_metadata
+
+
+def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[str], List[str]]:
+    """
+    Simpler version of the extract_component_test_metadata_from_registry() method,
+    that only returns the InfoRes reference identifiers of all testable resources.
+
+    :param registry_data:
+        Dict, Translator SmartAPI Registry dataset
+        from which specific component_type metadata will be extracted.
+
+    :return: 2-Tuple(List[kp_id*], List[ara_id*]) of the reference id's of InfoRes CURIES of available KPs and ARAs.
+    """
+
+    kp_ids: List[str] = list()
+    ara_ids: List[str] = list()
+
+    for index, service in enumerate(registry_data['hits']):
+
+        # We are only interested in services belonging to a given category of components
+        component = tag_value(service, "info.x-translator.component")
+        if not (component and component in ["KP", "ARA"]):
+            continue
+
+        resource_metadata: Optional[Dict[str, str]] = testable_resource(index, service, component)
+        if not resource_metadata:
+            continue
+
+        if component == "KP":
+            kp_ids.append(resource_metadata['infores'])
+        elif component == "ARA":
+            ara_ids.append(resource_metadata['infores'])
+
+    return kp_ids, ara_ids
+
+
+# TODO: this is an ordered list giving 'production' testing priority
+#       but not sure about preferred testing priority.
 #       See https://github.com/TranslatorSRI/SRI_testing/issues/61 and also
 #           https://github.com/TranslatorSRI/SRI_testing/issues/59
 DEPLOYMENT_TYPES: List[str] = ['production', 'staging', 'testing', 'development']
@@ -291,44 +416,22 @@ def extract_component_test_metadata_from_registry(
         if not (component and component == component_type):
             continue
 
-        service_title = tag_value(service, "info.title")
-        if not service_title:
-            logger.warning(f"Service {index} lacks a 'service_title'... Skipped?")
+        resource_metadata: Optional[Dict[str, str]] = testable_resource(index, service, component)
+        if not resource_metadata:
             continue
 
-        if 'servers' not in service:
-            logger.warning(f"Service {index} lacks a 'servers' block... Skipped?")
-            continue
-        servers: Optional[List[Dict]] = service['servers']
+        # Once past the 'testable resources' metadata gauntlet,
+        # we start to collect the full Registry metadata
 
-        infores = tag_value(service, "info.x-translator.infores")
-        # Internally, within SRI Testing, we only track the object_id of the infores CURIE
-        infores = infores.replace("infores:", "") if infores else None
-
-        if not infores:
-            logger.warning(f"Registry {component} entry {service_title} has no 'infores' identifier. Skipping?")
-            continue
+        service_title: str = resource_metadata['service_title']
+        infores: str = resource_metadata['infores']
+        url: str = resource_metadata['url']
+        test_data_location: str = resource_metadata['test_data_location']
 
         if source and infores != source:
-            # silently ignore any resource whose InfoRes reference doesn't match a non-empty target source
+            # silently ignore any resource whose InfoRes CURIE
+            # reference doesn't match a specified non-empty target source
             continue
-
-        if infores in _ignored_resources:
-            logger.warning(f"Registry {component} entry with {infores} is tagged to be ignored. Skipping?")
-            continue
-
-        raw_test_data_location: Optional[str] = tag_value(service, "info.x-trapi.test_data_location")
-
-        # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
-        test_data_location = validate_test_data_location(raw_test_data_location)
-        if not test_data_location:
-            logger.warning(
-                f"Empty, invalid or inaccessible test data resource '{test_data_location}' " +
-                f"for Service {index}: '{service_title}'... Service entry skipped?")
-            continue
-
-        # Once past the test_data_location gauntlet, we start
-        # to collect the remaining Registry metadata
 
         # Grab additional service metadata, then store it all
         service_version = tag_value(service, "info.version")
@@ -348,37 +451,6 @@ def extract_component_test_metadata_from_registry(
                 f"The new entry reports a service version '{str(service_version)}', " +
                 f"TRAPI version '{str(trapi_version)}' and Biolink Version '{str(biolink_version)}'."
             )
-
-        server_urls: Dict = dict()
-        for server in servers:
-            if not (
-                    'url' in server and
-                    'x-maturity' in server and
-                    server['x-maturity'] in DEPLOYMENT_TYPES
-            ):
-                # sanity check!
-                continue
-            environment = server['x-maturity']
-            env_endpoint = server['url']
-            if environment not in server_urls:
-                # first url seen for a given for a given x-maturity
-                server_urls[environment] = env_endpoint
-            else:
-                logger.warning(
-                    f"Service {index} has duplicate server '{env_endpoint}' for x-maturity value '{environment}'?"
-                )
-
-        # Check the possible target testing environments in order
-        url: Optional[str] = None
-        for environment in DEPLOYMENT_TYPES:
-            if environment in server_urls:
-                url = server_urls[environment]
-                break
-
-        if not url:
-            # not likely, but another sanity check!
-            logger.warning(f"Service {index} lacks a suitable SRI Testing endpoint... Skipped?")
-            continue
 
         if test_data_location not in service_metadata:
             service_metadata[test_data_location] = dict()
