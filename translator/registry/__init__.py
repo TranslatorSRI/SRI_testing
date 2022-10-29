@@ -261,7 +261,8 @@ DEPLOYMENT_TYPES: List[str] = ['production', 'staging', 'testing', 'development'
 
 def extract_component_test_metadata_from_registry(
         registry_data: Dict,
-        component_type: str
+        component_type: str,
+        source: Optional[str] = None
 ) -> Dict[str, Dict[str,  Optional[str]]]:
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
@@ -270,6 +271,11 @@ def extract_component_test_metadata_from_registry(
         Dict, Translator SmartAPI Registry dataset
         from which specific component_type metadata will be extracted.
     :param component_type: str, value 'KP' or 'ARA'
+    :param source: Optional[str], ara_id or kp_id source of test configuration data in the registry.
+                                  Return 'all' resources of the given component type if the source is None.
+                                  Note that the identifiers here should be the reference (object) id's
+                                  of the Infores CURIE of the target resource.
+
     :return: Dict[str, Dict[str,  Optional[str]]] of metadata, indexed by 'test_data_location'
     """
 
@@ -301,6 +307,10 @@ def extract_component_test_metadata_from_registry(
 
         if not infores:
             logger.warning(f"Registry {component} entry {service_title} has no 'infores' identifier. Skipping?")
+            continue
+
+        if source and infores != source:
+            # silently ignore any resource whose InfoRes reference doesn't match a non-empty target source
             continue
 
         if infores in _ignored_resources:

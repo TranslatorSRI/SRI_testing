@@ -3,6 +3,7 @@ Unit tests for the backend logic of the web services application.
 
 Note: the nature of these unit tests, even with sample data,
       means that they may take over five minutes to run each one.
+      Use of a running MongoDb instance may accelerate the tests.
 """
 from sys import stderr
 from typing import Optional, Dict
@@ -44,8 +45,8 @@ def _report_outcome(
     print(f"Processing {test_name}() from {session_id}", file=stderr)
 
     tries: int = 0
-    percentage_completed: int = OneHopTestHarness(session_id).get_status()
-    while 0 <= percentage_completed < 100:
+    percentage_completed: float = OneHopTestHarness(session_id).get_status()
+    while 0.0 <= percentage_completed < 100.0:
 
         tries += 1
         if tries > MAX_TRIES:
@@ -55,7 +56,7 @@ def _report_outcome(
         sleep(60)  # rest a minute then try again
         percentage_completed = OneHopTestHarness(session_id).get_status()
 
-    assert percentage_completed == 100, f"OneHopTestHarness status retrieval failed after {MAX_TRIES} tries?"
+    assert percentage_completed == 100.0, f"OneHopTestHarness status retrieval failed after {MAX_TRIES} tries?"
 
     summary: Optional[str] = None
     tries = 0
@@ -96,17 +97,19 @@ def _report_outcome(
             details = OneHopTestHarness(session_id).get_details(
                 component="ARA",
                 edge_num="1",
-                ara_id="aragorn",
-                kp_id="test-kp-1"
+                ara_id="arax",
+                kp_id="sri-reference-kg"
             )
+
+            sleep(0.1)
 
         assert details, \
             f"{test_name}() from test run '{session_id}' is missing expected details for " + \
-            f"ARA tests of edge number '1' of resource 'Test_ARA-Test_KP_2'?"
+            f"ARA tests of edge number '1' of resource 'sri-reference-kg'?"
 
         print(
             f"{test_name}() test run '{session_id}' details for ARA tests of " +
-            f"edge number '1' of resource 'Test_ARA-Test_KP_2' for test run:\n\t{details}\n",
+            f"edge number '1' of resource 'arax' for test run:\n\t{details}\n",
             file=stderr
         )
 
@@ -118,10 +121,10 @@ def _report_outcome(
 def test_run_local_onehop_tests_one_only():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.2",
-        biolink_version="2.2.16",
-        triple_source="test_triples/KP/Unit_Test_KP/Test_KP_1.json",
-        ara_source="test_triples/ARA/Unit_Test_ARA/Test_ARA.json",
+        trapi_version="1.3",
+        biolink_version="2.4.8",
+        kp_id="sri-reference-kg",
+        ara_id="arax",
         one=True
     )
     _report_outcome(
@@ -133,10 +136,10 @@ def test_run_local_onehop_tests_one_only():
 def test_run_local_onehop_tests_all():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.2",
-        biolink_version="2.2.16",
-        triple_source="test_triples/KP/Unit_Test_KP/Test_KP_1.json",
-        ara_source="test_triples/ARA/Unit_Test_ARA/Test_ARA.json"
+        trapi_version="1.3",
+        biolink_version="2.4.8",
+        kp_id="sri-reference-kg",
+        ara_id="arax"
     )
     _report_outcome(
         "test_run_local_onehop_tests",
@@ -148,9 +151,9 @@ def test_run_local_onehop_tests_all_older_trapi_version():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
         trapi_version="1.0.0",
-        biolink_version="2.2.16",
-        triple_source="test_triples/KP/Unit_Test_KP/Test_KP_1.json",
-        ara_source="test_triples/ARA/Unit_Test_ARA/Test_ARA.json"
+        biolink_version="2.4.8",
+        kp_id="sri-reference-kg",
+        ara_id="arax"
     )
 
     _report_outcome(
@@ -164,8 +167,8 @@ def test_run_local_onehop_tests_all_older_blm_version():
     onehop_test.run(
         trapi_version="1.2.0",
         biolink_version="1.8.2",
-        triple_source="test_triples/KP/Unit_Test_KP/Test_KP_1.json",
-        ara_source="test_triples/ARA/Unit_Test_ARA/Test_ARA.json"
+        kp_id="sri-reference-kg",
+        ara_id="arax"
     )
     _report_outcome(
         "test_run_local_onehop_tests",
@@ -176,8 +179,8 @@ def test_run_local_onehop_tests_all_older_blm_version():
 def test_run_onehop_tests_from_registry():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.2",
-        biolink_version="2.2.16",
+        trapi_version="1.3",
+        biolink_version="2.4.8",
         one=True
     )
     _report_outcome(
@@ -200,8 +203,8 @@ def test_run_onehop_tests_with_timeout():
     # to completion, so a WorkerProcess timeout is triggered
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.2",
-        biolink_version="2.2.16",
+        trapi_version="1.3",
+        biolink_version="2.4.8",
         one=True,
         timeout=1
     )

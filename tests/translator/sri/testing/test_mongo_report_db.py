@@ -1,3 +1,6 @@
+"""
+This test suite needs a running MongoDb instance (e.g. in Docker)
+"""
 import json
 from typing import Dict, Optional
 from sys import stderr

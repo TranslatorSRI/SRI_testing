@@ -207,28 +207,26 @@ class OneHopTestHarness:
 
     def run(
             self,
+            ara_id: Optional[str] = None,
+            kp_id: Optional[str] = None,
             trapi_version: Optional[str] = None,
             biolink_version: Optional[str] = None,
-            triple_source: Optional[str] = None,
-            ara_source: Optional[str] = None,
             one: bool = False,
             log: Optional[str] = None,
             timeout: Optional[int] = DEFAULT_WORKER_TIMEOUT
     ):
         """
         Run the SRT Testing test harness as a worker process.
+        :param ara_id: Optional[str], identifier of the ARA resource whose indirect KP test results are being accessed
+        :param kp_id: Optional[str], identifier of the KP resource whose test results are specifically being accessed.
+            - Case 1 - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource
+            - Case 2 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
+            - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
+            - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
 
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
 
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)
-
-        :param triple_source: Optional[str], 'REGISTRY', directory or file from which to retrieve triples
-                                             (Default: 'REGISTRY', which triggers the use of metadata, in KP entries
-                                              from the Translator SmartAPI Registry, to configure the tests).
-
-        :param ara_source: Optional[str], 'REGISTRY', directory or file from which to retrieve ARA Config.
-                                             (Default: 'REGISTRY', which triggers the use of metadata, in ARA entries
-                                             from the Translator SmartAPI Registry, to configure the tests).
 
         :param one: bool, Only use first edge from each KP file (default: False if omitted).
 
@@ -238,6 +236,9 @@ class OneHopTestHarness:
 
         :return: None
         """
+        # TODO: perhaps replace this embedded processing code with a FIFO job Queue
+        #       to allow for disciplined processing of multiple (sequential) test_runs
+
         # possible override of timeout here?
         self._timeout = timeout if timeout else self._timeout
 
@@ -246,10 +247,10 @@ class OneHopTestHarness:
         self._command_line += f" --log-cli-level={log}" if log else ""
         self._command_line += f" test_onehops.py"
         self._command_line += f" --test_run_id={self._test_run_id}"
-        self._command_line += f" --TRAPI_Version={trapi_version}" if trapi_version else ""
-        self._command_line += f" --Biolink_Version={biolink_version}" if biolink_version else ""
-        self._command_line += f" --triple_source={triple_source}" if triple_source else ""
-        self._command_line += f" --ARA_source={ara_source}" if ara_source else ""
+        self._command_line += f" --trapi_version={trapi_version}" if trapi_version else ""
+        self._command_line += f" --biolink_version={biolink_version}" if biolink_version else ""
+        self._command_line += f" --kp_id={kp_id}" if kp_id else ""
+        self._command_line += f" --ara_id={ara_id}" if ara_id else ""
         self._command_line += " --one" if one else ""
 
         logger.debug(f"OneHopTestHarness.run() command line: {self._command_line}")
@@ -259,7 +260,6 @@ class OneHopTestHarness:
         self._process.run_command(self._command_line)
 
         # Cache run parameters for later access as necessary
-        # TODO: what about the TestReportDatabase(?)
         self._test_run_id_2_worker_process[self._test_run_id] = {
             "command_line": self._command_line,
             "worker_process": self._process,
