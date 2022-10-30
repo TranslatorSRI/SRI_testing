@@ -40,6 +40,7 @@ def test_delete_file_report_db_database():
 
 
 SAMPLE_DOCUMENT_KEY: str = "test_run_summary"
+SAMPLE_TEST_RESOURCE: str = "test_resource"
 SAMPLE_DOCUMENT: Dict = {}
 
 
@@ -60,9 +61,11 @@ def sample_file_document_creation_and_insertion(
         document_type="Test Run Summary",
         document={},
         document_key=SAMPLE_DOCUMENT_KEY,
+        index=[SAMPLE_TEST_RESOURCE],
         is_big=is_big
     )
     assert identifier in frd.get_available_reports()
+    # assert identifier in frd.get_available_reports(owner=SAMPLE_TEST_RESOURCE)
 
     return test_report
 
