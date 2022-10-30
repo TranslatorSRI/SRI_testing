@@ -222,7 +222,8 @@ def test_test_run_deletion():
     test_report.save_json_document(
         document_type="Fake Document",
         document={"foo": "bar"},
-        document_key="fake_document"
+        document_key="fake_document",
+        index=["charlatan"]
     )
     outcome: str = onehop_test.delete()
     assert onehop_test.get_test_report() is None
