@@ -131,14 +131,16 @@ class TestReport:
             document_type: str,
             document: Dict,
             document_key: str,
+            index: List[str],
             is_big: bool = False
     ):
         """
-        Saves an indexed document either to a test report database or the filing system.
+        Saves an indexed document either to a test report database or the filing system, indexed against owner resource.
 
         :param document_type: Dict, Python object to persist as a JSON document.
         :param document: Dict, Python object to persist as a JSON document.
         :param document_key: str, indexing path for the document being saved.
+        :param index: List[str], list of InfoRes reference ('object') identifiers against which to index this document.
         :param is_big: bool, if True, flags that the JSON file is expected to require special handling due to its size.
         """
         raise NotImplementedError("Abstract method - implement in child subclass!")
@@ -263,6 +265,7 @@ class FileTestReport(TestReport):
             document_type: str,
             document: Dict,
             document_key: str,
+            index: List[str],
             is_big: bool = False
     ):
         """
@@ -271,6 +274,7 @@ class FileTestReport(TestReport):
         :param document_type: Dict, Python object to persist as a JSON document.
         :param document: Dict, Python object to persist as a JSON document.
         :param document_key: str, indexing path for the document being saved.
+        :param index: List[str], list of InfoRes reference ('object') identifiers against which to index this document.
         :param is_big: bool, if True, flags that the JSON file is expected to require special handling due to its size.
         """
         # for consistency relative to MongoTestReports, we add the document key to the document
@@ -484,6 +488,7 @@ class MongoTestReport(TestReport):
             document_type: str,
             document: Dict,
             document_key: str,
+            index: List[str],
             is_big: bool = False
     ):
         """
@@ -492,6 +497,7 @@ class MongoTestReport(TestReport):
         :param document_type: Dict, Python object to persist as a JSON document.
         :param document: Dict, Python object to persist as a JSON document.
         :param document_key: str, indexing path for the document being saved.
+        :param index: List[str], list of InfoRes reference ('object') identifiers against which to index this document.
         :param is_big: bool, if True, flags that the JSON file is expected to require special handling due to its size.
         """
         # Persist index test run result JSON document suitably indexed by

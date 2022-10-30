@@ -82,6 +82,7 @@ def test_fake_mongo_report_db_connection():
 
 
 SAMPLE_DOCUMENT_KEY: str = "test_run_summary"
+SAMPLE_TEST_RESOURCE: str = "test_resource"
 SAMPLE_DOCUMENT_TYPE = "Test Run Summary"
 SAMPLE_DOCUMENT: Dict = {}
 
@@ -105,6 +106,7 @@ def sample_mongodb_document_creation_and_insertion(
         document_type=SAMPLE_DOCUMENT_TYPE,
         document={},
         document_key=SAMPLE_DOCUMENT_KEY,
+        index=[SAMPLE_TEST_RESOURCE],
         is_big=is_big
     )
     assert test_run_id in mrd.get_available_reports(), f"Report '{test_run_id}' should be in available reports!"
