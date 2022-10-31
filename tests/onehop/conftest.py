@@ -395,6 +395,7 @@ def pytest_sessionfinish(session):
                     document_type="TRAPI I/O",
                     document=case_response,
                     document_key=response_document_key,
+                    index=[],
                     is_big=True
                 )
 
@@ -416,7 +417,8 @@ def pytest_sessionfinish(session):
         test_run.save_json_document(
             document_type="Details",
             document=case_details[edge_details_key],
-            document_key=edge_details_key
+            document_key=edge_details_key,
+            index=[]
         )
 
     # TODO: could the following resource test summaries and recommendations code be refactored to be more DRY?
@@ -432,7 +434,8 @@ def pytest_sessionfinish(session):
             test_run.save_json_document(
                 document_type="Direct KP Summary",
                 document=kp_summaries[kp],
-                document_key=document_key
+                document_key=document_key,
+                index=[]
             )
 
     # All KP's called by ARA's
@@ -445,7 +448,8 @@ def pytest_sessionfinish(session):
                 test_run.save_json_document(
                     document_type="ARA Embedded KP Summary",
                     document=ara_summaries[ara][kp],
-                    document_key=document_key
+                    document_key=document_key,
+                    index=[]
                 )
     #
     # Save the various recommendation summaries
@@ -459,7 +463,8 @@ def pytest_sessionfinish(session):
             test_run.save_json_document(
                 document_type="Direct KP Recommendations",
                 document=kp_summaries[kp],
-                document_key=document_key
+                document_key=document_key,
+                index=[]
             )
 
     # All KP's called by ARA's
@@ -472,14 +477,16 @@ def pytest_sessionfinish(session):
                 test_run.save_json_document(
                     document_type="ARA Embedded KP Recommendations",
                     document=ara_summaries[ara][kp],
-                    document_key=document_key
+                    document_key=document_key,
+                    index=[]
                 )
 
     # Save Test Run Summary
     test_run.save_json_document(
         document_type="Test Run Summary",
         document=test_run_summary,
-        document_key="test_run_summary"
+        document_key="test_run_summary",
+        index=[]
     )
 
 
@@ -815,11 +822,6 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
                 # If not specified, we assume that the KP is a "primary_knowledge_source"
                 edge['kp_source_type'] = "primary"
 
-            if 'query_opts' in kpjson:
-                edge['query_opts'] = kpjson['query_opts']
-            else:
-                edge['query_opts'] = {}
-
             if dataset_level_test_exclusions:
                 if 'exclude_tests' not in edge:
                     edge['exclude_tests']: Set = dataset_level_test_exclusions
@@ -991,11 +993,6 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                     )
                     edge['kp_source'] = f"infores:{kp}"
                 edge['kp_source_type'] = kp_edge['kp_source_type']
-
-                if 'query_opts' in arajson:
-                    edge['query_opts'] = arajson['query_opts']
-                else:
-                    edge['query_opts'] = {}
 
                 # Start using the object_id of the Infores CURIEs of the ARA's and KP's, instead of their api_names...
                 # resource_id = f"{edge['ara_api_name']}|{edge['kp_api_name']}"

@@ -134,13 +134,12 @@ def generate_test_error_msg_prefix(case: Dict, test_name: str) -> str:
     return test_msg_prefix
 
 
-def call_trapi(url: str, opts, trapi_message):
+def call_trapi(url: str, trapi_message):
     """
     Given an url and a TRAPI message, post the message
     to the url and return the status and json response.
 
     :param url:
-    :param opts:
     :param trapi_message:
     :return:
     """
@@ -149,21 +148,18 @@ def call_trapi(url: str, opts, trapi_message):
     # print(f"\ncall_trapi({query_url}):\n\t{dumps(trapi_message, sort_keys=False, indent=4)}", file=stderr, flush=True)
 
     try:
-        response = requests.post(query_url, json=trapi_message, params=opts, timeout=DEFAULT_TRAPI_POST_TIMEOUT)
+        response = requests.post(query_url, json=trapi_message, timeout=DEFAULT_TRAPI_POST_TIMEOUT)
     except requests.Timeout:
         # fake response object
         logger.error(
-            f"call_trapi(\n\turl: '{url}',\n\topts: '{_output(opts)}',"
-            f"\n\ttrapi_message: '{_output(trapi_message)}') - "
-            f"Request POST TimeOut?"
+            f"call_trapi(\n\turl: '{url}',\n\ttrapi_message: '{_output(trapi_message)}') - Request POST TimeOut?"
         )
         response = requests.Response()
         response.status_code = 408
     except requests.RequestException as re:
         # perhaps another unexpected Request failure?
         logger.error(
-            f"call_trapi(\n\turl: '{url}',\n\topts: '{_output(opts)}',"
-            f"\n\ttrapi_message: '{_output(trapi_message)}') - "
+            f"call_trapi(\n\turl: '{url}',\n\ttrapi_message: '{_output(trapi_message)}') - "
             f"Request POST exception: {str(re)}"
         )
         response = requests.Response()
@@ -213,7 +209,7 @@ def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
             # if no messages are reported, then continue with the validation
 
             # Make the TRAPI call to the Case targeted KP or ARA resource, using the case-documented input test edge
-            trapi_response = call_trapi(case['url'], case['query_opts'], trapi_request)
+            trapi_response = call_trapi(case['url'], trapi_request)
 
             # Record the raw TRAPI query input and output for later test harness reference
             rbag.request = trapi_request

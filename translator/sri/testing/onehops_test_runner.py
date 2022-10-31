@@ -5,7 +5,8 @@ from typing import Optional, Dict, Tuple, List, Generator
 from datetime import datetime
 import re
 
-from translator.sri.testing.processor import CMD_DELIMITER, WorkerProcess
+from translator.registry import get_the_registry_data, get_testable_resource_ids_from_registry
+from translator.sri.testing.processor import CMD_DELIMITER, WorkerTask
 
 from tests.onehop import ONEHOP_TEST_DIRECTORY
 
@@ -139,7 +140,7 @@ def parse_unit_test_name(unit_test_key: str) -> Tuple[str, str, str, int, str, s
 class OneHopTestHarness:
 
     # Caching of processes, indexed by test_run_id (timestamp identifier as string)
-    _test_run_id_2_worker_process: Dict[str, Dict] = dict()
+    _test_run_id_2_worker_task: Dict[str, Dict] = dict()
 
     _test_report_database: Optional[TestReportDatabase] = None
 
@@ -158,9 +159,9 @@ class OneHopTestHarness:
         logger.debug("Initializing the OneHopTestHarness environment")
         for test_run_id in cls.get_completed_test_runs():
             logger.debug(f"Found persisted test run {test_run_id} in TestReportDatabase")
-            cls._test_run_id_2_worker_process[test_run_id] = {
+            cls._test_run_id_2_worker_task[test_run_id] = {
                 "command_line": None,
-                "worker_process": None,
+                "worker_task": None,
                 "timeout": DEFAULT_WORKER_TIMEOUT,
                 "percentage_completion": 100.0,
                 "test_run_completed": True
@@ -178,7 +179,7 @@ class OneHopTestHarness:
 
         """
         self._command_line: Optional[str] = None
-        self._process: Optional[WorkerProcess] = None
+        self._worker_task: Optional[WorkerTask] = None
         self._timeout: Optional[int] = DEFAULT_WORKER_TIMEOUT
         self._percentage_completion: float = 0.0
         self._test_run_completed: bool = False
@@ -189,7 +190,7 @@ class OneHopTestHarness:
         else:
             # new (or 'local') test run? no run parameters to reload?
             self._test_run_id = self._generate_test_run_id()
-            self._test_run_id_2_worker_process[self._test_run_id] = {}
+            self._test_run_id_2_worker_task[self._test_run_id] = {}
 
         # Retrieve the associated test run report object
         self._test_report: Optional[TestReport] = \
@@ -213,7 +214,7 @@ class OneHopTestHarness:
             biolink_version: Optional[str] = None,
             one: bool = False,
             log: Optional[str] = None,
-            timeout: Optional[int] = DEFAULT_WORKER_TIMEOUT
+            timeout: Optional[int] = None
     ):
         """
         Run the SRT Testing test harness as a worker process.
@@ -225,23 +226,16 @@ class OneHopTestHarness:
             - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
 
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
-
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)
-
         :param one: bool, Only use first edge from each KP file (default: False if omitted).
-
         :param log: Optional[str], desired Python logger level label (default: None, implying default logger)
-
         :param timeout: Optional[int], worker process timeout in seconds (defaults to about 120 seconds
-
-        :return: None
         """
-        # TODO: perhaps replace this embedded processing code with a FIFO job Queue
-        #       to allow for disciplined processing of multiple (sequential) test_runs
-
-        # possible override of timeout here?
+        # possible override of DEFAULT_WORKER_TIMEOUT timeout here?
         self._timeout = timeout if timeout else self._timeout
 
+        # This method simply composes the Pytest command to be run then delegates it
+        # to a WorkerProcess, which is responsible for scheduling its run.
         self._command_line = f"cd {ONEHOP_TEST_DIRECTORY} {CMD_DELIMITER} " + \
                              f"pytest --tb=line -vv"
         self._command_line += f" --log-cli-level={log}" if log else ""
@@ -255,42 +249,44 @@ class OneHopTestHarness:
 
         logger.debug(f"OneHopTestHarness.run() command line: {self._command_line}")
 
-        self._process = WorkerProcess(identifier=self._test_run_id, timeout=self._timeout)
+        # Creates a 'Worker Task' to get the job done, when resources are available
+        self._worker_task = WorkerTask(identifier=self._test_run_id, timeout=self._timeout)
+        
+        # Issues the command (schedules the task in the process queue... execution may be delayed)
+        self._worker_task.run_command(self._command_line)
 
-        self._process.run_command(self._command_line)
-
-        # Cache run parameters for later access as necessary
-        self._test_run_id_2_worker_process[self._test_run_id] = {
+        # Cache run parameters for later reference, as necessary
+        self._test_run_id_2_worker_task[self._test_run_id] = {
             "command_line": self._command_line,
-            "worker_process": self._process,
+            "worker_task": self._worker_task,
             "timeout": self._timeout,
             "percentage_completion": 0.0,  # Percentage Completion needs to be updated later?
             "test_run_completed": False
         }
 
-    def get_worker(self) -> Optional[WorkerProcess]:
-        return self._process
+    def get_worker_task(self) -> Optional[WorkerTask]:
+        return self._worker_task
 
     def _set_percentage_completion(self, value: float):
-        if self._test_run_id in self._test_run_id_2_worker_process:
-            self._test_run_id_2_worker_process[self._test_run_id]["percentage_completion"] = value
+        if self._test_run_id in self._test_run_id_2_worker_task:
+            self._test_run_id_2_worker_task[self._test_run_id]["percentage_completion"] = value
         else:
             raise RuntimeError(
                 f"_set_percentage_completion(): '{str(self._test_run_id)}' Worker Process is unknown!"
             )
     
     def _get_percentage_completion(self) -> float:
-        if self._test_run_id in self._test_run_id_2_worker_process:
-            return self._test_run_id_2_worker_process[self._test_run_id]["percentage_completion"]
+        if self._test_run_id in self._test_run_id_2_worker_task:
+            return self._test_run_id_2_worker_task[self._test_run_id]["percentage_completion"]
         else:
             return -1.0  # signal unknown test run process?
 
     def _reload_run_parameters(self):
         # TODO: do we also need to reconnect to the TestReportDatabase here?
-        if self._test_run_id in self._test_run_id_2_worker_process:
-            run_parameters: Dict = self._test_run_id_2_worker_process[self._test_run_id]
+        if self._test_run_id in self._test_run_id_2_worker_task:
+            run_parameters: Dict = self._test_run_id_2_worker_task[self._test_run_id]
             self._command_line = run_parameters["command_line"]
-            self._process = run_parameters["worker_process"]
+            self._worker_task = run_parameters["worker_task"]
             self._timeout = run_parameters["timeout"]
             self._percentage_completion = run_parameters["percentage_completion"]
             self._test_run_completed = run_parameters["test_run_completed"]
@@ -299,22 +295,22 @@ class OneHopTestHarness:
                 f"Test run '{self._test_run_id}' is not associated with a Worker Process. " +
                 f"May be invalid or an historic archive? Client needs to check for the latter?")
             self._command_line = None
-            self._process = None
+            self._worker_task = None
             self._timeout = DEFAULT_WORKER_TIMEOUT
             self._percentage_completion = -1.0
 
     def test_run_complete(self) -> bool:
         if not self._test_run_completed:
             # If there is an active WorkerProcess...
-            if self._process:
+            if self._worker_task:
                 # ... then poll the Queue for task completion
-                status: str = self._process.status()
-                if status.startswith(WorkerProcess.COMPLETED) or \
-                        status.startswith(WorkerProcess.NOT_RUNNING):
+                status: str = self._worker_task.status()
+                if status.startswith(WorkerTask.COMPLETED) or \
+                        status.startswith(WorkerTask.NOT_RUNNING):
                     self._test_run_completed = True
-                    if status.startswith(WorkerProcess.COMPLETED):
+                    if status.startswith(WorkerTask.COMPLETED):
                         logger.debug(status)
-                        self._process = None
+                        self._worker_task = None
 
         return self._test_run_completed
 
@@ -330,7 +326,7 @@ class OneHopTestHarness:
             self._set_percentage_completion(100.0)
 
         elif 0.0 <= self._get_percentage_completion() < 95.0:
-            for percentage_complete in self._process.get_output(timeout=1):
+            for percentage_complete in self._worker_task.get_output(timeout=1):
                 logger.debug(f"Pytest % completion: {percentage_complete}")
                 # We deliberately hold back declaring 100% completion to allow
                 # the system to truly finish processing and return the full test report
@@ -346,16 +342,16 @@ class OneHopTestHarness:
         try:
             if not (self.test_run_complete() and self._test_report):
                 # test run still in progress...
-                if self._process:
+                if self._worker_task:
 
                     # this is a blocking process termination but leaves
                     # an incomplete TestReport in the TestReportDatabase
-                    self._process.terminate()
-                    self._process = None
+                    self._worker_task.terminate()
+                    self._worker_task = None
 
                     # Remove the process from the OneHopTestHarness cache
-                    if self._test_run_id in self._test_run_id_2_worker_process:
-                        self._test_run_id_2_worker_process.pop(self._test_run_id)
+                    if self._test_run_id in self._test_run_id_2_worker_task:
+                        self._test_run_id_2_worker_task.pop(self._test_run_id)
 
             success = self._test_report.delete(ignore_errors=True)
 
@@ -373,37 +369,101 @@ class OneHopTestHarness:
 
         return outcome
 
-    def save_json_document(self, document_type: str, document: Dict, document_key: str, is_big: bool = False):
+    def save_json_document(
+            self,
+            document_type: str,
+            document: Dict,
+            document_key: str,
+            index: List[str],
+            is_big: bool = False
+    ):
         """
         Saves an indexed document either to a test report database or the filing system.
 
         :param document_type: str, category label of document type being saved (for error reporting)
         :param document: Dict, Python object to persist as a JSON document.
         :param document_key: str, indexing path for the document being saved.
+        :param index: List[str], list of InfoRes reference ('object') identifiers against which to index this document.
         :param is_big: bool, if True, flags that the JSON file is expected to require special handling due to its size.
         """
         self.get_test_report().save_json_document(
             document_type=document_type,
             document=document,
             document_key=document_key,
+            index=index,
             is_big=is_big
         )
 
+    @staticmethod
+    def document_filter(
+            ara_id: Optional[str] = None,
+            kp_id: Optional[str] = None
+    ):
+        pass
+
+    @staticmethod
+    def resource_filter(ara_id: str, kp_id: str):
+        def filter_function(document: Dict) -> bool:
+            if not (ara_id and kp_id):
+                return True
+            if ara_id:
+                if "ARA" in document:
+                    ara_data: Dict = document["ARA"]
+                    if ara_id not in ara_data:
+                        return False
+                    else:
+                        ara_data = ara_data[ara_id]
+                        if "kps" not in ara_data:
+                            return False
+                        else:
+                            kp_data = ara_data["kps"]
+                            if kp_id and kp_id not in kp_data:
+                                return False
+                            else:
+                                return True
+                else:
+                    return False
+
+            if kp_id:
+                if "KP" in document:
+                    kp_data = document["KP"]
+                    if kp_id not in kp_data:
+                        return False
+                    else:
+                        return True
+                else:
+                    return False
+
+        return filter_function
+
     @classmethod
-    def get_completed_test_runs(cls) -> List[str]:
+    def get_completed_test_runs(
+            cls,
+            ara_id: Optional[str] = None,
+            kp_id: Optional[str] = None
+    ) -> List[str]:
         """
-        :return: list of test run identifiers of completed test runs
+        Returns the catalog of test report identifiers from the database, possibly filtered by ara_id and/or kp_id.
+        :param ara_id: identifier of the ARA resource whose indirect KP test results are being accessed
+        :param kp_id: identifier of the KP resource whose test results are specifically being accessed.
+            - Case 1 - non-empty kp_id, empty ara_id == return test runs of the one directly tested KP resource
+            - Case 2 - non-empty ara_id, non-empty kp_id == return test run of one specific KP tested via the ARA
+            - Case 3 - non-empty ara_id, empty kp_id == return test runs of all KPs being tested under the ARA
+            - Case 4 - empty ara_id and kp_id == identifiers for all available test runs returned.
+        :return: list of test run identifiers of available (possibly filtered) test reports.
         """
-        return cls.test_report_database().get_available_reports()
+        # We initialize the closure of the resource_filter,
+        # and pass it to the report database as a report_filter
+        return cls.test_report_database().get_available_reports(
+            report_filter=cls.resource_filter(ara_id=ara_id, kp_id=kp_id)
+        )
 
     def get_index(self) -> Optional[Dict]:
         """
-        If available, returns a test result index - KP and ARA tags - for the most recent OneHopTestHarness run.
+        If available, returns a test result index - KP and ARA tags - for the OneHopTestHarness run.
 
         :return: Optional[str], JSON document KP/ARA index of unit test results. 'None' if not (yet) available.
         """
-        # TODO: can some part of this operation be cached, maybe by pushing
-        #       the index access down one more level, into the TestReport?
         summary: Optional[Dict] = self.get_test_report().retrieve_document(
             document_type="Summary", document_key="test_run_summary"
         )
@@ -528,3 +588,9 @@ class OneHopTestHarness:
             document_type="Recommendations", document_key=document_key
         )
         return resource_summary
+
+    @classmethod
+    def get_resources_from_registry(cls) -> Tuple[List[str], List[str]]:
+        registry_data: Dict = get_the_registry_data()
+        resources: Tuple[List[str], List[str]] = get_testable_resource_ids_from_registry(registry_data)
+        return resources

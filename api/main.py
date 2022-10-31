@@ -2,7 +2,7 @@
 FastAPI web service wrapper for SRI Testing harness
 (i.e. for reports to a Translator Runtime Status Dashboard)
 """
-from typing import Optional, Dict, List, Generator, Union
+from typing import Optional, Dict, List, Generator, Union, Tuple
 
 from os.path import dirname, abspath
 
@@ -61,6 +61,31 @@ favicon_path = f"{abspath(dirname(__file__))}/img/favicon.ico"
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     return FileResponse(favicon_path)
+
+
+class ResourceRegistry(BaseModel):
+    KPs: List[str]
+    ARAs: List[str]
+
+
+@app.get(
+    "/registry",
+    tags=['report'],
+    response_model=ResourceRegistry,
+    summary="Retrieve the list of testable resources (KPs and ARAs) published in the Translator SmartAPI Registry."
+)
+async def get_resources_from_registry() -> ResourceRegistry:
+    """
+    Returns a list of ARA and KP available for testing from the Translator SmartAPI Registry.
+    Note that only Translator resources with their **info.x-trapi.test_data_location** properties set are reported.
+
+    - 2-Tuple(List[ara_id*], List[kp_id*]) of the reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    \f
+    :return: ResourceRegistry, Lists of Reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    """
+    resources: Tuple[List[str], List[str]] = OneHopTestHarness.get_resources_from_registry()
+
+    return ResourceRegistry(KPs=resources[0], ARAs=resources[1])
 
 
 ###########################################################
@@ -238,7 +263,7 @@ class TestRunStatus(BaseModel):
     "/status",
     tags=['report'],
     response_model=TestRunStatus,
-    summary="Retrieve the summary of a specified SRI Testing run."
+    summary="Retrieve the percentage completion status of a specified SRI Testing run."
 )
 async def get_status(test_run_id: str) -> TestRunStatus:
     """
@@ -265,7 +290,7 @@ class TestRunDeletion(BaseModel):
     "/delete",
     tags=['report'],
     response_model=TestRunDeletion,
-    summary="Cancel a currently running SRI Testing run."
+    summary="Cancel/delete a currently running SRI Testing run or delete a completed test run."
 )
 async def delete(test_run_id: str) -> TestRunDeletion:
     """
@@ -293,15 +318,38 @@ class TestRunList(BaseModel):
     response_model=TestRunList,
     summary="Retrieve the list of completed test runs."
 )
-async def get_test_run_list() -> TestRunList:
+async def get_test_run_list(
+        ara_id: Optional[str] = None,
+        kp_id: Optional[str] = None,
+        latest: bool = False
+) -> TestRunList:
     """
-    Returns the catalog of completed OneHopTestHarness test runs.
+    Returns the catalog of completed OneHopTestHarness test runs, possibly filtered by ara_id and/or kp_id.
+
+    - **ara_id**: identifier of the ARA resource whose indirect KP test results are being accessed
+    - **kp_id**: identifier of the KP resource whose test results are specifically being accessed.
+        - Case 1 - non-empty kp_id, empty ara_id == return test runs of the one directly tested KP resource
+        - Case 2 - non-empty ara_id, non-empty kp_id == return test run of one specific KP tested via the ARA
+        - Case 3 - non-empty ara_id, empty kp_id == return test runs of all KPs being tested under the ARA
+        - Case 4 - empty ara_id and kp_id == identifiers for all available test runs returned.
+    - **latest**: bool, optional flag constrains run list to just report 'latest' test run (default: False).
 
     \f
-    :return: TestRunList, list of timestamp identifiers of completed OneHopTestHarness test runs.
+    :param ara_id: identifier of the ARA resource whose indirect KP test results are being accessed
+    :param kp_id: identifier of the KP resource whose test results are specifically being accessed.
+        - Case 1 - non-empty kp_id, empty ara_id == return test runs of the one directly tested KP resource
+        - Case 2 - non-empty ara_id, non-empty kp_id == return test run of one specific KP tested via the ARA
+        - Case 3 - non-empty ara_id, empty kp_id == return test runs of all KPs being tested under the ARA
+        - Case 4 - empty ara_id and kp_id == identifiers for all available test runs returned.
+    :param latest: bool, optional boolean flag constrains run_list to 'latest' test run (default: False).
+    :return: TestRunList, sorted list of timestamp identifiers of completed OneHopTestHarness test runs.
     """
-    test_runs: List[str] = OneHopTestHarness.get_completed_test_runs()
-
+    test_runs: List[str] = OneHopTestHarness.get_completed_test_runs(ara_id=ara_id, kp_id=kp_id)
+    # Sort the test_run identifiers, which are timestamps with lexical ordering?
+    test_runs.sort(reverse=True)
+    if test_runs and latest:
+        # test_run_id's are timestamps sorted lexically
+        test_runs = test_runs[0:1]
     return TestRunList(test_runs=test_runs)
 
 
@@ -318,12 +366,12 @@ class TestRunSummary(BaseModel):
     "/index",
     tags=['report'],
     response_model=TestRunSummary,
-    summary="Retrieve the index - KP and ARA resource tags - of a completed specified OneHopTestHarness test run.",
+    summary="Retrieve the index - KP and ARA resource tags - within a completed specified OneHopTestHarness test run.",
     responses={404: {"model": Message}}
 )
 async def get_index(test_run_id: str) -> Union[TestRunSummary, JSONResponse]:
     """
-    Returns a JSON index  - KP and ARA resource tags - for a completed OneHopTestHarness test run.
+    Returns a JSON index of all of the KP and ARA resource tags in a completed OneHopTestHarness test run.
 
     \f
     :param test_run_id: test_run_id: test run identifier (as returned by /run_tests endpoint).
