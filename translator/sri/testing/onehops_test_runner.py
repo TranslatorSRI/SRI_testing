@@ -404,24 +404,33 @@ class OneHopTestHarness:
     @staticmethod
     def resource_filter(ara_id: str, kp_id: str):
         def filter_function(document: Dict) -> bool:
-            if "ARA" in document:
-                ara_data: Dict = document["ARA"]
-                if ara_id not in ara_data:
-                    return False
-                else:
-                    ara_data = ara_data[ara_id]
-                    if "kps" not in ara_data:
+            if ara_id:
+                if "ARA" in document:
+                    ara_data: Dict = document["ARA"]
+                    if ara_id not in ara_data:
                         return False
                     else:
-                        kp_data = ara_data["kps"]
-                        if kp_id and kp_id not in kp_data:
+                        ara_data = ara_data[ara_id]
+                        if "kps" not in ara_data:
                             return False
-
-            if "KP" in document:
-                kp_data = document["KP"]
-                if kp_id not in kp_data:
+                        else:
+                            kp_data = ara_data["kps"]
+                            if kp_id and kp_id not in kp_data:
+                                return False
+                            else:
+                                return True
+                else:
                     return False
-            return True
+
+            if kp_id:
+                if "KP" in document:
+                    kp_data = document["KP"]
+                    if kp_id not in kp_data:
+                        return False
+                    else:
+                        return True
+                else:
+                    return False
 
         return filter_function
 
@@ -441,8 +450,11 @@ class OneHopTestHarness:
             - Case 4 - empty ara_id and kp_id == identifiers for all available test runs returned.
         :return: list of test run identifiers of available (possibly filtered) test reports.
         """
-
-        return cls.test_report_database().get_available_reports(report_filter=None)
+        # We initialize the closure of the resource_filter,
+        # and pass it to the report database as a report_filter
+        return cls.test_report_database().get_available_reports(
+            report_filter=cls.resource_filter(ara_id=ara_id, kp_id=kp_id)
+        )
 
     def get_index(self) -> Optional[Dict]:
         """
