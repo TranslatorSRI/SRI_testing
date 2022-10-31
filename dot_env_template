@@ -1,0 +1,6 @@
+# There is an internal "mock" registry inside the API container
+# that is accessed for testing purposes, instead of the real
+# external Translator SmartAPI Registry. This mock registry contains
+# one ARA, 'arax', and two KPs, 'sri-reference-kg' and 'molepro'.
+# Uncomment the following to set the MOCK_TRANSLATOR_REGISTRY to the '1' to use it.
+# MOCK_TRANSLATOR_REGISTRY=1

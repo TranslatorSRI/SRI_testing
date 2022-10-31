@@ -1,11 +1,18 @@
 """
 Registry package
 """
+from sys import stderr
 from os import getenv
+from logging import getLogger
+
+logger = getLogger()
 
 # Setting the following flag to 'True' triggers use of the
 # local 'mock' Registry data entries immediately below
-MOCK_REGISTRY: bool = getenv('MOCK_REGISTRY', default=False)
+MOCK_REGISTRY: int = int(getenv('MOCK_TRANSLATOR_REGISTRY', default=0))
+mock_status_msg = f"Application is accessing the {'MOCK' if MOCK_REGISTRY else 'REAL'} Translator SmartAPI Registry"
+logger.info(mock_status_msg)
+print(mock_status_msg, file=stderr)
 
 
 def mock_registry(status: bool):
