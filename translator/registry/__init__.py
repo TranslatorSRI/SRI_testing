@@ -205,8 +205,12 @@ def validate_test_data_location(url: str) -> Optional[str]:
         logger.error(f"validate_test_data_location(): empty URL?")
     elif not url.startswith('http'):
         logger.error(f"validate_test_data_location(): Resource '{url}' is not an internet URL?")
-    elif not url.endswith('json'):
-        logger.error(f"validate_test_data_location(): JSON Resource '{url}' expected to have a 'json' file extension?")
+    #
+    # As it happens, Translator teams are not fastidious about using .json file
+    # extensions to their test data, so we relax this constraint on test data files.
+    #
+    # elif not url.endswith('json'):
+    #     logger.error(f"validate_test_data_location(): JSON Resource '{url}' expected to have a 'json' file extension?")
     else:
         # Sanity check: rewrite 'regular' Github page endpoints to
         # test_data_location JSON files, into 'raw' file endpoints
