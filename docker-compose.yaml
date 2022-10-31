@@ -10,6 +10,8 @@ services:
     # need to tie into code/tests/onehop/results VOLUME
     environment:
       MONGO_INITDB_HOST: mongo
+    env_file:
+      - .env
     volumes:
     - results:/code/tests/onehop/results
 
