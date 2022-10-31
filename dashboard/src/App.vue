@@ -41,8 +41,8 @@
       </v-progress-linear>
 
       <span v-if="id !== null && loading === false" :key="`${id}_versions`">
-        <span class="subheading"><strong>BioLink:&nbsp;</strong></span><span>{{biolink_range}}</span>&nbsp;
-        <span class="subheading"><strong>TRAPI:&nbsp;</strong></span><span>{{trapi_range}}</span>&nbsp;
+        <span class="subheading"><strong>BioLink:&nbsp;</strong></span><span>{{biolink_range.join(', ')}}</span>&nbsp;
+        <span class="subheading"><strong>TRAPI:&nbsp;</strong></span><span>{{trapi_range.join(', ')}}</span>&nbsp;
       </span>
       <v-row>
 
@@ -160,7 +160,7 @@
                         </v-col>
                       </v-row>
 
-                      <v-row v-if="Object.keys(resources).length > 0">
+                      <v-row v-if="resources !== null && Object.keys(resources).length > 0">
                         <v-col>
                           <vc-piechart
                             :data="Object.entries(groupedResultMessagesByCode(resources[`${ara}_${kp}`]))
@@ -254,7 +254,7 @@
                       </v-col>
                     </v-row>
 
-                    <v-row v-if="Object.keys(resources).length > 0">
+                    <v-row v-if="resources !== null && Object.keys(resources).length > 0">
                       <v-col>
                         <vc-piechart
                           :data="Object.entries(groupedResultMessagesByCode(resources[kp]))
@@ -272,7 +272,7 @@
                               <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
                               <la-cartesian narrow stacked
                                             :bound="[0]"
-                                            :data="Object.entries(groupedResultMessagesByCode(resources[kp]))
+                                            :data="Object.entries(groupedResultMessagesByCode(resources[kp], kp))
                                                    .map(i => [i[0], Object.entries(i[1])])
                                                    .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
                                                    .map(([type, [code, frequency]]) => ({
@@ -502,12 +502,12 @@
                       <v-card-text>
                         <ul class="noindent">
                         <li v-for="code in Object.keys(recommendations_summary[resource][message_type])" :key="resource+message_type+code">
-                          <h3>{{code}}</h3>
+                          <h3>{{code}}</h3> ({{ groupedResultMessagesByCode(resources[resource])[message_type !== 'information' ? unplural(message_type) : 'info'][code.split('.').slice(1).join('.')] }} messages,&nbsp;{{  recommendations_summary[resource][message_type][code].length }} unique)
                           <ul>
-                            <li v-for="el in recommendations_summary[resource][message_type][code]">
+                            <li v-for="el in recommendations_summary[resource][message_type][code]" :key="resource+message_type+code+hash(el.test_data)">
                               {{ formatEdge(el.test_data) }}<br>
                               {{ formatConcreteEdge(el.test_data) }}<br>
-                              <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason']))">
+                              <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')">
                                 <b>{{detail}}:</b> {{ el.message[detail] }}<br>
                               </span>
                             </li>
@@ -581,7 +581,8 @@ export default {
             if (!value) return ''
             value = value.toString()
             return value.charAt(0).toUpperCase() + value.slice(1)
-        }
+        },
+
     },
     data() {
         let tabs = ['Overview', 'Details'];
@@ -619,7 +620,7 @@ export default {
             object_categories: [],
             predicates: [],
             categories_index: null,
-            resources: {},
+            resources: null,
             data_table_selected: null,
             data_table_selected_item: null,
             data_table_current_item: null,
@@ -696,9 +697,9 @@ export default {
                 warnings: [],
                 information: [],
             }
+            if (!!!this.resources) return aggregation;
 
             const query_test_edges = "$.*.test_edges.*";
-            const resources = this.resources
             const test_edges = jp.nodes(this.resources, query_test_edges)
             const processed_edges = test_edges
                   .map(el => ({ id: el.path[1], value: el.value }))
@@ -778,13 +779,13 @@ export default {
 
         },
         selected_result_treeview() {
-            if (!!!this.data_table_current_item) return []
-            return Object.entries(this.data_table_current_item)
+            if (!!!this.data_table_current_item) return [];
+            return  Object.entries(this.data_table_current_item)
                 .filter(a => !['spec', '_id', 'information', 'errors', 'warnings'].includes(a[0]))
                 .map(a => ({
                     'name': a[0],
                     'outcome': a[1].outcome,
-                    'children': Object.entries(a[1].validation)
+                    'children': !!a[1].validation ? Object.entries(a[1].validation)
                         .map(a => ({
                             'name': a[0],
                             'children': _(a[1])
@@ -794,25 +795,25 @@ export default {
                                     'data': el,
                                 }))
                         }))
-                        .sort((a,b) => a.children.length <= b.children.length)
+                        .sort((a,b) => a.children.length <= b.children.length) : []
                 }))
         },
         // TODO: merge these range computations into one scope
         trapi_range() {
             let trapi_versions = [];
             if (!!this.stats_summary && !_.isEmpty(this.stats_summary)) {
-                trapi_versions.push(Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.trapi_version));
-                trapi_versions.push(Object.entries(this.stats_summary.ARA).map(([_, entry]) => entry.trapi_version));
+                trapi_versions.push(...Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.trapi_version));
+                trapi_versions.push(...Object.entries(this.stats_summary.ARA).flatMap(([_, entry]) => Object.entries(entry.kps).map(([_, entry]) => entry.trapi_version)));
             }
-            return _(trapi_versions).flatten().uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values()
+            return _(trapi_versions).uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values()
         },
         biolink_range() {
             let biolink_versions = [];
             if (!!this.stats_summary && !_.isEmpty(this.stats_summary)) {
-                biolink_versions.push(Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.biolink_version));
-                biolink_versions.push(Object.entries(this.stats_summary.ARA).map(([_, entry]) => entry.biolink_version));
+                biolink_versions.push(...Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.biolink_version));
+                biolink_versions.push(...Object.entries(this.stats_summary.ARA).flatMap(([_, entry]) => Object.entries(entry.kps).map(([_, entry]) => entry.biolink_version)));
             }
-            return _(biolink_versions).flatten().uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values();
+            return _(biolink_versions).uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values();
         },
         all_categories() {
             if (!!this.id && !!this.index) {
@@ -825,6 +826,7 @@ export default {
                 }
             }
         },
+
         denormalized_stats_summary() {
             if (this.stats_summary !== null) {
                 const combined_results = {
@@ -833,7 +835,16 @@ export default {
                     ...this.stats_summary.ARA,
                 };
                 return Object.keys(combined_results)
-                    .flatMap(provider_key => this.denormalize_provider_summary(combined_results[provider_key], provider_key));
+                    .flatMap(provider_key => {
+                        if (!!combined_results[provider_key].kps) {
+                            return Object.keys(combined_results[provider_key].kps)
+                                .flatMap(kp_key => {
+                                    return this.denormalize_provider_summary(combined_results[provider_key].kps[kp_key], `${provider_key}_${kp_key}`)
+                                })
+                        }
+                        return this.denormalize_provider_summary(combined_results[provider_key], provider_key)
+                    });
+
             } else {
                 return [];
             }
@@ -931,9 +942,13 @@ export default {
             : status === "failed" ? "#f08080"
             : "#000000",
         denormalize_provider_summary(provider_summary, provider_key) {
+            //console.log(provider_summary, provider_summary.results, provider_key)
             return Object.entries(provider_summary.results)
-                .flatMap((([field, value]) => Object.keys(value)
-                          .map(i => [provider_key, field, i, value[i]])))
+                .flatMap((([field, value]) =>
+                    {   // console.log(field, value)
+                        return Object.keys(value)
+                            .map(i => [provider_key, field, i, value[i]])
+                    }))
                 .map(item => ({
                     'provider': item[0],
                     'test': item[1],
@@ -955,7 +970,7 @@ export default {
                 "skipped": 0,
             };
             denormalized_provider_summary.forEach(({ label, value }) => {
-                tally[label] += value;
+                if (label !== 'undefined') tally[label] += value;
             });
             return Object.entries(tally).map(([label, value]) => ({
                 label,
@@ -973,9 +988,11 @@ export default {
                       skipped: _.sumBy(obj, 'skipped'),
                   }))
                   .value()
+            console.log(ans)
             return ans
         },
         async getAllCategories(id, index) {
+
             const categories = {
                 subject_category: [],
                 predicate: [],
@@ -1009,43 +1026,50 @@ export default {
                 });
 
             }
-            index.KP.forEach(async kp_id => {
-                await axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}`)
-                    .then(response => {
-                        this.resources = {
-                            ...this.resources,
-                            [kp_id]: response.data.summary
-                        }
-                        return response
-                    })
-                    .then(response => addFromKPs(kp_id, response.data.summary))
+
+            let new_resources = {};
+            let resource_promises = [];
+
+            index.KP.forEach(kp_id => {
+                resource_promises.push(
+                    axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}`)
+                        .then(response => {
+                            addFromKPs(kp_id, response.data.summary)
+                            return {
+                                [kp_id]: response.data.summary
+                            };
+                        })
+                    )
             });
             Object.keys(index.ARA)
                 .forEach(ara_id => {
-                    index.ARA[ara_id].forEach(async kp_id => {
-                        await axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}&ara_id=${ara_id}`)
-                            .then(response => {
-                                this.resources = {
-                                    ...this.resources,
-                                    [ara_id+'_'+kp_id]: response.data.summary
-                                }
-                                return response
-                            })
-                            .then(response => addFromKPs(`${ara_id}_${kp_id}`, response.data.summary))
+                    index.ARA[ara_id].forEach(kp_id => {
+                        resource_promises.push(
+                            axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}&ara_id=${ara_id}`)
+                                .then(response => {
+                                    addFromKPs(`${ara_id}_${kp_id}`, response.data.summary)
+                                    return {
+                                        [ara_id+'_'+kp_id]: response.data.summary
+                                    };
+                                })
+                        )
                     })
                 });
-            // set the state directly for async updates
-            // TODO: turn into incremental?
-            this.subject_categories = categories.subject_category;
-            this.object_categories = categories.object_category;
-            this.predicates = categories.predicate;
+
+            await Promise.all(resource_promises).then((response => {
+                console.log('promise all', response);
+                this.subject_categories = categories.subject_category;
+                this.object_categories = categories.object_category;
+                this.predicates = categories.predicate;
+                this.resources = response.reduce((acc, item) => Object.assign(acc, item), {});
+            }))
+
             return categories;
         },
         flatten_ara_keys(ARAIndex, delimiter='_') {
             return Object.entries(ARAIndex).flatMap(([ara, entry]) => Object.values(entry).map(kp => ara+delimiter+kp))
         },
         makeTableData(id, stats_summary) {
-            console.log("call makeTableData", id)
             const report = Promise.resolve(stats_summary).then(response => {
                 if (response !== null) {
                     const { KP={}, ARA={} } = response;
@@ -1075,10 +1099,8 @@ export default {
                                      value
                                  }))
                                  .then(response => {
-                                     console.log("response")
                                      if (response.status === "fulfilled") {
-                                         const  { headers, cells  } = _makeTableData(response.value.resource_id, response.value.data.summary);
-                                         console.log("making table data", { headers, cells })
+                                         const  { headers, cells } = _makeTableData(response.value.resource_id, response.value.data.summary);
                                          this.headers = Array.from(_.uniq(this.headers.concat(headers)));
                                          this.cells = _.cloneDeep(this.cells).concat(cells);
                                      }
@@ -1124,103 +1146,118 @@ export default {
             let color = "black";
             let backgroundColor = "none";
             if (state === "passed" || state=== "failed") {
-        color = "white";
-        backgroundColor = this.status_color(state);
-      } else if (state === "skipped") {
-        backgroundColor = this.status_color(state);
-      }
-      return {
-        color,
-        backgroundColor,
-        borderLeft: 'solid 1px white',
-        borderRight: 'solid 1px white'
-      }
-    },
-    stateIcon (state, icon_only=false) {
-      if (state === "passed") {
-        return `✅${!icon_only ? ' Pass' : ''}`
-      } else if (state === "skipped") {
-        return `⚠️${!icon_only ? ' Skip' : ''}`
-      } else if (state === "failed") {
-        return `🚫${!icon_only ? ' Fail' : ''}`
-      } else if (state === null) {
-        return "NONE";
-      }
-      return state
-    },
-    formatEdge (result) {
-      return `(${this.formatCurie(result.subject_category)})--[${this.formatCurie(result.predicate)}]->(${this.formatCurie(result.object_category)})`
-    },
-    formatConcreteEdge (result) {
-      return `(${result.subject})--[${result.predicate}]->(${result.object})`
-    },
-    formatCurie (curie) {
-      return curie.split(':')[1];
-    },
-    countResultMessages(edge_result) {
-      return Object.entries(edge_result).reduce(function (acc, item) {
-        if (!!item[1] && !!item[1].validation) {
-          const { validation } = item[1];
-          const { information, errors, warnings } = validation;
-          acc.information += _.uniqBy(information, object_signature).length
-          acc.errors += _.uniqBy(errors, object_signature).length;
-          acc.warnings += _.uniqBy(warnings, object_signature).length;
-        }
-        return acc
-      }, {
-        errors: 0,
-        warnings: 0,
-        information: 0,
-      })
-    },
-    countResultMessagesWithCode(messages) {
-        const initial_count = {
-            errors: 0,
-            warnings: 0,
-            information: 0,
-        }
-        if (!!!messages) return initial_count;
-        return messages.reduce((a, i) => {
-            if (i.code.startsWith('warning')) a['warnings'] += 1;
-            if (i.code.startsWith('info')) a['information'] += 1;
-            if (i.code.startsWith('error')) a['errors'] += 1;
-            return a;
-        }, initial_count)
-    },
-    parseResultCode(code) {
-      const type = code.split('.')[0]
-      const subcode = code.split('.').slice(1).join('.');
-      // console.log(code, code.split('.'), type, subcode)
-      return {
-        type,
-        subcode
-      }
-    },
-    countResultMessagesByCode(resource_summary) {
-      return Object.values(resource_summary.test_edges)
-                   .map(e => Object.values(e.results))
-                   .flatMap(i=>i)
-                   .flatMap(i=>Object.values(i.validation))
-                   .flatMap(i=>i)
-                   .reduce((a,i)=>{
-                     if (!!a[i.code]) { a[i.code] += 1 } else { a[i.code] = 1 }
-                     return a
-                   }, {})
-    },
-    groupedResultMessagesByCode(resource_summary) {
-      const grouped_result_messages = Object.entries(this.countResultMessagesByCode(resource_summary)).reduce((a, [code, frequency]) => {
-        const { type, subcode } = this.parseResultCode(code)
-        a = _.set(a, [type, subcode], frequency)
-        return a
-      }, {
-        'error': {},
-        'warning': {},
-        'info': {},
-      })
-      // TODO: sort within group
-      return grouped_result_messages;
-    },
-  }
+                color = "white";
+                backgroundColor = this.status_color(state);
+            } else if (state === "skipped") {
+                backgroundColor = this.status_color(state);
+            }
+            return {
+                color,
+                backgroundColor,
+                borderLeft: 'solid 1px white',
+                borderRight: 'solid 1px white'
+            }
+        },
+        stateIcon (state, icon_only=false) {
+            if (state === "passed") {
+                return `✅${!icon_only ? ' Pass' : ''}`
+            } else if (state === "skipped") {
+                return `⚠️${!icon_only ? ' Skip' : ''}`
+            } else if (state === "failed") {
+                return `🚫${!icon_only ? ' Fail' : ''}`
+            } else if (state === null) {
+                return "NONE";
+            }
+            return state
+        },
+        formatEdge (result) {
+            return `(${this.formatCurie(result.subject_category)})--[${this.formatCurie(result.predicate)}]->(${this.formatCurie(result.object_category)})`
+        },
+        formatConcreteEdge (result) {
+            return `(${result.subject})--[${result.predicate}]->(${result.object})`
+        },
+        formatCurie (curie) {
+            return curie.split(':')[1];
+        },
+        countResultMessages(edge_result) {
+            return Object.entries(edge_result).reduce(function (acc, item) {
+                if (!!item[1] && !!item[1].validation) {
+                    const { validation } = item[1];
+                    const { information, errors, warnings } = validation;
+                    acc.information += _.uniqBy(information, object_signature).length
+                    acc.errors += _.uniqBy(errors, object_signature).length;
+                    acc.warnings += _.uniqBy(warnings, object_signature).length;
+                }
+                return acc
+            }, {
+                errors: 0,
+                warnings: 0,
+                information: 0,
+            })
+        },
+        countResultMessagesWithCode(messages) {
+            const initial_count = {
+                errors: 0,
+                warnings: 0,
+                information: 0,
+            }
+            if (!!!messages) return initial_count;
+            return messages.reduce((a, i) => {
+                if (i.code.startsWith('warning')) a['warnings'] += 1;
+                if (i.code.startsWith('info')) a['information'] += 1;
+                if (i.code.startsWith('error')) a['errors'] += 1;
+                return a;
+            }, initial_count)
+        },
+        parseResultCode(code) {
+            const type = code.split('.')[0]
+            const subcode = code.split('.').slice(1).join('.');
+            return {
+                type,
+                subcode
+            }
+        },
+        countResultMessagesByCode(resource_summary) {
+            console.log(resource_summary)
+            return Object.values(resource_summary.test_edges)
+                .map(e => Object.values(e.results))
+                .flatMap(i=>i)
+                .filter(i => !!i.validation)
+                .flatMap(i=> Object.values(i.validation))
+                .flatMap(i=>i)
+                .reduce((a,i)=>{
+                    if (!!a[i.code]) { a[i.code] += 1 } else { a[i.code] = 1 }
+                    return a
+                }, {})
+        },
+        groupedResultMessagesByCode(resource_summary) {
+            const grouped_result_messages = Object.entries(this.countResultMessagesByCode(resource_summary)).reduce((a, [code, frequency]) => {
+                const { type, subcode } = this.parseResultCode(code)
+                a = _.set(a, [type, subcode], frequency)
+                return a
+            }, {
+                'error': {},
+                'warning': {},
+                'info': {},
+            })
+            // TODO: sort within group
+            return grouped_result_messages;
+        },
+        aggregateCountResultMessagesByCode(resource) {
+            return Object.entries(this.groupedResultMessagesByCode(resource))
+                .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
+        },
+        lowercase: function (value) {
+            if (!value) return ''
+            value = value.toString();
+            return value.toLowerCase();
+        },
+        unplural: function(value) {
+            if (!value) return ''
+            value = value.toString()
+            return value.charAt(value.length - 1) === 's' ? value.slice(0,-1) : value;
+        },
+    }
 }
 
 const orderByArrayFunc = array => {
