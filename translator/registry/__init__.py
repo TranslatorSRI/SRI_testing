@@ -355,8 +355,8 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
     :return: 2-Tuple(List[kp_id*], List[ara_id*]) of the reference id's of InfoRes CURIES of available KPs and ARAs.
     """
 
-    kp_ids: List[str] = list()
-    ara_ids: List[str] = list()
+    kp_ids: Set[str] = set()
+    ara_ids: Set[str] = set()
 
     for index, service in enumerate(registry_data['hits']):
 
@@ -370,11 +370,11 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
             continue
 
         if component == "KP":
-            kp_ids.append(resource_metadata['infores'])
+            kp_ids.add(resource_metadata['infores'])
         elif component == "ARA":
-            ara_ids.append(resource_metadata['infores'])
+            ara_ids.add(resource_metadata['infores'])
 
-    return kp_ids, ara_ids
+    return list(kp_ids), list(ara_ids)
 
 
 # TODO: this is an ordered list giving 'production' testing priority
