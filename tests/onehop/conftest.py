@@ -617,12 +617,16 @@ def load_test_data_source(
     # sanity check
     assert metadata is not None
 
-    if not source.endswith('json'):
-        # Source file, whatever its origin -
-        # local or Translator SmartAPI Registry x-trapi
-        # specified test_data_location - should be a JSON file.
-        # Ignore this test data source...
-        return None
+    #
+    # Some KP or ARA sources don't bother to use the .json file extension even though
+    # they are JSON formatted files. We'll now turn a blind eye to this for now.
+    #
+    # if not source.endswith('json'):
+    #     # Source file, whatever its origin -
+    #     # local or Translator SmartAPI Registry x-trapi
+    #     # specified test_data_location - should be a JSON file.
+    #     # Ignore this test data source...
+    #     return None
 
     test_data: Optional[Dict] = None
     if source.startswith('http'):
@@ -630,12 +634,15 @@ def load_test_data_source(
         # from the Translator SmartAPI Registry 'test_data_location'
         test_data = get_remote_test_data_file(source)
     else:
-        # Source is a local data file
-        with open(source, 'r') as local_file:
-            try:
-                test_data = json.load(local_file)
-            except (json.JSONDecodeError, TypeError):
-                logger.error(f"load_test_data_source(): input file '{source}': Invalid JSON")
+        # # Source is a local data file
+        # with open(source, 'r') as local_file:
+        #     try:
+        #         test_data = json.load(local_file)
+        #     except (json.JSONDecodeError, TypeError):
+        #         logger.error(f"load_test_data_source(): input file '{source}': Invalid JSON")
+
+        # Local test data files are deprecated now.
+        return None
 
     if test_data is not None:
 
