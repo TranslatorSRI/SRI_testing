@@ -394,21 +394,62 @@ class OneHopTestHarness:
             is_big=is_big
         )
 
+    @staticmethod
+    def document_filter(
+            ara_id: Optional[str] = None,
+            kp_id: Optional[str] = None
+    ):
+        pass
+
+    @staticmethod
+    def resource_filter(ara_id: str, kp_id: str):
+        def filter_function(document: Dict) -> bool:
+            if "ARA" in document:
+                ara_data: Dict = document["ARA"]
+                if ara_id not in ara_data:
+                    return False
+                else:
+                    ara_data = ara_data[ara_id]
+                    if "kps" not in ara_data:
+                        return False
+                    else:
+                        kp_data = ara_data["kps"]
+                        if kp_id and kp_id not in kp_data:
+                            return False
+
+            if "KP" in document:
+                kp_data = document["KP"]
+                if kp_id not in kp_data:
+                    return False
+            return True
+
+        return filter_function
+
     @classmethod
-    def get_completed_test_runs(cls) -> List[str]:
+    def get_completed_test_runs(
+            cls,
+            ara_id: Optional[str] = None,
+            kp_id: Optional[str] = None
+    ) -> List[str]:
         """
-        :return: list of test run identifiers of completed test runs
+        Returns the catalog of test report identifiers from the database, possibly filtered by ara_id and/or kp_id.
+        :param ara_id: identifier of the ARA resource whose indirect KP test results are being accessed
+        :param kp_id: identifier of the KP resource whose test results are specifically being accessed.
+            - Case 1 - non-empty kp_id, empty ara_id == return test runs of the one directly tested KP resource
+            - Case 2 - non-empty ara_id, non-empty kp_id == return test run of one specific KP tested via the ARA
+            - Case 3 - non-empty ara_id, empty kp_id == return test runs of all KPs being tested under the ARA
+            - Case 4 - empty ara_id and kp_id == identifiers for all available test runs returned.
+        :return: list of test run identifiers of available (possibly filtered) test reports.
         """
-        return cls.test_report_database().get_available_reports()
+
+        return cls.test_report_database().get_available_reports(report_filter=None)
 
     def get_index(self) -> Optional[Dict]:
         """
-        If available, returns a test result index - KP and ARA tags - for the most recent OneHopTestHarness run.
+        If available, returns a test result index - KP and ARA tags - for the OneHopTestHarness run.
 
         :return: Optional[str], JSON document KP/ARA index of unit test results. 'None' if not (yet) available.
         """
-        # TODO: can some part of this operation be cached, maybe by pushing
-        #       the index access down one more level, into the TestReport?
         summary: Optional[Dict] = self.get_test_report().retrieve_document(
             document_type="Summary", document_key="test_run_summary"
         )

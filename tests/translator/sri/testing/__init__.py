@@ -1,6 +1,7 @@
 from typing import Dict
 
 from translator.sri.testing.report_db import TestReportDatabase, TestReport
+from translator.sri.testing.onehops_test_runner import OneHopTestHarness
 
 # For early testing of the Unit test, test data is not deleted when DEBUG is True;
 # however, this interferes with idempotency of the tests (i.e. data must be manually deleted from the test database)
@@ -27,42 +28,25 @@ SAMPLE_DOCUMENT: Dict = {
 }
 
 
-def sample_filter(ara_id: str, kp_id: str):
-
-    def filter_function(document: Dict) -> bool:
-        if "ARA" in document:
-            ara_data: Dict = document["ARA"]
-            if ara_id not in ara_data:
-                return False
-            else:
-                ara_data = ara_data[ara_id]
-                if "kps" not in ara_data:
-                    return False
-                else:
-                    kp_data = ara_data["kps"]
-                    if kp_id and kp_id not in kp_data:
-                        return False
-
-        if "KP" in document:
-            kp_data = document["KP"]
-            if kp_id not in kp_data:
-                return False
-        return True
-
-    return filter_function
+def test_resource_filter():
+    assert OneHopTestHarness.resource_filter(ara_id=SAMPLE_ARA_ID, kp_id=SAMPLE_KP_ID)(SAMPLE_DOCUMENT)
+    unknown_ara: str = "unknown_ara"
+    assert not OneHopTestHarness.resource_filter(ara_id=unknown_ara, kp_id=SAMPLE_KP_ID)(SAMPLE_DOCUMENT)
+    unknown_kp: str = "unknown_kp"
+    assert not OneHopTestHarness.resource_filter(ara_id=SAMPLE_ARA_ID, kp_id=unknown_kp)(SAMPLE_DOCUMENT)
 
 
 def report_filter_test(test_report_db: TestReportDatabase, test_report: TestReport, test_run_id: str):
     assert test_run_id in test_report_db.get_available_reports(
-        sample_filter(ara_id=SAMPLE_ARA_ID, kp_id=SAMPLE_KP_ID)
+        OneHopTestHarness.resource_filter(ara_id=SAMPLE_ARA_ID, kp_id=SAMPLE_KP_ID)
     ), f"Report '{test_run_id}' should be in available reports!"
 
     assert test_run_id not in test_report_db.get_available_reports(
-        sample_filter(ara_id=UNKNOWN_ARA, kp_id=SAMPLE_KP_ID)
+        OneHopTestHarness.resource_filter(ara_id=UNKNOWN_ARA, kp_id=SAMPLE_KP_ID)
     ), f"Report '{test_run_id}' is not expected to be in available reports for the {UNKNOWN_ARA}!"
 
     assert test_run_id not in test_report_db.get_available_reports(
-        sample_filter(ara_id=SAMPLE_ARA_ID, kp_id=UNKNOWN_KP)
+        OneHopTestHarness.resource_filter(ara_id=SAMPLE_ARA_ID, kp_id=UNKNOWN_KP)
     ), f"Report '{test_run_id}' is not expected to be in available reports for the {UNKNOWN_KP}!"
 
     if not DEBUG:

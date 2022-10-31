@@ -19,11 +19,7 @@ from . import (
     SAMPLE_TEST_RESOURCE,
     SAMPLE_DOCUMENT_TYPE,
     SAMPLE_DOCUMENT,
-    SAMPLE_ARA_ID,
-    UNKNOWN_ARA,
-    SAMPLE_KP_ID,
-    UNKNOWN_KP,
-    sample_filter, report_filter_test
+    report_filter_test
 )
 
 TEST_DATABASE = "mongo-report-unit-test-database"
@@ -201,14 +197,6 @@ def test_mongo_report_process_logger():
     # logs: List[Dict] = frd.get_report_logs()
     # assert logs
     # assert any(['time_created' in doc for doc in frd.get_report_logs()])
-
-
-def test_sample_reports_filter():
-    assert sample_filter(ara_id=SAMPLE_ARA_ID, kp_id=SAMPLE_KP_ID)(SAMPLE_DOCUMENT)
-    unknown_ara: str = "unknown_ara"
-    assert not sample_filter(ara_id=unknown_ara, kp_id=SAMPLE_KP_ID)(SAMPLE_DOCUMENT)
-    unknown_kp: str = "unknown_kp"
-    assert not sample_filter(ara_id=SAMPLE_ARA_ID, kp_id=unknown_kp)(SAMPLE_DOCUMENT)
 
 
 def test_get_available_reports_filter():
