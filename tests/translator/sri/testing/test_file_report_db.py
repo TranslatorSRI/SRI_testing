@@ -6,10 +6,14 @@ from typing import Dict, Optional
 
 from tests.onehop import get_test_results_dir
 from translator.sri.testing.report_db import FileReportDatabase, TestReport
-
-# For early testing of the Unit test, test data is not deleted when DEBUG is True;
-# however, this interferes with idempotency of the tests (i.e. data must be manually deleted from the test database)
-DEBUG: bool = True
+from . import (
+    DEBUG,
+    SAMPLE_DOCUMENT_KEY,
+    SAMPLE_TEST_RESOURCE,
+    SAMPLE_DOCUMENT_TYPE,
+    SAMPLE_DOCUMENT,
+    report_filter_test
+)
 
 TEST_DATABASE = "file-report-unit-test-database"
 
@@ -39,11 +43,6 @@ def test_delete_file_report_db_database():
     assert "test-database" not in frd.list_databases()
 
 
-SAMPLE_DOCUMENT_KEY: str = "test_run_summary"
-SAMPLE_TEST_RESOURCE: str = "test_resource"
-SAMPLE_DOCUMENT: Dict = {}
-
-
 def sample_file_document_creation_and_insertion(
         frd: FileReportDatabase,
         identifier: str,
@@ -58,14 +57,13 @@ def sample_file_document_creation_and_insertion(
     assert identifier not in frd.get_available_reports()
 
     test_report.save_json_document(
-        document_type="Test Run Summary",
-        document={},
+        document_type=SAMPLE_DOCUMENT_TYPE,
+        document=SAMPLE_DOCUMENT,
         document_key=SAMPLE_DOCUMENT_KEY,
         index=[SAMPLE_TEST_RESOURCE],
         is_big=is_big
     )
     assert identifier in frd.get_available_reports()
-    # assert identifier in frd.get_available_reports(owner=SAMPLE_TEST_RESOURCE)
 
     return test_report
 
@@ -150,3 +148,12 @@ def test_file_report_process_logger():
     # logs: List[Dict] = frd.get_report_logs()
     # assert logs
     # assert any(['time_created' in doc for doc in frd.get_report_logs()])
+
+
+def test_get_available_reports_filter():
+    frd = FileReportDatabase(db_name=TEST_DATABASE)
+
+    test_run_id = _test_id(5)
+    test_report: TestReport = sample_file_document_creation_and_insertion(frd, test_run_id)
+
+    report_filter_test(frd, test_report, test_run_id)

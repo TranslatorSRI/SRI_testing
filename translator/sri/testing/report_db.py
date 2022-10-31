@@ -1,5 +1,5 @@
 
-from typing import Dict, Optional, List, IO, Generator
+from typing import Dict, Optional, List, IO, Generator, Callable, Mapping
 from sys import stderr
 from os import environ, makedirs, listdir
 from os.path import sep, normpath, exists
@@ -68,11 +68,30 @@ class TestReportDatabase:
     def drop_database(self):
         raise NotImplementedError("Abstract method - implement in child subclass!")
 
-    def get_available_reports(self) -> List[str]:
+    def get_all_report_identifiers(self) -> List[str]:
         """
-        :return: list of identifiers of available ('completed') reports.
+        Return all recorded report identifiers in the database, whether or not they are completed or available.
+        :return: List[str] of all recorded report identifiers
         """
         raise NotImplementedError("Abstract method - implement in child subclass!")
+
+    def get_available_reports(self, report_filter: Optional[Callable[[Dict], bool]] = None) -> List[str]:
+        """
+        Get (possibly filtered) list of identifiers of available reports from the TestReportDatabase.
+        :param report_filter: Callable, filter that returns True if a Python object argument passes filter constraints
+        :return: list of identifiers of available ('completed') reports.
+        """
+        completed_test_runs: List[str] = list()
+        for identifier in self.get_all_report_identifiers():
+            test_report: TestReport = self.get_test_report(identifier)
+            # available TestReports *must* already have a test_run_summary.json document
+            # Note that for the 'exists_document' method, the '.json' file extension is implied
+            if test_report.exists_document("test_run_summary"):
+                test_run_summary: Dict = test_report.retrieve_document("Summary", "test_run_summary")
+                # We may further filter out TestReports based on the report_filter
+                if report_filter is None or report_filter(test_run_summary):
+                    completed_test_runs.append(identifier)
+        return completed_test_runs
 
     def get_test_report(self, identifier):
         raise NotImplementedError("Abstract method - implement in child subclass!")
@@ -82,6 +101,9 @@ class TestReportDatabase:
         :return: Dict, report database log (as a Python dictionary)
         """
         raise NotImplementedError("Abstract method - implement in child subclass!")
+
+    def filter_document(self, document, ara_id: str, kp_id: str):
+        pass
 
 
 class TestReport:
@@ -217,7 +239,8 @@ class FileTestReport(TestReport):
         """
         # sanity check: Posix key to equivalent OS directory path
         document_key = document_key.replace('/', sep)
-        document_path = f"{self.get_root_path()}{sep}{document_key}"
+        # Here, for the FileTestDatabase, we must explicitly add a '.json' file extension
+        document_path = f"{self.get_root_path()}{sep}{document_key}.json"
         return exists(document_path)
 
     def delete(self, ignore_errors: bool = False) -> bool:
@@ -283,9 +306,11 @@ class FileTestReport(TestReport):
         document_path = self.get_absolute_file_path(document_key=document_key, create_path=True)
         try:
             # TODO: maybe I need to write 'is_big' files out as binary?
-            with open(f"{document_path}.json", mode='w', encoding='utf8', buffering=1, newline='\n') as document_file:
+            with open(f"{document_path}.json", mode='xt', encoding='utf8', buffering=1, newline='\n') as document_file:
                 dump(obj=document, fp=document_file, cls=ReportJsonEncoder, indent=4)
                 document_file.flush()
+            with open(f"{document_path}.json", mode='rt', encoding='utf8', buffering=1, newline='\n') as document_file:
+                pass
         except OSError as ose:
             logger.warning(f"{document_type} '{document_key}' cannot be written out: {str(ose)}?")
 
@@ -401,16 +426,9 @@ class FileReportDatabase(TestReportDatabase):
         """
         report.delete()
 
-    def get_available_reports(self) -> List[str]:
-        """
-        :return: list of identifiers of available reports.
-        """
+    def get_all_report_identifiers(self) -> List[str]:
         test_results_directory = self.get_test_results_path()
-        test_run_list: List[str] = [
-            identifier for identifier in listdir(test_results_directory)
-            if self.get_test_report(identifier).exists_document("test_run_summary.json")
-        ]
-        return test_run_list
+        return listdir(test_results_directory)
 
     def get_report_logs(self) -> List[Dict]:
         """
@@ -503,6 +521,13 @@ class MongoTestReport(TestReport):
         # Persist index test run result JSON document suitably indexed by
         # the document_key, into the (wrapped MongoDb) TestReportDatabase
         document['document_key'] = document_key
+
+        # sanity check: In case we are attempting to save a BSON document that
+        # was previously saved/retrieved in Mongo, we should delete any _id field
+        # and (stale) ObjectId value, since the latter is not JSON serializable
+        if '_id' in document:
+            document.pop('_id')
+
         if is_big:
             # Save this large document with GridFS
             gridfs_uid = self._gridfs.put(dumps(obj=document, cls=ReportJsonEncoder), encoding="utf8")
@@ -562,6 +587,10 @@ class MongoTestReport(TestReport):
 
 
 class MongoReportDatabase(TestReportDatabase):
+
+    NON_SYSTEM_COLLECTION_FILTER: Dict = {
+        "name": {"$regex": rf"^(?!system\.|{TestReportDatabase.LOG_NAME}|fs\..*|test_.*|.*\.files|.*\.chunks)"}
+    }
 
     """
     Wrapper class for a MongoDb instance-based repository for storing and retrieving SRI Testing test results.
@@ -640,24 +669,8 @@ class MongoReportDatabase(TestReportDatabase):
         assert isinstance(report, MongoTestReport)
         report.delete()
 
-    def get_available_reports(self) -> List[str]:
-        """
-        :return: list of identifiers of available reports.
-        """
-        non_system_collection_filter: Dict = {"name": {"$regex": rf"^(?!system\.|{self.LOG_NAME}|fs\..*|test_.*)"}}
-        completed_test_runs: List[str] = list()
-        for test_run_id in self._mongo_db.list_collection_names(filter=non_system_collection_filter):
-            test_run_reports: Collection = self._mongo_db.get_collection(test_run_id)
-            documents = [
-                document
-                for document in test_run_reports.find(
-                    filter={'document_key': "test_run_summary"},
-                    projection={'_id': True}
-                ).limit(1)
-            ]
-            if documents:
-                completed_test_runs.append(test_run_id)
-        return completed_test_runs
+    def get_all_report_identifiers(self) -> List[str]:
+        return self._mongo_db.list_collection_names(filter=self.NON_SYSTEM_COLLECTION_FILTER)
 
     def get_report_logs(self) -> List[Dict]:
         """

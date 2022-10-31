@@ -13,10 +13,18 @@ from translator.sri.testing.report_db import (
     TestReport,
     MongoReportDatabase
 )
-
-# For early testing of the Unit test, test data is not deleted when DEBUG is True;
-# however, this interferes with idempotency of the tests (i.e. data must be manually deleted from the test database)
-DEBUG: bool = False
+from . import (
+    DEBUG,
+    SAMPLE_DOCUMENT_KEY,
+    SAMPLE_TEST_RESOURCE,
+    SAMPLE_DOCUMENT_TYPE,
+    SAMPLE_DOCUMENT,
+    SAMPLE_ARA_ID,
+    UNKNOWN_ARA,
+    SAMPLE_KP_ID,
+    UNKNOWN_KP,
+    sample_filter, report_filter_test
+)
 
 TEST_DATABASE = "mongo-report-unit-test-database"
 
@@ -81,12 +89,6 @@ def test_fake_mongo_report_db_connection():
         assert True
 
 
-SAMPLE_DOCUMENT_KEY: str = "test_run_summary"
-SAMPLE_TEST_RESOURCE: str = "test_resource"
-SAMPLE_DOCUMENT_TYPE = "Test Run Summary"
-SAMPLE_DOCUMENT: Dict = {}
-
-
 def sample_mongodb_document_creation_and_insertion(
         mrd: MongoReportDatabase,
         test_run_id: str,
@@ -104,7 +106,7 @@ def sample_mongodb_document_creation_and_insertion(
 
     test_report.save_json_document(
         document_type=SAMPLE_DOCUMENT_TYPE,
-        document={},
+        document=SAMPLE_DOCUMENT,
         document_key=SAMPLE_DOCUMENT_KEY,
         index=[SAMPLE_TEST_RESOURCE],
         is_big=is_big
@@ -165,7 +167,7 @@ def test_create_test_report_then_save_and_retrieve_a_big_document():
         test_report: TestReport = sample_mongodb_document_creation_and_insertion(mrd, test_run_id, is_big=True)
 
         text_file: str = ""
-        for line in test_report.stream_document(document_type="test document", document_key=SAMPLE_DOCUMENT_KEY):
+        for line in test_report.stream_document(document_type=SAMPLE_DOCUMENT_TYPE, document_key=SAMPLE_DOCUMENT_KEY):
             text_file += line
 
         assert text_file
@@ -199,3 +201,24 @@ def test_mongo_report_process_logger():
     # logs: List[Dict] = frd.get_report_logs()
     # assert logs
     # assert any(['time_created' in doc for doc in frd.get_report_logs()])
+
+
+def test_sample_reports_filter():
+    assert sample_filter(ara_id=SAMPLE_ARA_ID, kp_id=SAMPLE_KP_ID)(SAMPLE_DOCUMENT)
+    unknown_ara: str = "unknown_ara"
+    assert not sample_filter(ara_id=unknown_ara, kp_id=SAMPLE_KP_ID)(SAMPLE_DOCUMENT)
+    unknown_kp: str = "unknown_kp"
+    assert not sample_filter(ara_id=SAMPLE_ARA_ID, kp_id=unknown_kp)(SAMPLE_DOCUMENT)
+
+
+def test_get_available_reports_filter():
+    try:
+        mrd = MongoReportDatabase(db_name=TEST_DATABASE)
+
+        test_run_id = _test_run_id(3)
+        test_report: TestReport = sample_mongodb_document_creation_and_insertion(mrd, test_run_id)
+
+        report_filter_test(mrd, test_report, test_run_id)
+
+    except TestReportDatabaseException:
+        assert False, "This test connection should succeed if a suitable Mongodb instance is running?!"
