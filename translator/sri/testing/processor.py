@@ -155,25 +155,25 @@ def _worker_process(
 
             return_code = proc.wait()
 
-        return_status = "Worker Process Completed?"
+        return_status = "Worker Task Completed?"
 
     except RuntimeError as rte:
         logger.error(f"run_script({command_line}) exception: {str(rte)}")
         return_code = 1
-        return_status = f"Worker Process Exception: {str(rte)}?"
+        return_status = f"Worker Task Exception: {str(rte)}?"
 
     finally:
         report.close_logger()
 
     # propagate the result - successful or not - back to the caller
-    queue.put(f"{WorkerProcess.COMPLETED} - Return Code: {return_code}\nStatus {return_status}")
+    queue.put(f"{WorkerTask.COMPLETED} - Return Code: {return_code}\nStatus {return_status}")
 
 
 class WorkerProcessException(Exception):
     pass
 
 
-class WorkerProcess:
+class WorkerTask:
 
     def __init__(self, identifier: Optional[str] = None, timeout: Optional[int] = None):
         """
@@ -200,20 +200,20 @@ class WorkerProcess:
         Run a provided command line string, as a background process.
 
         :param command_line: str, command line string to run as a shell command in a background worker process.
-
-        :return: None
         """
         assert command_line  # should not be empty?
 
         logger.debug(f"run_command() command: {command_line}")
-
+        
+        # TODO: perhaps replace this embedded processing code with a FIFO job Queue
+        #       to allow for disciplined processing of multiple (sequential) test_runs
+        # TODO: may need to manage several worker processes, therefore, may need to use multiprocessing Pools? see
+        #       https://docs.python.org/3/library/multiprocessing.html?highlight=multiprocessing#module-multiprocessing
         try:
             # Sanity check: Work Process is a singleton?
-            # TODO: may need to manage several worker processes, therefore, may need to use multiprocessing Pools? see
-            #    https://docs.python.org/3/library/multiprocessing.html?highlight=multiprocessing#module-multiprocessing
             assert not self._process
 
-            # Directly access the internal Worker Process task
+            # Directly access the internal Worker Task task
             # standard output/error, using an interprocess Pipe
             self._parent_conn, self._child_conn = Pipe()
 
@@ -249,7 +249,7 @@ class WorkerProcess:
                 raise RuntimeError("Worker process startup time-out?")
 
             # TODO: perhaps I need to initiate a lightweight background thread *here*, to monitor the PIPE for
-            #       Worker Process progress, instead of relying on access to PIPE output in the /status endpoint?
+            #       Worker Task progress, instead of relying on access to PIPE output in the /status endpoint?
 
         except Exception as ex:
 
@@ -277,9 +277,10 @@ class WorkerProcess:
             # Caller also gets nothing if there is no active connection
             return None
 
-    NOT_RUNNING: str = "Worker Process Not Running"
-    COMPLETED: str = "Worker Process Completed"
-    RUNNING: str = "Worker Process Running"
+    PENDING: str = "Worker Task Pending"
+    NOT_RUNNING: str = "Worker Task Not Running"
+    COMPLETED: str = "Worker Task Completed"
+    RUNNING: str = "Worker Task Running"
 
     def status(self) -> str:
 
