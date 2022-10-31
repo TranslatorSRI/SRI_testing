@@ -404,6 +404,8 @@ class OneHopTestHarness:
     @staticmethod
     def resource_filter(ara_id: str, kp_id: str):
         def filter_function(document: Dict) -> bool:
+            if not (ara_id and kp_id):
+                return True
             if ara_id:
                 if "ARA" in document:
                     ara_data: Dict = document["ARA"]
