@@ -64,6 +64,7 @@ def sample_file_document_creation_and_insertion(
         is_big=is_big
     )
     assert identifier in frd.get_available_reports()
+    # assert identifier in frd.get_available_reports(owner=SAMPLE_TEST_RESOURCE)
 
     return test_report
 

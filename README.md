@@ -49,6 +49,8 @@ Two Dockerfile templates are available: [Dockerfile_RENCI_PRODUCTION](Dockerfile
 
 The SRI Testing Dashboard also relies on some site specific parameters - encoded in a **.env** environmental variable configuration file -to work properly.  The **.env** file is **.gitignored** in the repo. A template file, [dot_env_template](dashboard/dot_env_template) is provided. A copy of this file should be made into a file called **.env** and customized to site requirements (see [full details here](dashboard/README.md)).
 
+Note that the application now normally (by default) retrieves its Translator KP and ARA test data via settings in the Translator SmartAPI Registry (the 'Registry'). For testing purposes, the Registry may be bypassed and "mock" data used, by setting the environment variable MOCK_TRANSLATOR_REGISTRY to '1'. Setting this variable to zero ('0') forces the use of the 'real' Registry. Make a copy of the _doc_env_template_ located in the root project directory, into a file called **.env** and uncomment out the variable setting therein.
+
 ## Database for the Test Results
 
 You will generally want to have the backend persist its test results in a MongoDb database(*), so first start up a Mongo instance as so:
