@@ -14,7 +14,7 @@ from translator.sri.testing.processor import (
     CMD_DELIMITER,
     PWD_CMD,
     PYTHON_PATH,
-    WorkerProcess,
+    WorkerTask,
     PERCENTAGE_COMPLETION_SUFFIX_PATTERN
 )
 from tests.onehop import ONEHOP_TEST_DIRECTORY
@@ -32,7 +32,7 @@ def _report_outcome(
         expecting_output: bool = True,
         expected_output: Optional[str] = None
 ):
-    wp = WorkerProcess(identifier=test_name, timeout=timeout)
+    wp = WorkerTask(identifier=test_name, timeout=timeout)
 
     wp.run_command(command_line)
 
@@ -90,7 +90,7 @@ MOCK_WORKER = abspath(dirname(__file__)+sep+"mock_worker.py")
 
 def test_progress_monitoring():
 
-    wp = WorkerProcess(identifier="test_progress_monitoring", timeout=1)
+    wp = WorkerTask(identifier="test_progress_monitoring", timeout=1)
 
     wp.run_command(f"{PYTHON_PATH} {MOCK_WORKER}")
 
