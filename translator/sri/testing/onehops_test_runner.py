@@ -256,6 +256,7 @@ class OneHopTestHarness:
         self._worker_task.run_command(self._command_line)
 
         # Cache run parameters for later reference, as necessary
+        # TODO: should this cache be persisted in the TestReportDatabase instead?
         self._test_run_id_2_worker_task[self._test_run_id] = {
             "command_line": self._command_line,
             "worker_task": self._worker_task,
@@ -590,7 +591,10 @@ class OneHopTestHarness:
         return resource_summary
 
     @classmethod
-    def get_resources_from_registry(cls) -> Tuple[List[str], List[str]]:
-        registry_data: Dict = get_the_registry_data()
+    def get_resources_from_registry(cls) -> Optional[Tuple[List[str], List[str]]]:
+        registry_data: Optional[Dict] = get_the_registry_data()
+        if not registry_data:
+            # Oops! Couldn't get any data out of the Registry?
+            return None
         resources: Tuple[List[str], List[str]] = get_testable_resource_ids_from_registry(registry_data)
         return resources

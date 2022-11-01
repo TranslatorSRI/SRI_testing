@@ -64,6 +64,7 @@ async def favicon():
 
 
 class ResourceRegistry(BaseModel):
+    message: str = ""
     KPs: List[str]
     ARAs: List[str]
 
@@ -83,9 +84,13 @@ async def get_resources_from_registry() -> ResourceRegistry:
     \f
     :return: ResourceRegistry, Lists of Reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
     """
-    resources: Tuple[List[str], List[str]] = OneHopTestHarness.get_resources_from_registry()
-
-    return ResourceRegistry(KPs=resources[0], ARAs=resources[1])
+    resources: Optional[Tuple[List[str], List[str]]] = OneHopTestHarness.get_resources_from_registry()
+    message: str
+    if resources:
+        message = "Translator resources found!"
+    else:
+        message = "Translator SmartAPI Registry currently offline?"
+    return ResourceRegistry(message=message, KPs=resources[0], ARAs=resources[1])
 
 
 ###########################################################
