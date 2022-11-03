@@ -12,7 +12,7 @@ from translator.registry import (
     tag_value,
     get_the_registry_data,
     extract_component_test_metadata_from_registry,
-    get_testable_resource_ids_from_registry
+    get_testable_resource_ids_from_registry, source_of_interest
 )
 
 logger = logging.getLogger(__name__)
@@ -131,6 +131,54 @@ def test_missing_intermediate_tag_path():
 def test_missing_end_tag_path():
     value = tag_value(_TEST_JSON_DATA, "testing.one.two.three.four")
     assert not value
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        # the <infores> from the Registry is assumed to be non-empty (see usage in main code...)
+        # (<infores>, <target_sources>, <boolean return value>)
+        ("infores-object-id", None, True),   # Empty <target_sources>
+        ("infores-object-id", set(), True),  # Empty <target_sources>
+        ("infores-object-id", {"infores-object-id"}, True),  # single matching element in 'target_source' set
+        ("infores-object-id", {"infores-*"}, True),   # match to single prefix wildcard pattern in 'target_source' set
+        ("infores-object-id", {"*-object-id"}, True),  # match to single suffix wildcard pattern in 'target_source' set
+        ("infores-object-id", {"infores-*-id"}, True),   # match to embedded wildcard pattern in 'target_source' set
+        ("infores-object-id", {"infores-*-ID"}, False),  # mismatch to embedded wildcard pattern in 'target_source' set
+        ("infores-object-id", {"infores-*-*"}, False),   # only matches a single embedded wildcard pattern...
+        ("infores-object-id", {"another-*"}, False),  # mismatch to single wildcard pattern in 'target_source' set
+        (
+            # exact match to single element in the 'target_source' set
+            "infores-object-id",
+            {
+                "another-infores-object-id",
+                "infores-object-id",
+                "yetanuder-infores-id"
+            },
+            True
+        ),
+        (
+            # missing match to single element in the 'target_source' set
+            "infores-object-id",
+            {
+                "another-infores-object-id",
+                "yetanuder-infores-id"
+            },
+            False
+        ),
+        (   # missing match to single wildcard pattern embedded in the 'target_source' set
+            "infores-object-id",
+            {
+                "another-infores-object-id",
+                "yetanuder-*",
+                "someother-infores-id"
+            },
+            False
+        ),
+    ]
+)
+def test_source_of_interest(query: Tuple):
+    assert source_of_interest(source=query[0], target_sources=query[1]) is query[2]
 
 
 def assert_tag(metadata: Dict, service: str, tag: str):

@@ -37,16 +37,19 @@ python -m api.main
 
 Go to  http://localhost/docs to see the service documentation and to use the simple web page to test TRAPI services. The available endpoints are summarized in the following table:
 
-| API Endpoint | Purpose                                                                                                                        |
-|:-------------|:-------------------------------------------------------------------------------------------------------------------------------|
-| /run_tests   | Initiates a test run                                                                                                           |
-| /status      | Returns the % completion of a test run                                                                                         |
-| /delete      | Cancels a running test run or removes a saved test run from the system (all test run data is deleted from the report database) |
-| /test_runs   | Lists all completed test runs in the report database                                                                           |
-| /index       | Provides the catalog of test run ARAs and KPs                                                                                  |
-| /summary     | Provides a summary of test run outcomes (i.e. unit test passes, failures, warnings and skips                                   |
-| /resource    | Returns (conceptually) a test run results 'table' (as a structured JSON file)                                                  |
-| /details     | Returns the details of a given test run outcomes for one specified (KP) test data end                                          |
-| /response    | Returns (streamed) the full JSON response of a unit test TRAPI call.                                                           |
+| API Endpoint     | Purpose                                                                                                                        |
+|:-----------------|:-------------------------------------------------------------------------------------------------------------------------------|
+| /registry        | Returns list of all 'testable' resources in the Translator SmartAPI Registry                                                   |
+| /run_tests       | Initiates a test run                                                                                                           |
+| /status          | Returns the % completion of a test run                                                                                         |
+| /delete          | Cancels a running test run or removes a saved test run from the system (all test run data is deleted from the report database) |
+| /test_runs       | Lists all completed test runs in the report database                                                                           |
+| /index           | Provides the catalog of test run ARAs and KPs                                                                                  |
+| /summary         | Provides a summary of test run outcomes (i.e. unit test passes, failures, warnings and skips                                   |
+| /resource        | Returns (conceptually) a test run results 'table' (as a structured JSON file)                                                  |
+| /details         | Returns the details of a given test run outcomes for one specified (KP) test data end                                          |
+| /response        | Returns (streamed) the full JSON response of a unit test TRAPI call.                                                           |
+| /recommendations | Returns non-redundant inventory of test messages recommended for follow-up action                                              |
+
 
 

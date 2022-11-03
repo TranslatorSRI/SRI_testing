@@ -189,15 +189,27 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     Initiate an SRI Testing Run with TestRunParameters:
 
     - **ara_id**: Optional[str], identifier of the ARA resource whose indirect KP test results are being accessed
-    - **kp_id**: Optional[str], identifier of the KP resource whose test results are specifically being accessed.
-        - Case 1 - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource
-        - Case 2 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
-        - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
-        - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
+    - **kp_id**: Optional[str], identifier(s) of the KP resource(s) whose test results are specifically being accessed.
+        Note that 'kp_id' may be a comma delimited list of strings, in which case, any or all of the indicated KP
+        identifiers are included in the test run, with or without an ARA identifier, interpreted as follows:
+
+    *Case 1* - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource(s)
+
+    *Case 2* - non-empty ara_id, non-empty kp_id == return the one specific KP(s) tested via the specified ARA
+
+    *Case 3* - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration file
+
+    *Case 4* - empty ara_id and kp_id, validate all Registry KPs and ARAs (long-running validation! Be careful now!)
+
+    The **'ara_id'** and **'kp_id'** may be a scalar string, or a comma-delimited set of strings.
+    If the 'source' string includes a single asterix ('\*'), it is treated as a wildcard match to the
+    infores identifier being filtered. Note that all identifiers here should be the reference (object)
+    identifiers of the Infores CURIE of the target resource(s).
+
     - **trapi_version**: Optional[str], possible TRAPI version overriding Translator SmartAPI 'Registry' specification.
     - **biolink_version**: Optional[str], possible Biolink Model version overriding Registry specification.
     - **timeout**: Optional[int], query timeout
-    - **log**: Optional[str], Python log setting
+    - **log**: Optional[str], Python log setting (i.e. "DEBUG", "INFO", etc)
     \f
     :param test_parameters: TestRunParameters
     :return: TestRunSession (just 'test_run_id' for now)
@@ -337,6 +349,12 @@ async def get_test_run_list(
         - Case 2 - non-empty ara_id, non-empty kp_id == return test run of one specific KP tested via the ARA
         - Case 3 - non-empty ara_id, empty kp_id == return test runs of all KPs being tested under the ARA
         - Case 4 - empty ara_id and kp_id == identifiers for all available test runs returned.
+
+    **Note:** that the 'kp_id' or 'ara_id' may be a single infores reference identifier or a comma-delimited list of
+    such identifiers, for exact matching or wildcard matching by inclusion of a one sided or double sided single asterix
+    ('*') wild card pattern; i.e. single sided 'automat-*' will match both 'automat-gtex' and 'automat-robokop'
+    i.e. double sided 'automat-*kop' will match both 'automat-covidkop' and 'automat-robokop' but not 'automat-gtex').
+
     - **latest**: bool, optional flag constrains run list to just report 'latest' test run (default: False).
 
     \f

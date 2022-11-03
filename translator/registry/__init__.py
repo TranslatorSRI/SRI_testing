@@ -381,6 +381,35 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
     return list(kp_ids), list(ara_ids)
 
 
+def source_of_interest(source: str, target_sources: Set[str]) -> bool:
+    """
+    Source filtering function, checking a source identifier against a set of identifiers.
+    The target_source strings may also be wildcard patterns with a single asterix (only)
+    with possible prefix only, suffix only or prefix-<body>-suffix matches.
+    :param source:
+    :param target_sources:
+    :return: bool, True if matched
+    """
+    assert source, "registry.source_of_interest() method call: unexpected empty infores?!?"
+    if target_sources:
+        found: bool = False
+        for entry in target_sources:
+            if entry.find("*") >= 0:
+                part = entry.split(sep="*", maxsplit=1)  # part should be a 2-tuple
+                if not part[0] or source.startswith(part[0]):
+                    if not part[1] or source.endswith(part[1]):
+                        found = True
+                        break
+            elif source == entry:  # exact match?
+                found = True
+                break
+        if not found:
+            return False
+
+    # default if no target_sources or matching
+    return True
+
+
 # TODO: this is an ordered list giving 'production' testing priority
 #       but not sure about preferred testing priority.
 #       See https://github.com/TranslatorSRI/SRI_testing/issues/61 and also
@@ -400,9 +429,12 @@ def extract_component_test_metadata_from_registry(
         Dict, Translator SmartAPI Registry dataset
         from which specific component_type metadata will be extracted.
     :param component_type: str, value 'KP' or 'ARA'
-    :param source: Optional[str], ara_id or kp_id source of test configuration data in the registry.
+    :param source: Optional[str], ara_id or kp_id(s) source(s) of test configuration data in the registry.
                                   Return 'all' resources of the given component type if the source is None.
-                                  Note that the identifiers here should be the reference (object) id's
+                                  The 'source' may be a scalar string, or a comma-delimited set of strings.
+                                  If the 'source' string includes a single asterix ('*'), it is treated
+                                  as a wildcard match to the infores name being filtered.
+                                  Note that all identifiers here should be the reference (object) id's
                                   of the Infores CURIE of the target resource.
 
     :return: Dict[str, Dict[str,  Optional[str]]] of metadata, indexed by 'test_data_location'
@@ -410,6 +442,13 @@ def extract_component_test_metadata_from_registry(
 
     # Sanity check...
     assert component_type in ["KP", "ARA"]
+
+    target_sources: Set[str] = set()
+    if source:
+        # if specified, 'source' may be a comma separated list of sources...
+        for infores in source.split(","):
+            infores = infores.strip()
+            target_sources.add(infores)
 
     service_metadata: Dict[str, Dict[str, Optional[str]]] = dict()
 
@@ -425,17 +464,20 @@ def extract_component_test_metadata_from_registry(
             continue
 
         # Once past the 'testable resources' metadata gauntlet,
-        # we start to collect the full Registry metadata
-
+        # the following parameters are assumed valid and non-empty
         service_title: str = resource_metadata['service_title']
         infores: str = resource_metadata['infores']
         url: str = resource_metadata['url']
         test_data_location: str = resource_metadata['test_data_location']
 
-        if source and infores != source:
+        # Filter on target sources of interest
+        if not source_of_interest(source=infores, target_sources=target_sources):
             # silently ignore any resource whose InfoRes CURIE
-            # reference doesn't match a specified non-empty target source
+            # reference identifier that doesn't have a partial or
+            # exact match to a specified non-empty target source
             continue
+
+        # Now, we start to collect the remaining Registry metadata
 
         # Grab additional service metadata, then store it all
         service_version = tag_value(service, "info.version")

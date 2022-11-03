@@ -218,8 +218,8 @@ class OneHopTestHarness:
     ):
         """
         Run the SRT Testing test harness as a worker process.
-        :param ara_id: Optional[str], identifier of the ARA resource whose indirect KP test results are being accessed
-        :param kp_id: Optional[str], identifier of the KP resource whose test results are specifically being accessed.
+        :param ara_id: Optional[str], identifier of the ARA resource(s) whose KP test results are being accessed
+        :param kp_id: Optional[str], identifier of the KP resource(s) whose test results are being accessed.
             - Case 1 - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource
             - Case 2 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
             - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
@@ -243,8 +243,8 @@ class OneHopTestHarness:
         self._command_line += f" --test_run_id={self._test_run_id}"
         self._command_line += f" --trapi_version={trapi_version}" if trapi_version else ""
         self._command_line += f" --biolink_version={biolink_version}" if biolink_version else ""
-        self._command_line += f" --kp_id={kp_id}" if kp_id else ""
-        self._command_line += f" --ara_id={ara_id}" if ara_id else ""
+        self._command_line += f" --kp_id=\"{kp_id}\"" if kp_id else ""
+        self._command_line += f" --ara_id=\"{ara_id}\"" if ara_id else ""
         self._command_line += " --one" if one else ""
 
         logger.debug(f"OneHopTestHarness.run() command line: {self._command_line}")
