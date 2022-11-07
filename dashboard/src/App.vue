@@ -95,7 +95,7 @@
                           <strong style="{ marginBottom: 5px }"># edges vs tests</strong>
                           <la-cartesian narrow stacked
                                         :bound="[0]"
-                                        :data="reduce_provider_by_group(combine_provider_summaries(stats_summary))"
+                                        :data="combined_provider_summary"
                                         :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]"
                                         :width="width">
                             <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
@@ -123,10 +123,11 @@
                 <span v-if="Object.keys(stats_summary['ARA']).length > 0 && !(kp_filter.length > 0 && ara_filter.length === 0)">
 
                   <br><h2>ARAs</h2>
+                  <!-- TODO: Use the index for traversal instead -->
                   <div v-for="ara in Object.keys(stats_summary['ARA']).filter(ara => ara_filter.length > 0 ? ara_filter.includes(ara) : true)" v-bind:key="ara">
                     <div v-for="kp in Object.keys(stats_summary['ARA'][ara].kps).filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="`${ara}_${kp}`">
 
-                      <v-chip-group>
+                      <v-chip-group :key="`chip_${ara}_${kp}`">
                         <h3>{{ ara }}: {{ kp }}</h3>&nbsp;
                         <v-chip small><strong>BioLink:&nbsp;</strong> {{ stats_summary.ARA[ara].kps[kp].biolink_version }}</v-chip>
                         <v-chip small><strong>TRAPI:&nbsp;</strong> {{ stats_summary.ARA[ara].kps[kp].trapi_version }}</v-chip>
@@ -135,7 +136,7 @@
                       <v-row no-gutter>
                         <v-col>
                           <vc-piechart
-                            :data="reduce_provider_summary(denormalize_provider_summary(stats_summary['ARA'][ara].kps[kp]))"/>
+                            :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === `${ara}_${kp}`))"/>
                         </v-col>
                         <v-col :cols="9">
                           <SizeProvider>
@@ -163,13 +164,7 @@
                       <v-row v-if="resources !== null && Object.keys(resources).length > 0">
                         <v-col>
                           <vc-piechart
-                            :data="Object.entries(groupedResultMessagesByCode(resources[`${ara}_${kp}`]))
-                                         .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
-                                         .map(i => ({
-                                           'label': i[0],
-                                           'value': i[1],
-                                           'color': i[0] === 'warning' ? status_color('skipped') : i[0] === 'info' ? status_color('passed') : status_color('failed')
-                                         }))"/>
+                            :data="message_stats_summary_for_resource(resources[`${ara}_${kp}`])"/>
                         </v-col>
                         <v-col :cols="9">
                           <SizeProvider>
@@ -178,16 +173,7 @@
                                 <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
                                 <la-cartesian narrow stacked
                                               :bound="[0]"
-                                              :data="Object.entries(groupedResultMessagesByCode(resources[`${ara}_${kp}`]))
-                                                           .map(i => [i[0], Object.entries(i[1])])
-                                                           .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
-                                                           .map(([type, [code, frequency]]) => ({
-                                                             'name': code,
-                                                             'warning': 0,
-                                                             'info': 0,
-                                                             'error': 0,
-                                                             [type]: frequency
-                                                           }))"
+                                              :data="message_summary_for_resource(resources[`${ara}_${kp}`])"
                                               :width="width"
                                               :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                   <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
@@ -217,10 +203,11 @@
                 </span>
 
                 <span v-if="Object.keys(stats_summary['KP']).length > 0 && !(ara_filter.length > 0 && kp_filter.length === 0)">
+
                   <br><h2>KPs</h2>
                   <div v-for="kp in Object.keys(stats_summary['KP'])
                                           .filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="kp" >
-                    <v-chip-group>
+                    <v-chip-group :key="`chip_${kp}`">
                       <h3>{{ kp }}</h3>&nbsp;
                       <v-chip small><strong>BioLink:&nbsp;</strong> {{ stats_summary.KP[kp].biolink_version }}</v-chip>
                       <v-chip small><strong>TRAPI:&nbsp;</strong> {{ stats_summary.KP[kp].trapi_version }}</v-chip>
@@ -229,7 +216,7 @@
                     <v-row no-gutter>
                       <v-col>
                         <vc-piechart
-                          :data="reduce_provider_summary(denormalize_provider_summary(stats_summary['KP'][kp]))"/>
+                          :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === kp))"/>
                       </v-col>
                       <v-col :cols="9">
                         <SizeProvider>
@@ -257,13 +244,7 @@
                     <v-row v-if="resources !== null && Object.keys(resources).length > 0">
                       <v-col>
                         <vc-piechart
-                          :data="Object.entries(groupedResultMessagesByCode(resources[kp]))
-                                       .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
-                                       .map(i => ({
-                                         'label': i[0],
-                                         'value': i[1],
-                                         'color': i[0] === 'warning' ? status_color('skipped') : i[0] === 'info' ? status_color('passed') : status_color('failed')
-                                       }))"/>
+                          :data="message_stats_summary_for_resource(resources[kp])"/>
                       </v-col>
                       <v-col :cols="9">
                         <SizeProvider>
@@ -272,16 +253,7 @@
                               <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
                               <la-cartesian narrow stacked
                                             :bound="[0]"
-                                            :data="Object.entries(groupedResultMessagesByCode(resources[kp], kp))
-                                                         .map(i => [i[0], Object.entries(i[1])])
-                                                         .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
-                                                         .map(([type, [code, frequency]]) => ({
-                                                           'name': code,
-                                                           'warning': 0,
-                                                           'info': 0,
-                                                           'error': 0,
-                                                           [type]: frequency
-                                                         }))"
+                                            :data="message_summary_for_resource(resources[kp])"
                                             :width="width"
                                             :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                 <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
@@ -364,10 +336,18 @@
                         <!-- TODO: group title formatting and tooltip. potentially just put in the summary? -->
 
                         <template v-slot:item="{ item }">
-                          <tr>
-                            <td v-for="[test, result] in Object.entries(omit('_id')({
-                              ...item,
-                            }))"
+                          <tr
+                            @mouseover="() => {
+                              data_table_current_item = data_table_hold_selection ? data_table_selected_item : item;
+                            }"
+                            @mouseleave="() => {
+                              data_table_current_item = data_table_selected_item;
+                            }"
+                            @click="() => {
+                              data_table_selected_item = data_table_hold_selection ? data_table_selected_item : item;
+                              data_table_current_item = data_table_selected_item;
+                            }">
+                            <td v-for="[test, result] in Object.entries(omit('_id')(item))"
                                 v-bind:key="`${test}_${result}`"
                                 :style="cellStyle(result.outcome)">
 
@@ -400,9 +380,10 @@
                           <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
                           <v-chip-group>
                             <v-chip>🚫&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
-                            <v-chip>⚠&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
+                            <v-chip>⚠️&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
                             <v-chip>ℹ&nbsp;Information: {{ selected_result_message_summary.information }}</v-chip>
                           </v-chip-group>
+
                           <v-treeview :items="selected_result_treeview" dense>
 
                             <template v-slot:prepend="{ item, open }">
@@ -423,7 +404,7 @@
                             <template v-slot:label="{ item }">
                               <span v-if="!!item.data">
                                 <ul>
-                                  <li>{{parseResultCode(item.data.code).subcode}}</li>
+                                  <li>{{ parseResultCode(item.data.code).subcode }}</li>
                                   <ul class="noindent">
                                     <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="hash(result_data)+Math.random()">
                                       <b>{{ result_data[0] }}: </b> {{ result_data[1] }}<br>
@@ -454,6 +435,7 @@
                             </template>
 
                           </v-treeview>
+
                         </v-card-text>
                       </v-card>
                     </v-col>
@@ -476,21 +458,82 @@
                       </v-card-title>
                       <v-card-text>
                         <ul class="noindent">
-                        <li v-for="code in Object.keys(recommendations_summary[resource][message_type])" :key="resource+message_type+code">
-                          <h3>{{code}}</h3> ({{ groupedResultMessagesByCode(resources[resource])[message_type !== 'information' ? unplural(message_type) : 'info'][code.split('.').slice(1).join('.')] }} messages,&nbsp;{{  recommendations_summary[resource][message_type][code].length }} unique)
-                          <ul>
-                            <li v-for="el in recommendations_summary[resource][message_type][code]" :key="resource+message_type+code+hash(el.test_data)">
-                              {{ formatEdge(el.test_data) }}<br>
-                              {{ formatConcreteEdge(el.test_data) }}<br>
-                              <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')">
-                                <b>{{detail}}:</b> {{ el.message[detail] }}<br>
-                              </span>
-                            </li>
-                          </ul>
-                        </li>
-                      </ul>
+                          <li v-for="code in Object.keys(recommendations_summary[resource][message_type])" :key="resource+message_type+code">
+                            <h3>{{code}}</h3> ({{ groupedResultMessagesByCode(resources[resource])[message_type !== 'information' ? unplural(message_type) : 'info'][code.split('.').slice(1).join('.')] }} messages,&nbsp;{{  recommendations_summary[resource][message_type][code].length }} unique)
+                            <ul>
+                              <li v-for="el in recommendations_summary[resource][message_type][code]" :key="resource+message_type+code+hash(el.test_data)">
+                                {{ formatEdge(el.test_data) }}<br>
+                                {{ formatConcreteEdge(el.test_data) }}<br>
+                                <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+hash(el.test_data)+detail">
+                                  <b>{{detail}}:</b> {{ el.message[detail] }}<br>
+                                </span>
+                              </li>
+                            </ul>
+                          </li>
+                       </ul>
                     </v-card-text>
-                  </v-card>
+                    <!--
+                    <v-treeview :items="selected_result_treeview" dense>
+
+                      <template v-slot:prepend="{ item, open }">
+
+                       <span v-if="!!item.data"></span>
+
+                       <div v-else-if="!!item.outcome">
+                         {{ stateIcon(item.outcome, icon_only=true) }}
+                        </div>
+                        <span v-else>
+                          {{ item.name === 'warnings' ?  '⚠️'
+                             : item.name === 'errors' ? '🚫'
+                             : item.name === 'information' ?  'ℹ️'
+                             : !!item.children && item.children.length === 0 ? '⚫' : ''
+                          }}
+                        </span>
+
+                      </template>
+
+                      <template v-slot:label="{ item }">
+
+                              <span v-if="!!item.data">
+                                <ul>
+                                  <li>{{ parseResultCode(item.data.code).subcode }}</li>
+                                  <ul class="noindent">
+                                    <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="hash(result_data)+Math.random()">
+                                      <b>{{ result_data[0] }}: </b> {{ result_data[1] }}<br>
+                                    </li>
+                                  </ul>
+                                </ul>
+                              </span>
+
+                              <span v-else>
+                                {{ item.name }}
+                              </span>
+
+                     </template>
+
+                     <template v-slot:append="{ item }">
+
+                       <span v-if="['errors', 'warnings', 'information'].includes(item.name)">
+                          {{ item.children.length }}
+                        </span>
+                        <span v-else-if="!!!item.data">
+                           <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="hash(item)+hash([name, val])+i">
+                              <span v-if="val > 0">
+                                {{  name === 'warnings' ?  '⚠️'
+                                  : name === 'errors' ? '🚫'
+                                  : name === 'information' ? 'ℹ️'
+                                  : ''
+                                }}
+                                &nbsp;{{ val }}
+                              </span>
+                            </span>
+                         </span>
+
+                      </template>
+
+                     </v-treeview>
+                      -->
+                    </v-card>
                   </v-col>
                 </v-row>
               </span>
@@ -751,27 +794,10 @@ export default {
                 }
             }
             return this.countResultMessages(this.data_table_current_item)
-
         },
         selected_result_treeview() {
             if (!!!this.data_table_current_item) return [];
-            return  Object.entries(this.data_table_current_item)
-                .filter(a => !['spec', '_id', 'information', 'errors', 'warnings'].includes(a[0]))
-                .map(a => ({
-                    'name': a[0],
-                    'outcome': a[1].outcome,
-                    'children': !!a[1].validation ? Object.entries(a[1].validation)
-                        .map(a => ({
-                            'name': a[0],
-                            'children': _(a[1])
-                                .uniqBy(object_signature).value()
-                                .map(el => ({
-                                    'name': "",
-                                    'data': el,
-                                }))
-                        }))
-                        .sort((a,b) => a.children.length <= b.children.length) : []
-                }))
+            return this.item_for_treeview(this.data_table_current_item);
         },
         // TODO: merge these range computations into one scope
         trapi_range() {
@@ -801,7 +827,6 @@ export default {
                 }
             }
         },
-
         denormalized_stats_summary() {
             if (this.stats_summary !== null) {
                 const combined_results = {
@@ -826,15 +851,6 @@ export default {
         },
         reduced_stats_summary() {
             return this.reduce_provider_summary(this.denormalized_stats_summary)
-        },
-        registryItems() {
-            return this.registryResults.map(el => {
-                return {
-                    text: el.info.title,
-                    value: el.info["x-translator"].infores,
-                    component: el.info["x-translator"].component
-                }
-            })
         },
         _headers() {
             return this.headers
@@ -890,8 +906,51 @@ export default {
                   })
             return filtered_cells;
         },
+        combined_provider_summary() {
+          return this.reduce_provider_by_group(this.combine_provider_summaries(this.stats_summary))
+        }
     },
     methods: {
+        message_stats_summary_for_resource(resource) {
+            return Object.entries(this.groupedResultMessagesByCode(resource))
+                                       .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
+                                       .map(i => ({
+                                         'label': i[0],
+                                         'value': i[1],
+                                         'color': i[0] === 'warning' ? this.status_color('skipped') : i[0] === 'info' ? this.status_color('passed') : this.status_color('failed')
+                                       }))
+
+        },
+        message_summary_for_resource(resource) {
+            return Object.entries(this.groupedResultMessagesByCode(resource))
+                                                           .map(i => [i[0], Object.entries(i[1])])
+                                                           .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
+                                                           .map(([type, [code, frequency]]) => ({
+                                                             'name': code,
+                                                             'warning': 0,
+                                                             'info': 0,
+                                                             'error': 0,
+                                                             [type]: frequency
+                                                           }))
+        },
+        item_to_treeview_entry(item) {
+            return Object.entries(item).filter(a => !['spec', '_id', 'information', 'errors', 'warnings'].includes(a[0]))
+                .map(a => ({
+                    'name': a[0],
+                    'outcome': a[1].outcome,
+                    'children': !!a[1].validation ? Object.entries(a[1].validation)
+                        .map(a => ({
+                            'name': a[0],
+                            'children': _(a[1])
+                                .uniqBy(object_signature).value()
+                                .map(el => ({
+                                    'name': "",
+                                    'data': el,
+                                }))
+                        }))
+                        .sort((a,b) => a.children.length <= b.children.length) : []
+                }))
+        },
         handleTestRunSelection ($event) {
             // TODO:
             // // undo focus to ensure scrolling with arrow keys won't suddenly change the user's selected dataset
@@ -1121,7 +1180,6 @@ export default {
             return Object.fromEntries(Object.entries(obj).sort(([a, _], [b, __]) => orderByArrayFunc(keys)(a, b)))
         },
         // `custom-filter` in v-data-table props: https://vuetifyjs.com/en/api/v-data-table/#props
-        searchMatches: _searchMatches,
 
         // adjust cell style:
         // TODO - move on to use style classes instead
@@ -1278,21 +1336,6 @@ const query_all_results = "$.*.*.*";
 const query_all_kp_results = "$.KP.*.*";
 const query_all_ara_results = "$.ARA.*.*";
 
-// recursive search function for matching string against *any* value within *any* object, array, or string within an object's hierarchy
-// this behavior might require fine-tuning (should messages be searchable? should property matches be advertised?) but it's a first-pass
-// for understanding what we want from our table search filtering
-function _searchMatches(value, search, item) {
-  return Object.entries(item).some(([key, entry]) => {
-    if (isObject(entry)) {
-      return _searchMatches(entry, search, entry)
-    } else if (isArray(entry)) {
-      return entry.some(el => _searchMatches(el, search, el))
-    } else if (isString(entry)) {
-      return key.toLowerCase().includes(search.toLowerCase()) || entry.toLowerCase().includes(search.toLowerCase());
-    }
-  })
-}
-
 function _makeTableData(resource_id, report) {
   const test_results = jp.nodes(report.test_edges, "$.*").filter(el => !el.path.includes("document_key"))
   const headers = Array.from(test_results.reduce((acc, item) => {
@@ -1315,15 +1358,6 @@ function _makeTableData(resource_id, report) {
         cells,
     };
 }
-
-Object.defineProperty(Array.prototype, 'precat', {
-  configurable: true,
-  writable: true,
-  value: function precat() {
-    return Array.prototype.concat.call([], ...arguments, this)
-  }
-})
-
 
 </script>
 
