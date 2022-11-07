@@ -164,12 +164,12 @@
                         <v-col>
                           <vc-piechart
                             :data="Object.entries(groupedResultMessagesByCode(resources[`${ara}_${kp}`]))
-                                   .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
-                                   .map(i => ({
-                                   'label': i[0],
-                                   'value': i[1],
-                                   'color': i[0] === 'warning' ? status_color('skipped') : i[0] === 'info' ? status_color('passed') : status_color('failed')
-                                   }))"/>
+                                         .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
+                                         .map(i => ({
+                                           'label': i[0],
+                                           'value': i[1],
+                                           'color': i[0] === 'warning' ? status_color('skipped') : i[0] === 'info' ? status_color('passed') : status_color('failed')
+                                         }))"/>
                         </v-col>
                         <v-col :cols="9">
                           <SizeProvider>
@@ -179,15 +179,15 @@
                                 <la-cartesian narrow stacked
                                               :bound="[0]"
                                               :data="Object.entries(groupedResultMessagesByCode(resources[`${ara}_${kp}`]))
-                                                     .map(i => [i[0], Object.entries(i[1])])
-                                                     .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
-                                                     .map(([type, [code, frequency]]) => ({
-                                                     'name': code,
-                                                     'warning': 0,
-                                                     'info': 0,
-                                                     'error': 0,
-                                                     [type]: frequency
-                                                     }))"
+                                                           .map(i => [i[0], Object.entries(i[1])])
+                                                           .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
+                                                           .map(([type, [code, frequency]]) => ({
+                                                             'name': code,
+                                                             'warning': 0,
+                                                             'info': 0,
+                                                             'error': 0,
+                                                             [type]: frequency
+                                                           }))"
                                               :width="width"
                                               :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                   <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
@@ -219,7 +219,7 @@
                 <span v-if="Object.keys(stats_summary['KP']).length > 0 && !(ara_filter.length > 0 && kp_filter.length === 0)">
                   <br><h2>KPs</h2>
                   <div v-for="kp in Object.keys(stats_summary['KP'])
-                              .filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="kp" >
+                                          .filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="kp" >
                     <v-chip-group>
                       <h3>{{ kp }}</h3>&nbsp;
                       <v-chip small><strong>BioLink:&nbsp;</strong> {{ stats_summary.KP[kp].biolink_version }}</v-chip>
@@ -258,12 +258,12 @@
                       <v-col>
                         <vc-piechart
                           :data="Object.entries(groupedResultMessagesByCode(resources[kp]))
-                                 .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
-                                 .map(i => ({
-                                 'label': i[0],
-                                 'value': i[1],
-                                 'color': i[0] === 'warning' ? status_color('skipped') : i[0] === 'info' ? status_color('passed') : status_color('failed')
-                                 }))"/>
+                                       .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
+                                       .map(i => ({
+                                         'label': i[0],
+                                         'value': i[1],
+                                         'color': i[0] === 'warning' ? status_color('skipped') : i[0] === 'info' ? status_color('passed') : status_color('failed')
+                                       }))"/>
                       </v-col>
                       <v-col :cols="9">
                         <SizeProvider>
@@ -273,15 +273,15 @@
                               <la-cartesian narrow stacked
                                             :bound="[0]"
                                             :data="Object.entries(groupedResultMessagesByCode(resources[kp], kp))
-                                                   .map(i => [i[0], Object.entries(i[1])])
-                                                   .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
-                                                   .map(([type, [code, frequency]]) => ({
-                                                   'name': code,
-                                                   'warning': 0,
-                                                   'info': 0,
-                                                   'error': 0,
-                                                   [type]: frequency
-                                                   }))"
+                                                         .map(i => [i[0], Object.entries(i[1])])
+                                                         .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
+                                                         .map(([type, [code, frequency]]) => ({
+                                                           'name': code,
+                                                           'warning': 0,
+                                                           'info': 0,
+                                                           'error': 0,
+                                                           [type]: frequency
+                                                         }))"
                                             :width="width"
                                             :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                 <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
@@ -354,32 +354,20 @@
 
                     <v-col :cols="8">
                       <v-data-table
+                        class="elevation-1"
                         :headers="_headers"
-                        :items="denormalized_cells"
+                        :items="filtered_cells"
                         :items-per-page="-1"
                         group-by="_id"
-                        class="elevation-1"
-                        :search="search"
-                        :custom-filter="searchMatches"
                         dense>
 
                         <!-- TODO: group title formatting and tooltip. potentially just put in the summary? -->
 
                         <template v-slot:item="{ item }">
-                          <tr @mouseover="() => {
-                                          data_table_current_item = data_table_hold_selection ? data_table_selected_item : item;
-                                          }"
-                              @mouseleave="() => {
-                                           data_table_current_item = data_table_selected_item;
-                                           }"
-                              @click="() => {
-                                      data_table_selected_item = data_table_hold_selection ? data_table_selected_item : item;
-                                      data_table_current_item = data_table_selected_item;
-                                      }">
+                          <tr>
                             <td v-for="[test, result] in Object.entries(omit('_id')({
-                                       ...item,
-                                       ...countResultMessages(item)
-                                       }))"
+                              ...item,
+                            }))"
                                 v-bind:key="`${test}_${result}`"
                                 :style="cellStyle(result.outcome)">
 
@@ -388,18 +376,7 @@
                               </a>
 
                               <span v-else-if="test === 'spec'">
-                                <v-tooltip
-                                  bottom>
-                                  <template v-slot:activator="{ on, attrs }">
-                                    <div v-bind="attrs" v-on="on">
-                                      <v-chip small outlined>{{formatCurie(result.subject_category)}}</v-chip><v-chip small outlined>{{formatCurie(result.predicate)}}</v-chip><v-chip small outlined>{{formatCurie(result.object_category)}}</v-chip>
-                                    </div>
-                                  </template>
-                                  <b>Test Edge:</b>
-                                  <span>
-                                    {{ formatConcreteEdge(result) }}
-                                  </span>
-                                </v-tooltip>
+                                {{formatCurie(result.subject_category)}}&nbsp;{{formatCurie(result.predicate)}}&nbsp;{{formatCurie(result.object_category)}}
                               </span>
 
                               <span v-else>
@@ -422,9 +399,9 @@
                           <h2>{{ formatEdge(data_table_current_item["spec"]) }}</h2><br>
                           <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
                           <v-chip-group>
-                            <v-chip><v-icon small>mdi-cancel</v-icon>&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
-                            <v-chip><v-icon small>mdi-alert</v-icon>&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
-                            <v-chip><v-icon small>mdi-information</v-icon>&nbsp;Information: {{ selected_result_message_summary.information }}</v-chip>
+                            <v-chip>🚫&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
+                            <v-chip>⚠&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
+                            <v-chip>ℹ&nbsp;Information: {{ selected_result_message_summary.information }}</v-chip>
                           </v-chip-group>
                           <v-treeview :items="selected_result_treeview" dense>
 
@@ -435,14 +412,13 @@
                               <div v-else-if="!!item.outcome">
                                 {{ stateIcon(item.outcome, icon_only=true) }}
                               </div>
-
-                              <v-icon v-else small>
-                                {{ item.name === 'warnings' ? 'mdi-alert'
-                                : item.name === 'errors' ? 'mdi-cancel'
-                                : item.name === 'information' ? 'mdi-information'
-                                : !!item.children && item.children.length === 0 ? 'mdi-checkbox-blank-circle' : ''
+                                <span v-else>
+                                {{ item.name === 'warnings' ?  '⚠️'
+                                : item.name === 'errors' ? '🚫'
+                                : item.name === 'information' ?  'ℹ️'
+                                : !!item.children && item.children.length === 0 ? '⚫' : ''
                                 }}
-                              </v-icon>
+                                </span>
                             </template>
                             <template v-slot:label="{ item }">
                               <span v-if="!!item.data">
@@ -466,13 +442,12 @@
                               <span v-else-if="!!!item.data">
                                 <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="hash(item)+hash([name, val])+i">
                                   <span v-if="val > 0">
-                                    <v-icon small>
-                                      {{ name === 'warnings' ? 'mdi-alert'
-                                      : name === 'errors' ? 'mdi-cancel'
-                                      : name === 'information' ? 'mdi-information'
+                                      {{ name === 'warnings' ?  '⚠️'
+                                      : name === 'errors' ? '🚫'
+                                      : name === 'information' ? 'ℹ️'
                                       : ''
                                       }}
-                                    </v-icon>&nbsp;{{ val }}
+                                    &nbsp;{{ val }}
                                   </span>
                                 </span>
                               </span>
@@ -561,9 +536,9 @@ import axios from "./api.js";
 
 // TODO: provide feature flags as library
 const MOCK = process.env.isAxiosMock;
-const FEATURE_RUN_TEST_BUTTON = false // process.env._FEATURE_RUN_TEST_BUTTON;
+const FEATURE_RUN_TEST_BUTTON = process.env._FEATURE_RUN_TEST_BUTTON;
 const FEATURE_RUN_TEST_SELECT = process.env._FEATURE_RUN_TEST_SELECT;
-const FEATURE_RECOMMENDATIONS = true //process.env_FEATURE_RECOMMENDATIONS;
+const FEATURE_RECOMMENDATIONS = process.env_FEATURE_RECOMMENDATIONS;
 
 export default {
     name: 'App',
@@ -893,28 +868,28 @@ export default {
             const ___cells = __cells.map(cell =>
                 Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'errors', 'information', 'warnings'])(a, b))));
 
-            const denormalized_cells = ___cells
-                  .filter(el => Object.entries(el).some(entry => this.outcome_filter !== "all" ? entry[1].outcome === this.outcome_filter : true)
-                          && !isString(el))
+            return ___cells;
+        },
+        filtered_cells() {
+            const filtered_cells = this.denormalized_cells
                   .filter(el => {
-                      return this.subject_category_filter.length > 0 ? this.subject_category_filter.includes(el.spec.subject_category) : true
-                          && this.predicate_filter.length > 0 ? this.predicate_filter.includes(el.spec.predicate) : true
-                          && this.object_category_filter > 0 ? this.object_category_filter.includes(el.spec.object_category) : true
+                      return Object.entries(el).some(entry => this.outcome_filter !== "all" ? entry[1].outcome === this.outcome_filter : true)
+                          && (this.subject_category_filter.length > 0 ? this.subject_category_filter.includes(el.spec.subject_category) : true)
+                          && (this.predicate_filter.length > 0 ? this.predicate_filter.includes(el.spec.predicate) : true)
+                          && (this.object_category_filter > 0 ? this.object_category_filter.includes(el.spec.object_category) : true)
                           && (this.ara_filter.length > 0
                               || this.kp_filter.length > 0 ? _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(el._id, provider_name))
                               || _.some(this.kp_filter, kp => _.includes(el._id, kp))
                               : true)
+                          && (this.kp_selections.length > 0 || this.ara_selections.length > 0 ?
+                              this.kp_selections.some(el =>
+                                (el.includes(cell._id)
+                                  || this.kps_only ? el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]) : false)
+                                  || this.ara_selections.some(el => el.includes(el._id.split('|')[0]) || el.includes(el._id.split('|')[1])))
+                              : true)
                   })
-            return this.kp_selections.length > 0 || this.ara_selections.length > 0 ?
-                denormalized_cells
-                .filter(cell => this.kp_selections.some(el =>
-                    (el.includes(cell._id)
-                     || this.kps_only ? el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]) : false)
-                        || this.ara_selections.some(el => el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]))))
-                : denormalized_cells
-
+            return filtered_cells;
         },
-
     },
     methods: {
         handleTestRunSelection ($event) {
@@ -1070,6 +1045,9 @@ export default {
             return Object.entries(ARAIndex).flatMap(([ara, entry]) => Object.values(entry).map(kp => ara+delimiter+kp))
         },
         makeTableData(id, stats_summary) {
+            //  https://forum.vuejs.org/t/performance-issue-with-reactivity-in-a-long-list-flushcallbacks-taking-long/45838/7
+            this.headers = [];
+            this.cells = [];
             const report = Promise.resolve(stats_summary).then(response => {
                 if (response !== null) {
                     const { KP={}, ARA={} } = response;
@@ -1100,9 +1078,16 @@ export default {
                                  }))
                                  .then(response => {
                                      if (response.status === "fulfilled") {
-                                         const  { headers, cells } = _makeTableData(response.value.resource_id, response.value.data.summary);
-                                         this.headers = Array.from(_.uniq(this.headers.concat(headers)));
-                                         this.cells = _.cloneDeep(this.cells).concat(cells);
+                                        const  { headers, cells } = _makeTableData(response.value.resource_id, response.value.data.summary);
+                                        // https://forum.vuejs.org/t/performance-issue-with-reactivity-in-a-long-list-flushcallbacks-taking-long/45838/7
+                                        for (let header of Array.from(_.uniq(headers))) {
+                                          if (!this.headers.includes(header)) {
+                                              this.headers.push(header);
+                                          }
+                                        }
+                                        for (let cell of cells) {
+                                           this.cells.push(cell);
+                                        }
                                      }
                                  })
                                  .catch(reason => ({
@@ -1165,7 +1150,7 @@ export default {
                 return `⚠️${!icon_only ? ' Skip' : ''}`
             } else if (state === "failed") {
                 return `🚫${!icon_only ? ' Fail' : ''}`
-            } else if (state === null) {
+            } else if (!!!state) {
                 return "NONE";
             }
             return state
@@ -1181,14 +1166,15 @@ export default {
         },
         countResultMessages(edge_result) {
             return Object.entries(edge_result).reduce(function (acc, item) {
-                if (!!item[1] && !!item[1].validation) {
-                    const { validation } = item[1];
+                let [ left, right ] = item;
+                if (!!right && !!right.validation) {
+                    const { validation } = right;
                     const { information, errors, warnings } = validation;
                     acc.information += _.uniqBy(information, object_signature).length
                     acc.errors += _.uniqBy(errors, object_signature).length;
                     acc.warnings += _.uniqBy(warnings, object_signature).length;
                 }
-                return acc
+                return acc;
             }, {
                 errors: 0,
                 warnings: 0,
