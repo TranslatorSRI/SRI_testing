@@ -16,7 +16,6 @@
     "build": "isAxiosMock=false apiHost=localhost node build/build.js"
   },
   "dependencies": {
-    "@vue/composition-api": "^1.7.0",
     "axios": "^0.27.2",
     "dotenv": "^16.0.2",
     "env-loader": "0.0.3",
@@ -24,17 +23,11 @@
     "jsonpath": "^1.1.1",
     "laue": "^0.2.1",
     "lodash": "^4.17.21",
-    "lodash.isobject": "^3.0.2",
-    "lodash.matches": "^4.6.0",
-    "lodash.omit": "^4.5.0",
-    "lodash.pick": "^4.4.0",
-    "lodash.take": "^4.1.1",
     "object-hash": "^3.0.0",
     "vc-piechart": "^1.0.5",
     "vue": "^2.6.14",
-    "vue-router": "^3.0.1",
     "vue-size-provider": "^0.2.1",
-    "vue-vega": "^1.0.0-alpha.13",
+    "vuejs-storage": "^3.1.1",
     "vuetify": "^2.6.11"
   },
   "devDependencies": {

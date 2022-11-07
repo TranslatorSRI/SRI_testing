@@ -554,9 +554,6 @@
 import jp from 'jsonpath';
 import hash from "object-hash";
 
-import omit from "lodash.omit";
-import pick from "lodash.pick";
-import matches from "lodash.matches";
 import { isObject, isArray, isString, sortBy } from "lodash";
 import * as _ from "lodash";
 
@@ -797,7 +794,7 @@ export default {
         },
         selected_result_treeview() {
             if (!!!this.data_table_current_item) return [];
-            return this.item_for_treeview(this.data_table_current_item);
+            return this.item_to_treeview(this.data_table_current_item);
         },
         // TODO: merge these range computations into one scope
         trapi_range() {
@@ -1173,8 +1170,8 @@ export default {
         // custom methods for application testing
         tap: el => { console.log("hello", el, this); return el },
 
-        omit: (...keys) => object => omit(object, keys),
-        pick: (...keys) => object => pick(object, keys),
+        omit: (...keys) => object => _.omit(object, keys),
+        pick: (...keys) => object => _.pick(object, keys),
         notEmpty: (list) => list.filter(el => el !== ""),
         orderObjectKeysBy(obj, keys) {
             return Object.fromEntries(Object.entries(obj).sort(([a, _], [b, __]) => orderByArrayFunc(keys)(a, b)))
