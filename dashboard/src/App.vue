@@ -378,6 +378,7 @@
                         <v-card-text v-else>
                           <h2>{{ formatEdge(data_table_current_item["spec"]) }}</h2><br>
                           <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
+
                           <v-chip-group>
                             <v-chip>🚫&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
                             <v-chip>⚠️&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
@@ -406,7 +407,7 @@
                                 <ul>
                                   <li>{{ parseResultCode(item.data.code).subcode }}</li>
                                   <ul class="noindent">
-                                    <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="hash(result_data)+Math.random()">
+                                    <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="result_data+Math.random()">
                                       <b>{{ result_data[0] }}: </b> {{ result_data[1] }}<br>
                                     </li>
                                   </ul>
@@ -421,7 +422,7 @@
                                 {{ item.children.length }}
                               </span>
                               <span v-else-if="!!!item.data">
-                                <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="hash(item)+hash([name, val])+i">
+                                <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="item+[name, val]+i">
                                   <span v-if="val > 0">
                                       {{ name === 'warnings' ?  '⚠️'
                                       : name === 'errors' ? '🚫'
@@ -449,8 +450,14 @@
 
             <v-container>
               <span v-for="resource in Object.keys(recommendations_summary)" :key="resource">
-                <h2>{{ resource }}</h2><br>
+                <h2>{{ resource }}</h2>
+                <v-btn @click="() => {
+                      handleJsonDownload(`${id}_recommendations_${resource}`, recommendations_summary[resource])
+                  }">
+                  Download Recommendations for {{ resource }}
+                </v-btn>
                 <v-row>
+
                   <v-col v-for="message_type in Object.keys(recommendations_summary[resource])" :key="resource+message_type">
                     <v-card>
                       <v-card-title>
@@ -461,10 +468,10 @@
                           <li v-for="code in Object.keys(recommendations_summary[resource][message_type])" :key="resource+message_type+code">
                             <h3>{{code}}</h3> ({{ groupedResultMessagesByCode(resources[resource])[message_type !== 'information' ? unplural(message_type) : 'info'][code.split('.').slice(1).join('.')] }} messages,&nbsp;{{  recommendations_summary[resource][message_type][code].length }} unique)
                             <ul>
-                              <li v-for="el in recommendations_summary[resource][message_type][code]" :key="resource+message_type+code+hash(el.test_data)">
+                              <li v-for="el in recommendations_summary[resource][message_type][code]" :key="resource+message_type+code+el.test_data">
                                 {{ formatEdge(el.test_data) }}<br>
                                 {{ formatConcreteEdge(el.test_data) }}<br>
-                                <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+hash(el.test_data)+detail">
+                                <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+detail+el.test_data">
                                   <b>{{detail}}:</b> {{ el.message[detail] }}<br>
                                 </span>
                               </li>
@@ -472,6 +479,9 @@
                           </li>
                        </ul>
                     </v-card-text>
+
+
+
                     <!--
                     <v-treeview :items="selected_result_treeview" dense>
 
@@ -498,7 +508,7 @@
                                 <ul>
                                   <li>{{ parseResultCode(item.data.code).subcode }}</li>
                                   <ul class="noindent">
-                                    <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="hash(result_data)+Math.random()">
+                                    <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="result_data+Math.random()">
                                       <b>{{ result_data[0] }}: </b> {{ result_data[1] }}<br>
                                     </li>
                                   </ul>
@@ -517,7 +527,7 @@
                           {{ item.children.length }}
                         </span>
                         <span v-else-if="!!!item.data">
-                           <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="hash(item)+hash([name, val])+i">
+                           <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="item+[name, val]+i">
                               <span v-if="val > 0">
                                 {{  name === 'warnings' ?  '⚠️'
                                   : name === 'errors' ? '🚫'
@@ -552,7 +562,6 @@
 /* eslint-disable */
 
 import jp from 'jsonpath';
-import hash from "object-hash";
 
 import { isObject, isArray, isString, sortBy } from "lodash";
 import * as _ from "lodash";
@@ -569,6 +578,8 @@ import { Cartesian, Line, Bar } from 'laue'
 // For dynamic resizing
 import { SizeProvider, SizeObserver } from 'vue-size-provider'
 
+import fileDownload from 'js-file-download';
+
 // API code in separate file so we can switch between live and mock instance,
 // also configure location for API in environment variables and build variables
 // TODO: migrate api calls to api library
@@ -578,7 +589,7 @@ import axios from "./api.js";
 const MOCK = process.env.isAxiosMock;
 const FEATURE_RUN_TEST_BUTTON = process.env._FEATURE_RUN_TEST_BUTTON;
 const FEATURE_RUN_TEST_SELECT = process.env._FEATURE_RUN_TEST_SELECT;
-const FEATURE_RECOMMENDATIONS = process.env_FEATURE_RECOMMENDATIONS;
+const FEATURE_RECOMMENDATIONS = true // process.env._FEATURE_RECOMMENDATIONS;
 
 export default {
     name: 'App',
@@ -640,6 +651,7 @@ export default {
             data_table_selected_item: null,
             data_table_current_item: null,
             data_table_hold_selection: false,
+            recommendations: null
         }
     },
     created () {
@@ -794,7 +806,7 @@ export default {
         },
         selected_result_treeview() {
             if (!!!this.data_table_current_item) return [];
-            return this.item_to_treeview(this.data_table_current_item);
+            return this.item_to_treeview_entry(this.data_table_current_item);
         },
         // TODO: merge these range computations into one scope
         trapi_range() {
@@ -954,6 +966,9 @@ export default {
             // $event.target.blur()
             // console.log($event.target.parentNode)
             this.triggerReloadTestRunSelections()
+        },
+        handleJsonDownload(name, data) {
+          fileDownload(data, `${name}.json`)
         },
         async triggerReloadTestRunSelections() {
             await axios.get(`/test_runs`).then(response => {
@@ -1163,7 +1178,6 @@ export default {
 
 
         // import methods from packages
-        hash,
         isObject,
         countBy: _.countBy,
 
@@ -1259,7 +1273,6 @@ export default {
             }
         },
         countResultMessagesByCode(resource_summary) {
-            console.log(resource_summary)
             return Object.values(resource_summary.test_edges)
                 .map(e => Object.values(e.results))
                 .flatMap(i=>i)
