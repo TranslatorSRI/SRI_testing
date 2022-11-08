@@ -145,7 +145,7 @@
                                 <strong style="{ marginBottom: 5px }"># edges vs tests</strong>
                                 <la-cartesian narrow stacked
                                               :bound="[0]"
-                                              :data="Object.entries(stats_summary['ARA'][ara].kps[kp].results).map(el => ({ 'name': el[0], ...el[1]}))"
+                                              :data="Object.entries(stats_summary['ARA'][ara].kps[kp].results).map(([name, rest]) => ({ name, ...rest }))"
                                               :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]"
                                               :width="820">
                                   <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
@@ -173,7 +173,16 @@
                                 <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
                                 <la-cartesian narrow stacked
                                               :bound="[0]"
-                                              :data="message_summary_for_resource(resources[`${ara}_${kp}`])"
+                                              :data="Object.entries(groupedResultMessagesByCode(resources[`${ara}_${kp}`]))
+                                                     .map(i => [i[0], Object.entries(i[1])])
+                                                     .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
+                                                     .map(([type, [code, frequency]]) => ({
+                                                     'name': code,
+                                                     'warning': 0,
+                                                     'info': 0,
+                                                     'error': 0,
+                                                     [type]: frequency
+                                                     }))"
                                               :width="width"
                                               :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                   <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
@@ -225,7 +234,7 @@
                               <strong style="{ marginBottom: 5px }"># edges vs tests</strong>
                               <la-cartesian narrow stacked
                                             :bound="[0]"
-                                            :data="Object.entries(stats_summary['KP'][kp].results).map(el => ({ 'name': el[0], ...el[1]}))"
+                                            :data="Object.entries(stats_summary['KP'][kp].results).map(([name, rest]) => ({ name, ...rest}))"
                                             :width="width"
                                             :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                 <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
@@ -253,7 +262,16 @@
                               <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
                               <la-cartesian narrow stacked
                                             :bound="[0]"
-                                            :data="message_summary_for_resource(resources[kp])"
+                                            :data="Object.entries(groupedResultMessagesByCode(resources[kp]))
+                                                     .map(i => [i[0], Object.entries(i[1])])
+                                                     .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
+                                                     .map(([type, [code, frequency]]) => ({
+                                                     'name': code,
+                                                     'warning': 0,
+                                                     'info': 0,
+                                                     'error': 0,
+                                                     [type]: frequency
+                                                     }))"
                                             :width="width"
                                             :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                 <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
@@ -401,8 +419,10 @@
                                 : !!item.children && item.children.length === 0 ? '⚫' : ''
                                 }}
                                 </span>
+
                             </template>
                             <template v-slot:label="{ item }">
+
                               <span v-if="!!item.data">
                                 <ul>
                                   <li>{{ parseResultCode(item.data.code).subcode }}</li>
@@ -416,8 +436,10 @@
                               <span v-else>
                                 {{ item.name }}
                               </span>
+
                             </template>
                             <template v-slot:append="{ item }">
+
                               <span v-if="['errors', 'warnings', 'information'].includes(item.name)">
                                 {{ item.children.length }}
                               </span>
@@ -433,6 +455,7 @@
                                   </span>
                                 </span>
                               </span>
+
                             </template>
 
                           </v-treeview>
@@ -449,38 +472,42 @@
           <div v-if="tab === 2">
 
             <v-container>
-              <span v-for="resource in Object.keys(recommendations_summary)" :key="resource">
+              <span v-for="resource in Object.keys(cleaned_recommendations)" :key="resource">
                 <h2>{{ resource }}</h2>
-                <v-btn @click="() => {
-                      handleJsonDownload(`${id}_recommendations_${resource}`, recommendations_summary[resource])
-                  }">
+                <v-btn @click="() => handleJsonDownload(`${id}_recommendations_${resource}`, recommendations[resource])">
                   Download Recommendations for {{ resource }}
                 </v-btn>
                 <v-row>
 
-                  <v-col v-for="message_type in Object.keys(recommendations_summary[resource])" :key="resource+message_type">
+                  <v-col v-for="message_type in Object.keys(cleaned_recommendations[resource])" :key="resource+message_type">
                     <v-card>
+
                       <v-card-title>
                         {{ message_type | capitalize }}
                       </v-card-title>
+
                       <v-card-text>
                         <ul class="noindent">
-                          <li v-for="code in Object.keys(recommendations_summary[resource][message_type])" :key="resource+message_type+code">
-                            <h3>{{code}}</h3> ({{ groupedResultMessagesByCode(resources[resource])[message_type !== 'information' ? unplural(message_type) : 'info'][code.split('.').slice(1).join('.')] }} messages,&nbsp;{{  recommendations_summary[resource][message_type][code].length }} unique)
+                          <li v-for="code in Object.keys(cleaned_recommendations[resource][message_type])" :key="resource+message_type+code">
+                            <h3>{{code}}</h3> <!-- ({{ recommendations[resource][message_type][code].length }} messages, {{ cleaned_recommendations[resource][message_type][code].count.unique }} unique) -->
                             <ul>
-                              <li v-for="el in recommendations_summary[resource][message_type][code]" :key="resource+message_type+code+el.test_data">
-                                {{ formatEdge(el.test_data) }}<br>
-                                {{ formatConcreteEdge(el.test_data) }}<br>
-                                <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+detail+el.test_data">
+                              <li v-for="el in cleaned_recommendations[resource][message_type][code].values" :key="resource+message_type+code+JSON.stringify(el.test_data)+Math.random()">
+                                <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+detail+JSON.stringify(el.test_data)+Math.random()">
                                   <b>{{detail}}:</b> {{ el.message[detail] }}<br>
                                 </span>
+                                {{ formatEdge(el.test_data) }}<br>
+                                {{ formatConcreteEdge(el.test_data) }}<br>
                               </li>
                             </ul>
                           </li>
                        </ul>
-                    </v-card-text>
+                      </v-card-text>
 
-
+                      <v-treeview>
+                        <template v-slot:prepend="{ item, open }"></template>
+                        <template v-slot:label="{ item }"></template>
+                        <template v-slot:append="{ item }"></template>
+                      </v-treeview>
 
                     <!--
                     <v-treeview :items="selected_result_treeview" dense>
@@ -608,7 +635,6 @@ export default {
             value = value.toString()
             return value.charAt(0).toUpperCase() + value.slice(1)
         },
-
     },
     data() {
         let tabs = ['Overview', 'Details'];
@@ -625,7 +651,6 @@ export default {
             headers: [],
             cells: [],
             token: null,
-            search: '',
             tab: '',
             registryResults: [],
             kp_selections: [],
@@ -660,17 +685,7 @@ export default {
             axios.get(`/test_runs`).then(async response => {
                 const test_runs = response.data.test_runs;
                 this.test_runs_selections = response.data.test_runs;
-                // TODO: Feature flag
-                // if (!!test_runs && test_runs.length > 0) {
-                // } else {
-                //   await axios.post(`/run_tests`, {}).then(response => {
-                //     this.id = response.data.test_run_id;
-                //     axios.get(`/test_runs`).then(response => {
-                //       this.test_runs_selections = response.data.test_runs;
-                //     })
-                //   })
-                // }
-            })
+           })
         }
     },
     mounted() {
@@ -714,6 +729,7 @@ export default {
         index(newIndex, oldIndex) {
             if (newIndex !== null) {
                 this.getAllCategories(this.id, newIndex);
+                this.getAllRecommendations(this.id, newIndex);
             };
         }
     },
@@ -917,6 +933,35 @@ export default {
         },
         combined_provider_summary() {
           return this.reduce_provider_by_group(this.combine_provider_summaries(this.stats_summary))
+        },
+        cleaned_recommendations() {
+
+          if (this.recommendations === null) return null;
+
+          let cleaned_recommendations = {};
+          for (let resource of Object.keys(_.cloneDeep(this.recommendations))) {
+            cleaned_recommendations[resource] = _.omit(this.recommendations[resource], ['trapi_version', 'biolink_version', 'document_key']);
+          }
+
+          let unique_recommendations = {};
+          for (let resource of Object.keys(cleaned_recommendations)) {
+            for (let message_type of Object.keys(cleaned_recommendations[resource])) {
+              for (let code of Object.keys(cleaned_recommendations[resource][message_type])) {
+                let unique_codes = _.uniqBy(cleaned_recommendations[resource][message_type][code], JSON.stringify)
+                _.set(unique_recommendations, `${resource}.${message_type}`, {
+                    [code]: {
+                        values: unique_codes,
+                        count: {
+                          unique: unique_codes.length,
+                          total:  cleaned_recommendations[resource][message_type][code].length
+                        }
+                    }
+                })
+              }
+            }
+          }
+
+          return unique_recommendations;
         }
     },
     methods: {
@@ -931,16 +976,17 @@ export default {
 
         },
         message_summary_for_resource(resource) {
-            return Object.entries(this.groupedResultMessagesByCode(resource))
-                                                           .map(i => [i[0], Object.entries(i[1])])
-                                                           .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
-                                                           .map(([type, [code, frequency]]) => ({
-                                                             'name': code,
-                                                             'warning': 0,
-                                                             'info': 0,
-                                                             'error': 0,
-                                                             [type]: frequency
-                                                           }))
+            console.log(resource, Object.entries(this.groupedResultMessagesByCode(Array.from(resource.test_edges))))
+            return Object.entries(this.groupedResultMessagesByCode(resource.test_edges))
+                        .map(i => [i[0], Object.entries(i[1])])
+                        .flatMap(i => i[1].map(([code, frequency]) => [i[0], [code, frequency]]))
+                        .map(([type, [code, frequency]]) => ({
+                            'name': code,
+                            'warning': 0,
+                            'info': 0,
+                            'error': 0,
+                            [type]: frequency
+                          }))
         },
         item_to_treeview_entry(item) {
             return Object.entries(item).filter(a => !['spec', '_id', 'information', 'errors', 'warnings'].includes(a[0]))
@@ -968,7 +1014,7 @@ export default {
             this.triggerReloadTestRunSelections()
         },
         handleJsonDownload(name, data) {
-          fileDownload(data, `${name}.json`)
+          fileDownload(JSON.stringify(data, null, 4), `${name}.json`)
         },
         async triggerReloadTestRunSelections() {
             await axios.get(`/test_runs`).then(response => {
@@ -1034,8 +1080,40 @@ export default {
                       skipped: _.sumBy(obj, 'skipped'),
                   }))
                   .value()
-            console.log(ans)
             return ans
+        },
+        async getAllRecommendations(id, index) {
+
+            let resource_promises = [];
+
+            index.KP.forEach(kp_id => {
+                resource_promises.push(
+                    axios.get(`/recommendations?test_run_id=${id}&kp_id=${kp_id}`)
+                        .then(response => {
+                            return {
+                                [kp_id]: response.data.recommendations
+                            };
+                        })
+                    )
+            });
+            Object.keys(index.ARA)
+                .forEach(ara_id => {
+                    index.ARA[ara_id].forEach(kp_id => {
+                        resource_promises.push(
+                            axios.get(`/recommendations?test_run_id=${id}&kp_id=${kp_id}&ara_id=${ara_id}`)
+                                .then(response => {
+                                    return {
+                                        [ara_id+'_'+kp_id]: response.data.recommendations
+                                    };
+                                })
+                        )
+                    })
+                });
+
+            await Promise.all(resource_promises).then((response => {
+                this.recommendations = response.reduce((acc, item) => Object.assign(acc, item), {});
+            }));
+
         },
         async getAllCategories(id, index) {
 
@@ -1102,15 +1180,14 @@ export default {
                     })
                 });
 
-            await Promise.all(resource_promises).then((response => {
-                console.log('promise all', response);
+            Promise.all(resource_promises).then((response => {
                 this.subject_categories = categories.subject_category;
                 this.object_categories = categories.object_category;
                 this.predicates = categories.predicate;
                 this.resources = response.reduce((acc, item) => Object.assign(acc, item), {});
             }))
 
-            return categories;
+           return categories;
         },
         flatten_ara_keys(ARAIndex, delimiter='_') {
             return Object.entries(ARAIndex).flatMap(([ara, entry]) => Object.values(entry).map(kp => ara+delimiter+kp))
@@ -1272,34 +1349,12 @@ export default {
                 subcode
             }
         },
-        countResultMessagesByCode(resource_summary) {
-            return Object.values(resource_summary.test_edges)
-                .map(e => Object.values(e.results))
-                .flatMap(i=>i)
-                .filter(i => !!i.validation)
-                .flatMap(i=> Object.values(i.validation))
-                .flatMap(i=>i)
-                .reduce((a,i)=>{
-                    if (!!a[i.code]) { a[i.code] += 1 } else { a[i.code] = 1 }
-                    return a
-                }, {})
-        },
-        groupedResultMessagesByCode(resource_summary) {
-            const grouped_result_messages = Object.entries(this.countResultMessagesByCode(resource_summary)).reduce((a, [code, frequency]) => {
-                const { type, subcode } = this.parseResultCode(code)
-                a = _.set(a, [type, subcode], frequency)
-                return a
-            }, {
-                'error': {},
-                'warning': {},
-                'info': {},
-            })
-            // TODO: sort within group
+        groupedResultMessagesByCode(recommendations_summary) {
+            let grouped_result_messages = {};
+            for (let key of Object.keys(recommendations_summary)) {
+              grouped_result_messages[key] = Object.values(recommendations_summary[key]).reduce((acc, item) => acc += item.length, 0);
+            }
             return grouped_result_messages;
-        },
-        aggregateCountResultMessagesByCode(resource) {
-            return Object.entries(this.groupedResultMessagesByCode(resource))
-                .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
         },
         lowercase: function (value) {
             if (!value) return ''
