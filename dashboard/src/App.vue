@@ -120,23 +120,18 @@
                   :predicates="predicates"
                   ></TranslatorCategoriesList>
 
-                <span v-if="Object.keys(stats_summary['ARA']).length > 0 && !(kp_filter.length > 0 && ara_filter.length === 0)">
-
-                  <!-- TODO: Use the index for traversal instead -->
-                  <div v-for="ara in Object.keys(stats_summary['ARA']).filter(ara => ara_filter.length > 0 ? ara_filter.includes(ara) : true)" v-bind:key="ara">
-                    <div v-for="kp in Object.keys(stats_summary['ARA'][ara].kps).filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="`${ara}_${kp}`">
-
-                      <v-chip-group :key="`chip_${ara}_${kp}`">
-                        <h3>{{ ara }}: {{ kp }}</h3>&nbsp;
-                        <v-chip small><strong>BioLink:&nbsp;</strong> {{ stats_summary.ARA[ara].kps[kp].biolink_version }}</v-chip>
-                        <v-chip small><strong>TRAPI:&nbsp;</strong> {{ stats_summary.ARA[ara].kps[kp].trapi_version }}</v-chip>
+                <div v-for="resource_key in flat_index" :key="resource_key+'index'">
+                      <v-chip-group :key="`chip_${resource_key}`">
+                        <h3>{{ resource_key }}</h3>&nbsp;
+                        <v-chip small><strong>BioLink:&nbsp;</strong> {{ _stats_summary[resource_key].biolink_version }}</v-chip>
+                        <v-chip small><strong>TRAPI:&nbsp;</strong> {{ _stats_summary[resource_key].trapi_version }}</v-chip>
                       </v-chip-group><br>
 
                       <v-row no-gutter>
                         <v-col>
                           <vc-piechart
                             v-once
-                            :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === `${ara}_${kp}`))"/>
+                            :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === resource_key))"/>
                         </v-col>
                         <v-col :cols="9">
                           <SizeProvider>
@@ -145,7 +140,7 @@
                                 <strong style="{ marginBottom: 5px }"># edges vs tests</strong>
                                 <la-cartesian narrow stacked
                                               :bound="[0]"
-                                              :data="Object.entries(stats_summary['ARA'][ara].kps[kp].results).map(([name, rest]) => ({ name, ...rest }))"
+                                              :data="Object.entries(_stats_summary[resource_key].results).map(([name, rest]) => ({ name, ...rest }))"
                                               :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]"
                                               :width="820">
                                   <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
@@ -165,7 +160,7 @@
                         <v-col>
                           <vc-piechart
                               v-once
-                            :data="reduced_message_summary_stats[`${ara}_${kp}`]"/>
+                            :data="reduced_message_summary_stats[resource_key]"/>
                         </v-col>
                         <v-col :cols="9">
                           <SizeProvider>
@@ -174,7 +169,7 @@
                                 <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
                                 <la-cartesian narrow stacked
                                               :bound="[0]"
-                                              :data="message_summary_stats[`${ara}_${kp}`]"
+                                              :data="message_summary_stats[resource_key]"
                                               :width="width"
                                               :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
                                   <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
@@ -192,96 +187,16 @@
 
                       <!-- Not all ARAs have the same KPs. So need to check for the joint key explicitly. -->
                       <TranslatorCategoriesList
-                        v-if="categories_index !== null && categories_index !== {} && !!categories_index[ara+'_'+kp]"
-                        :resource="ara+'_'+kp"
-                        :subject_categories="categories_index[ara+'_'+kp].subject_category"
-                        :object_categories="categories_index[ara+'_'+kp].object_category"
-                        :predicates="categories_index[ara+'_'+kp].predicate"
+                        v-if="categories_index !== null && categories_index !== {} && !!categories_index[resource_key]"
+                        :resource="resource_key"
+                        :subject_categories="categories_index[resource_key].subject_category"
+                        :object_categories="categories_index[resource_key].object_category"
+                        :predicates="categories_index[resource_key].predicate"
                         ></TranslatorCategoriesList>
 
-                    </div>
-                  </div>
-                </span>
+                </div>
 
-                <span v-if="Object.keys(stats_summary['KP']).length > 0 && !(ara_filter.length > 0 && kp_filter.length === 0)">
-
-                  <div v-for="kp in Object.keys(stats_summary['KP'])
-                                          .filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="kp" >
-                    <v-chip-group :key="`chip_${kp}`">
-                      <h3>{{ kp }}</h3>&nbsp;
-                      <v-chip small><strong>BioLink:&nbsp;</strong> {{ stats_summary.KP[kp].biolink_version }}</v-chip>
-                      <v-chip small><strong>TRAPI:&nbsp;</strong> {{ stats_summary.KP[kp].trapi_version }}</v-chip>
-                    </v-chip-group><br>
-
-                    <v-row no-gutter>
-                      <v-col>
-                        <vc-piechart
-                            v-once
-                          :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === kp))"/>
-                      </v-col>
-                      <v-col :cols="9">
-                        <SizeProvider>
-                          <div class="wrapper" slot-scope="{ width, height }" :style="{ height: height + 'px' }">
-                            <SizeObserver>
-                              <strong style="{ marginBottom: 5px }"># edges vs tests</strong>
-                              <la-cartesian narrow stacked
-                                            :bound="[0]"
-                                            :data="Object.entries(stats_summary['KP'][kp].results).map(([name, rest]) => ({ name, ...rest}))"
-                                            :width="width"
-                                            :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
-                                <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
-                                <la-bar label="failed" prop="failed" :color="status_color('failed')"></la-bar>
-                                <la-bar label="skipped" prop="skipped" :color="status_color('skipped')"></la-bar>
-                                <la-x-axis class="x-axis" :font-size="10" prop="name"></la-x-axis>
-                                <la-y-axis ></la-y-axis>
-                                <la-tooltip></la-tooltip>
-                              </la-cartesian>
-                            </SizeObserver>
-                          </div>
-                        </SizeProvider>
-                      </v-col>
-                    </v-row>
-
-                    <v-row v-if="resources !== null && Object.keys(resources).length > 0 && reduced_message_summary_stats !== null">
-                      <v-col>
-                        <vc-piechart
-                            v-once
-                          :data="reduced_message_summary_stats[kp]"/>
-                      </v-col>
-                      <v-col :cols="9">
-                        <SizeProvider>
-                          <div class="wrapper" slot-scope="{ width, height }" :style="{ height: height + 'px' }">
-                            <SizeObserver>
-                              <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
-                              <la-cartesian narrow stacked
-                                            :bound="[0]"
-                                            :data="message_summary_stats[kp]"
-                                            :width="width"
-                                            :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
-                                <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
-                                <la-bar label="info" prop="info" :color="status_color('passed')"></la-bar>
-                                <la-bar label="error" prop="error" :color="status_color('failed')"></la-bar>
-                                <la-x-axis class="x-axis" :font-size="10" prop="name"></la-x-axis>
-                                <la-y-axis></la-y-axis>
-                                <la-tooltip></la-tooltip>
-                              </la-cartesian>
-                            </SizeObserver>
-                          </div>
-                        </SizeProvider>
-                      </v-col>
-                    </v-row>
-
-                    <TranslatorCategoriesList
-                      v-if="categories_index !== null && categories_index !== {} && !!categories_index[kp]"
-                      :resource="kp"
-                      :subject_categories="categories_index[kp].subject_category"
-                      :object_categories="categories_index[kp].object_category"
-                      :predicates="categories_index[kp].predicate"
-                      ></TranslatorCategoriesList>
-
-                  </div>
-                </span>
-              </div>
+             </div>
             </v-container>
           </div>
 
@@ -441,7 +356,9 @@
           <div :name="'Recommendations'" v-if="tab === 2">
 
             <v-container>
+
               <span v-for="resource in flat_index" :key="resource">
+
                 <v-row>
                   <v-col class="d-flex justify-space-between">
                     <h2>{{ resource }}</h2>
@@ -964,6 +881,18 @@ export default {
             }
           }
           return unique_recommendations;
+        },
+        _stats_summary() {
+          if (!!!this.stats_summary) return null;
+          return {
+            ...Object.keys(this.stats_summary.ARA).reduce((acc, ara_id) => {
+              Object.entries(this.stats_summary.ARA[ara_id].kps).forEach(([kp_id, entry]) => {
+                Object.assign(acc, { [`${ara_id}_${kp_id}`]: entry })
+              })
+              return acc;
+            }, {}),
+            ...this.stats_summary.KP,
+          }
         }
     },
     methods: {
