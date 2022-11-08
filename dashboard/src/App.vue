@@ -608,82 +608,6 @@ export default {
         }
     },
     computed: {
-        recommendations_summary() {
-            let aggregation = {
-                errors: [],
-                warnings: [],
-                information: [],
-            }
-            if (!!!this.resources) return aggregation;
-
-            const query_test_edges = "$.*.test_edges.*";
-            const test_edges = jp.nodes(this.resources, query_test_edges)
-            const processed_edges = test_edges
-                  .map(el => ({ id: el.path[1], value: el.value }))
-                  .flatMap(el => {
-                      let acc = []
-                      for (const property in el.value.results) {
-                          const { subject_category, object_category, predicate, subject, object } = el.value.test_data;
-                          acc.push({
-                              id: el.id,
-                              test_data: {
-                                  subject_category,
-                                  object_category,
-                                  predicate,
-                                  subject,
-                                  object,
-                              },
-                              test: property,
-                              validation: el.value.results[property].validation
-                          })
-                      }
-                      return acc;
-                  })
-                  .reduce((acc, el) => {
-                      const { test_data, test } = el;
-                      for (const message_type in el.validation) {
-                          el.validation[message_type].forEach(message => {
-                              acc[message_type].push({
-                                  id: el.id,
-                                  test,
-                                  message,
-                                  test_data,
-                              })
-                          })
-                      }
-                      return acc;
-                  }, aggregation)
-
-            let unique_aggregation = {};
-            const unique_recommendation_signature = el => object_signature(el.message)//+object_signature(el.test_data);
-            for (const message_type in aggregation) {
-                unique_aggregation[message_type] = _.uniqBy(aggregation[message_type], unique_recommendation_signature)
-            }
-
-            // TODO: groupBy
-            let flattened_aggregation = {};
-            for (const message_type in unique_aggregation) {
-                unique_aggregation[message_type].forEach(el => {
-                    if (!!!flattened_aggregation[el.id]) flattened_aggregation[el.id] = {};
-                    if (!!!flattened_aggregation[el.id][message_type]) flattened_aggregation[el.id][message_type] = [];
-                    flattened_aggregation[el.id][message_type].push({
-                        message: el.message,
-                        test_data: el.test_data,
-                        test: el.test,
-                    })
-                })
-            }
-
-            let grouped_aggregation = {};
-            for (const resource in flattened_aggregation) {
-                grouped_aggregation[resource] = {};
-                for (const message_type in flattened_aggregation[resource]) {
-                    const messages = flattened_aggregation[resource][message_type];
-                    grouped_aggregation[resource][message_type] = _.chain(messages).groupBy(el => el.message.code).value();
-                }
-            }
-            return grouped_aggregation;
-        },
         selected_result_message_summary() {
             if (!!!this.data_table_current_item) {
                 return {
@@ -1267,13 +1191,6 @@ export default {
                 type,
                 subcode
             }
-        },
-        groupedResultMessagesByCode(recommendations_summary) {
-            let grouped_result_messages = {};
-            for (let key of Object.keys(recommendations_summary)) {
-              grouped_result_messages[key] = Object.values(recommendations_summary[key]).reduce((acc, item) => acc += item.length, 0);
-            }
-            return grouped_result_messages;
         },
         lowercase: function (value) {
             if (!value) return ''
