@@ -71,7 +71,7 @@
           v-for="item in tabs"
           v-bind:key="`${item}_tab_item`"
           >
-          <div v-if="tab === 0" >
+          <div :name="'Overview'" v-if="tab === 0">
             <v-container v-bind:key="`${id}_overview`" id="page-overview" v-if="loading !== null">
 
               <v-skeleton-loader
@@ -80,7 +80,7 @@
                 type="actions,article,card,chip"
                 ></v-skeleton-loader>
 
-              <div v-else-if="stats_summary !== null && loading === false">
+              <div v-else-if="stats_summary !== null && loading === false" >
                 <h2>All providers</h2><br>
 
                 <v-row no-gutter>
@@ -122,7 +122,6 @@
 
                 <span v-if="Object.keys(stats_summary['ARA']).length > 0 && !(kp_filter.length > 0 && ara_filter.length === 0)">
 
-                  <br><h2>ARAs</h2>
                   <!-- TODO: Use the index for traversal instead -->
                   <div v-for="ara in Object.keys(stats_summary['ARA']).filter(ara => ara_filter.length > 0 ? ara_filter.includes(ara) : true)" v-bind:key="ara">
                     <div v-for="kp in Object.keys(stats_summary['ARA'][ara].kps).filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="`${ara}_${kp}`">
@@ -136,6 +135,7 @@
                       <v-row no-gutter>
                         <v-col>
                           <vc-piechart
+                            v-once
                             :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === `${ara}_${kp}`))"/>
                         </v-col>
                         <v-col :cols="9">
@@ -161,9 +161,10 @@
                         </v-col>
                       </v-row>
 
-                      <v-row v-if="resources !== null && Object.keys(resources).length > 0">
+                      <v-row v-if="resources !== null && Object.keys(resources).length > 0 && reduced_message_summary_stats !== null">
                         <v-col>
                           <vc-piechart
+                              v-once
                             :data="reduced_message_summary_stats[`${ara}_${kp}`]"/>
                         </v-col>
                         <v-col :cols="9">
@@ -204,7 +205,6 @@
 
                 <span v-if="Object.keys(stats_summary['KP']).length > 0 && !(ara_filter.length > 0 && kp_filter.length === 0)">
 
-                  <br><h2>KPs</h2>
                   <div v-for="kp in Object.keys(stats_summary['KP'])
                                           .filter(kp => kp_filter.length > 0 ? kp_filter.includes(kp) : true)" v-bind:key="kp" >
                     <v-chip-group :key="`chip_${kp}`">
@@ -216,6 +216,7 @@
                     <v-row no-gutter>
                       <v-col>
                         <vc-piechart
+                            v-once
                           :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === kp))"/>
                       </v-col>
                       <v-col :cols="9">
@@ -241,9 +242,10 @@
                       </v-col>
                     </v-row>
 
-                    <v-row v-if="resources !== null && Object.keys(resources).length > 0">
+                    <v-row v-if="resources !== null && Object.keys(resources).length > 0 && reduced_message_summary_stats !== null">
                       <v-col>
                         <vc-piechart
+                            v-once
                           :data="reduced_message_summary_stats[kp]"/>
                       </v-col>
                       <v-col :cols="9">
@@ -283,7 +285,7 @@
             </v-container>
           </div>
 
-          <div v-if="tab === 1">
+          <div :name="'Details'" v-if="tab === 1">
             <v-container v-bind:key="`${id}_details`" id="page-details" v-if="loading !== null">
 
               <v-row v-if="loading !== null" no-gutter>
@@ -331,28 +333,14 @@
                         :items="filtered_cells"
                         :items-per-page="-1"
                         group-by="_id"
-                        dense
-                      >
+                        dense>
 
                         <!-- TODO: group title formatting and tooltip. potentially just put in the summary? -->
 
                         <template v-slot:item="{ item }">
-                          <!-- TODO: event bubbling -->
-                          <tr
-                            @mouseover="($event) => {
-                              tap($event)
-                              data_table_current_item = data_table_hold_selection ? data_table_selected_item : item;
-                            }"
-                            @mouseleave="($event) => {
-                              tap($event)
-                              data_table_current_item = data_table_selected_item;
-                            }"
-                            @mouseup="($event) => {
-                              tap($event)
-                              data_table_selected_item = data_table_hold_selection ? data_table_selected_item : item;
-                              data_table_current_item = data_table_selected_item;
-                            }"
-                            >
+                          <tr @mouseover="throttle(handleRowOnMouseOver(item), 200)"
+                              @mouseleave="throttle(handleRowOnMouseAway(item), 200)"
+                              @mouseup="handleRowOnClick(item)">
                             <td v-for="[test, result] in Object.entries(item)"
                                 v-bind:key="`${test}_${result}`"
                                 :style="cellStyle(result.outcome)">
@@ -368,6 +356,7 @@
                               <span v-else-if="test !== '_id'">
                                 {{ result }}
                               </span>
+
                             </td>
                           </tr>
                         </template>
@@ -386,8 +375,8 @@
                           <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
 
                           <v-chip-group>
-                            <v-chip>{{ stateIcon("error", icon_only=true) }}&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
-                            <v-chip>{{ stateIcon("warning", icon_only=true) }}&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
+                            <v-chip>{{ stateIcon("errors", icon_only=true) }}&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
+                            <v-chip>{{ stateIcon("warnings", icon_only=true) }}&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
                             <v-chip>{{ stateIcon("information", icon_only=true) }}&nbsp;Information: {{ selected_result_message_summary.information }}</v-chip>
                           </v-chip-group>
 
@@ -430,7 +419,7 @@
                               <span v-else-if="!!!item.data">
                                 <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="item+[name, val]+i">
                                   <span v-if="val > 0">
-                                      {{ stateIcon(name) }}
+                                      {{ stateIcon(name, icon_only=true) }}
                                     &nbsp;{{ val }}
                                   </span>
                                 </span>
@@ -449,14 +438,18 @@
 
             </v-container>
           </div>
-          <div v-if="tab === 2">
+          <div :name="'Recommendations'" v-if="tab === 2">
 
             <v-container>
-              <span v-for="resource in Object.keys(cleaned_recommendations)" :key="resource">
-                <h2>{{ resource }}</h2>
-                <v-btn @click="() => handleJsonDownload(`${id}_recommendations_${resource}`, recommendations[resource])">
-                  Download Recommendations for {{ resource }}
-                </v-btn>
+              <span v-for="resource in flat_index" :key="resource">
+                <v-row>
+                  <v-col class="d-flex justify-space-between">
+                    <h2>{{ resource }}</h2>
+                    <v-btn @click="handleJsonDownload(`${id}_recommendations_${resource}`, recommendations[resource])">
+                      Download Recommendations for {{ resource }}
+                    </v-btn>
+                  </v-col>
+                </v-row>
                 <v-row>
 
                   <v-col v-for="message_type in Object.keys(cleaned_recommendations[resource])" :key="resource+message_type">
@@ -469,7 +462,8 @@
                       <v-card-text>
                         <ul class="noindent">
                           <li v-for="code in Object.keys(cleaned_recommendations[resource][message_type])" :key="resource+message_type+code">
-                            <h3>{{code}} ({{ cleaned_recommendations[resource][message_type][code].count.total }} message{{ cleaned_recommendations[resource][message_type][code].count.total > 1 ? 's' : ''}}{{ cleaned_recommendations[resource][message_type][code].count.total > cleaned_recommendations[resource][message_type][code].count.unique ? ` , ${cleaned_recommendations[resource][message_type][code].count.unique} unique` : '' }})</h3>
+                            <h3>{{code}}</h3>
+                            <b>({{ cleaned_recommendations[resource][message_type][code].count.total }} message{{ cleaned_recommendations[resource][message_type][code].count.total > 1 ? 's' : ''}}{{ cleaned_recommendations[resource][message_type][code].count.total > cleaned_recommendations[resource][message_type][code].count.unique ? ` , ${cleaned_recommendations[resource][message_type][code].count.unique} unique` : '' }})</b>
                             <ul>
                               <li v-for="el in cleaned_recommendations[resource][message_type][code].values" :key="resource+message_type+code+JSON.stringify(el.test_data)+Math.random()">
                                 <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+detail+JSON.stringify(el.test_data)+Math.random()">
@@ -543,7 +537,6 @@
                 </v-row>
               </span>
             </v-container>
-
           </div>
         </v-tab-item>
       </v-tabs-items>
@@ -558,7 +551,7 @@
 
 import jp from 'jsonpath';
 
-import { isObject, isArray, isString, sortBy } from "lodash";
+import { isObject, isArray, isString, sortBy, countBy, throttle } from "lodash";
 import * as _ from "lodash";
 
 // Components
@@ -855,7 +848,7 @@ export default {
             let message_summary_stats = {};
             this.flat_index.reduce((acc, resource_key) => {
                 acc[resource_key] = Object.keys(this.denormalized_message_summary[resource_key]).map(code => ({
-                  'name': code,
+                  'name': this.parseResultCode(code).subcode,
                   'error': 0,
                   'warning': 0,
                   'information': 0,
@@ -866,7 +859,7 @@ export default {
             return message_summary_stats;
         },
         reduced_message_summary_stats() {
-          let reduced_message_summary_stats = {};
+          if (!!!this.message_summary_stats) return null;
           return this.flat_index.reduce((acc, resource_key) => {
             const entries = this.message_summary_stats[resource_key]
               .reduce((acc, item) => {
@@ -970,21 +963,10 @@ export default {
               }
             }
           }
-
           return unique_recommendations;
         }
     },
     methods: {
-        message_stats_summary_for_resource(resource) {
-            return Object.entries(this.groupedResultMessagesByCode(resource))
-                                       .map(i => [i[0], Object.entries(i[1]).reduce((a, i) => { a += i[1]; return a; }, 0)])
-                                       .map(i => ({
-                                         'label': i[0],
-                                         'value': i[1],
-                                         'color': i[0] === 'warning' ? this.status_color('skipped') : i[0] === 'info' ? this.status_color('passed') : this.status_color('failed')
-                                       }))
-
-        },
         message_summary_for_resource(resource_recommendations) {
             return ['errors','information','warnings']
                     .flatMap(message_type => jp.nodes(resource_recommendations, `$['${message_type}']`))
@@ -1015,6 +997,16 @@ export default {
             // console.log($event.target.parentNode)
             this.triggerReloadTestRunSelections()
         },
+        handleRowOnClick(item) {
+          this.data_table_selected_item = this.data_table_hold_selection ? this.data_table_selected_item : item;
+          this.data_table_current_item = this.data_table_selected_item;
+        },
+        handleRowOnMouseOver(item) {
+            this.data_table_current_item = this.data_table_hold_selection ? this.data_table_selected_item : item;
+        },
+        handleRowOnMouseAway() {
+            this.data_table_current_item = this.data_table_selected_item;
+        },
         handleJsonDownload(name, data) {
           fileDownload(JSON.stringify(data, null, 4), `${name}.json`)
         },
@@ -1026,13 +1018,10 @@ export default {
         async triggerTestRun() {
             axios.post(`/run_tests`, {}).then(response => {
                 this.id = response.data.test_run_id;
-            }).then(() => {
-                // refresh the test runs list
-                this.triggerReloadTestRunSelections()
-            })
+            }).then(this.triggerReloadTestRunSelections)
         },
         status_color: (status) =>
-            status === "passed" || status === "information" ? "#00ff00"
+            status === "passed" || status === "information" || status === "info" ? "#00ff00"
             : status === "skipped" || status === "warning" ? "#f0e68c"
             : status === "failed" || status === "error" ? "#f08080"
             : "#000000",
@@ -1113,7 +1102,7 @@ export default {
                     })
                 });
 
-            await Promise.all(resource_promises).then((response => {
+            Promise.all(resource_promises).then((response => {
                 this.recommendations = response.reduce((acc, item) => Object.assign(acc, item), {});
             }));
 
@@ -1196,7 +1185,6 @@ export default {
             return Object.entries(ARAIndex).flatMap(([ara, entry]) => Object.values(entry).map(kp => ara+delimiter+kp))
         },
         makeTableData(id, stats_summary) {
-            //  https://forum.vuejs.org/t/performance-issue-with-reactivity-in-a-long-list-flushcallbacks-taking-long/45838/7
             this.headers = [];
             this.cells = [];
             const report = Promise.resolve(stats_summary).then(response => {
@@ -1259,7 +1247,8 @@ export default {
 
         // import methods from packages
         isObject,
-        countBy: _.countBy,
+        countBy,
+        throttle,
 
         // custom methods for application testing
         tap: el => { console.log("hello", el, this); return el },
@@ -1274,9 +1263,7 @@ export default {
 
         // adjust cell style:
         // TODO - move on to use style classes instead
-        cellStyle (state) {
-            // getComputedStyle(document.querySelector("td")).backgroundColor
-
+        cellStyle(state) {
             let color = "black";
             let backgroundColor = "none";
             if (state === "passed" || state=== "failed") {
@@ -1299,7 +1286,7 @@ export default {
                 return `⚠️${!icon_only ? ' Skip' : ''}`
             } else if (state === "failed" || state === 'errors') {
                 return `🚫${!icon_only ? ' Fail' : ''}`
-            } else if (state === "information") {
+            } else if (state === "information" || state === "info") {
                 return `ℹ️${!icon_only ? ' Info': ''}`
             }
             return state
@@ -1385,11 +1372,6 @@ function orderByPlaceInArray(iterable, array) {
     if (array.length === 0 || iterable.length === 0) return iterable;
     return iterable.sort(orderByArrayFunc(array))
 }
-
-function object_signature(el) {
-    return Object.entries(el).flatMap(i=>i).join(';')
-}
-
 // const orderByPlaceInArray_test_case = ['spec', 'information', 'warnings', 'errors']
 // console.warn(orderByPlaceInArray([], orderByPlaceInArray_test_case))
 // console.warn(orderByPlaceInArray(orderByPlaceInArray_test_case, orderByPlaceInArray_test_case))
@@ -1397,12 +1379,9 @@ function object_signature(el) {
 // console.warn(orderByPlaceInArray(orderByPlaceInArray_test_case.reverse(), orderByPlaceInArray_test_case))
 // console.warn(orderByPlaceInArray(orderByPlaceInArray_test_case.concat(['a', 'b', 'c']), orderByPlaceInArray_test_case))
 
-// jsonpath
-// queries based on schema circa Aug 5th 2022
-const query_all_tests = "$.*..tests";
-const query_all_results = "$.*.*.*";
-const query_all_kp_results = "$.KP.*.*";
-const query_all_ara_results = "$.ARA.*.*";
+function object_signature(el) {
+    return Object.entries(el).flatMap(i=>i).join(';')
+}
 
 function _makeTableData(resource_id, report) {
   const test_results = jp.nodes(report.test_edges, "$.*").filter(el => !el.path.includes("document_key"))
