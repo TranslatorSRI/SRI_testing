@@ -365,7 +365,7 @@
                               data_table_selected_item = data_table_hold_selection ? data_table_selected_item : item;
                               data_table_current_item = data_table_selected_item;
                             }">
-                            <td v-for="[test, result] in Object.entries(omit('_id')(item))"
+                            <td v-for="[test, result] in Object.entries(item)"
                                 v-bind:key="`${test}_${result}`"
                                 :style="cellStyle(result.outcome)">
 
@@ -377,7 +377,7 @@
                                 {{formatCurie(result.subject_category)}}&nbsp;{{formatCurie(result.predicate)}}&nbsp;{{formatCurie(result.object_category)}}
                               </span>
 
-                              <span v-else>
+                              <span v-else-if="test !== '_id'">
                                 {{ result }}
                               </span>
                             </td>
@@ -489,7 +489,7 @@
                       <v-card-text>
                         <ul class="noindent">
                           <li v-for="code in Object.keys(cleaned_recommendations[resource][message_type])" :key="resource+message_type+code">
-                            <h3>{{code}}</h3> <!-- ({{ recommendations[resource][message_type][code].length }} messages, {{ cleaned_recommendations[resource][message_type][code].count.unique }} unique) -->
+                            <h3>{{code}} ({{ cleaned_recommendations[resource][message_type][code].count.total }} message{{ cleaned_recommendations[resource][message_type][code].count.total > 1 ? 's' : ''}}{{ cleaned_recommendations[resource][message_type][code].count.total > cleaned_recommendations[resource][message_type][code].count.unique ? ` , ${cleaned_recommendations[resource][message_type][code].count.unique} unique` : '' }})</h3>
                             <ul>
                               <li v-for="el in cleaned_recommendations[resource][message_type][code].values" :key="resource+message_type+code+JSON.stringify(el.test_data)+Math.random()">
                                 <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+detail+JSON.stringify(el.test_data)+Math.random()">
@@ -502,12 +502,6 @@
                           </li>
                        </ul>
                       </v-card-text>
-
-                      <v-treeview>
-                        <template v-slot:prepend="{ item, open }"></template>
-                        <template v-slot:label="{ item }"></template>
-                        <template v-slot:append="{ item }"></template>
-                      </v-treeview>
 
                     <!--
                     <v-treeview :items="selected_result_treeview" dense>
@@ -935,12 +929,12 @@ export default {
           return this.reduce_provider_by_group(this.combine_provider_summaries(this.stats_summary))
         },
         cleaned_recommendations() {
-
-          if (this.recommendations === null) return null;
+          const recommendations = this.recommendations;
+          if (recommendations === null) return null;
 
           let cleaned_recommendations = {};
-          for (let resource of Object.keys(_.cloneDeep(this.recommendations))) {
-            cleaned_recommendations[resource] = _.omit(this.recommendations[resource], ['trapi_version', 'biolink_version', 'document_key']);
+          for (let resource of Object.keys(_.cloneDeep(recommendations))) {
+            cleaned_recommendations[resource] = _.omit(recommendations[resource], ['trapi_version', 'biolink_version', 'document_key']);
           }
 
           let unique_recommendations = {};
@@ -953,7 +947,7 @@ export default {
                         values: unique_codes,
                         count: {
                           unique: unique_codes.length,
-                          total:  cleaned_recommendations[resource][message_type][code].length
+                          total:  recommendations[resource][message_type][code].length
                         }
                     }
                 })
