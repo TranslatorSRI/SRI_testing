@@ -220,8 +220,8 @@ class OneHopTestHarness:
         Run the SRT Testing test harness as a worker process.
         :param ara_id: Optional[str], identifier of the ARA resource(s) whose KP test results are being accessed
         :param kp_id: Optional[str], identifier of the KP resource(s) whose test results are being accessed.
-            - Case 1 - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource
-            - Case 2 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
+            - Case 1 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
+            - Case 2 - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource
             - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
             - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
 
@@ -231,6 +231,14 @@ class OneHopTestHarness:
         :param log: Optional[str], desired Python logger level label (default: None, implying default logger)
         :param timeout: Optional[int], worker process timeout in seconds (defaults to about 120 seconds
         """
+
+        if kp_id and not ara_id:
+            # Case 2 - non-empty kp_id, empty ara_id == just return the validation
+            #          of the one specified KP resource (skip no ARA validation).
+            #          We need special signal for this use case, otherwise
+            #          all ARA's will still be validated against the single KP
+            ara_id = 'SKIP'
+
         # possible override of DEFAULT_WORKER_TIMEOUT timeout here?
         self._timeout = timeout if timeout else self._timeout
 
@@ -405,7 +413,7 @@ class OneHopTestHarness:
     @staticmethod
     def resource_filter(ara_id: str, kp_id: str):
         def filter_function(document: Dict) -> bool:
-            if not (ara_id and kp_id):
+            if not (ara_id or kp_id):
                 return True
             if ara_id:
                 if "ARA" in document:

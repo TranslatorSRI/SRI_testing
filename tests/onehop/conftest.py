@@ -910,6 +910,9 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
     # 'ara_metadata' returns all available ARA's
     ara_id = metafunc.config.getoption('ara_id')
 
+    if ara_id == "SKIP":
+        return
+
     ara_metadata: Dict[str, Dict[str, Optional[str]]] = \
         get_test_data_sources(
             source=ara_id,
