@@ -179,6 +179,36 @@ def generate_edge_id(resource_id: str, edge_i: int) -> str:
     return f"{resource_id}#{str(edge_i)}"
 
 
+def constrain_trapi_request_to_kp(trapi_request: Dict, kp_source: str) -> Dict:
+    """
+    Method to annotate KP constraint on an ARA call
+    as an attribute_constraint object on the test edge.
+    :param trapi_request: Dict, original TRAPI message
+    :param kp_source: str, KP InfoRes (from kp_source field of test edge)
+    :return: Dict, trapi_request annotated with additional KP 'attribute_constraint'
+    """
+    assert "message" in trapi_request
+    message: Dict = trapi_request["message"]
+    assert "query_graph" in message
+    query_graph: Dict = message["query_graph"]
+    assert "edges" in query_graph
+    edges: Dict = query_graph["edges"]
+    assert "ab" in edges
+    edge: Dict = edges["ab"]
+
+    # annotate the edge constraint on the (presumed single) edge object
+    edge["attribute_constraints"] = [
+        {
+            "id": "biolink:knowledge_source",
+            "name": "knowledge source",
+            "value": [kp_source],
+            "operator": "=="
+        }
+    ]
+
+    return trapi_request
+
+
 def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
     """
     Method to execute a TRAPI lookup, using the 'creator' test template.
@@ -195,6 +225,7 @@ def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
     output_node_binding: Optional[str]
 
     trapi_request, output_element, output_node_binding = creator(case)
+
     if not trapi_request:
         # output_element and output_node_binding were expropriated by the 'creator' to return error information
         test_report.report("error.trapi.request.invalid", context=output_element, reason=output_node_binding)
@@ -207,6 +238,16 @@ def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
         test_report.merge(check_trapi_validity(trapi_request, trapi_version=trapi_version))
         if not test_report.has_messages():
             # if no messages are reported, then continue with the validation
+
+            if 'ara_source' in case and case['ara_source']:
+                # sanity check!
+                assert 'kp_source' in case and case['kp_source']
+
+                # Here, we need annotate the TRAPI request query graph to
+                # constrain an ARA query to the test case specified 'kp_source'
+                trapi_request = constrain_trapi_request_to_kp(
+                    trapi_request=trapi_request, kp_source=case['kp_source']
+                )
 
             # Make the TRAPI call to the Case targeted KP or ARA resource, using the case-documented input test edge
             trapi_response = call_trapi(case['url'], trapi_request)
