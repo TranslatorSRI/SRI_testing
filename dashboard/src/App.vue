@@ -120,6 +120,8 @@
                   :predicates="predicates"
                   ></TranslatorCategoriesList>
 
+                <br>
+
                 <div v-for="resource_key in flat_index" :key="resource_key+'index'">
                       <v-chip-group :key="`chip_${resource_key}`">
                         <h3>{{ resource_key }}</h3>&nbsp;
@@ -142,7 +144,7 @@
                                               :bound="[0]"
                                               :data="Object.entries(_stats_summary[resource_key].results).map(([name, rest]) => ({ name, ...rest }))"
                                               :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]"
-                                              :width="820">
+                                              :width="width">
                                   <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
                                   <la-bar label="failed" prop="failed" :color="status_color('failed')"></la-bar>
                                   <la-bar label="skipped" prop="skipped" :color="status_color('skipped')"></la-bar>
@@ -217,6 +219,7 @@
                   <v-row no-gutter>
                     <v-col sml>
                       <v-radio-group
+                        v-once
                         v-model="outcome_filter"
                         row>
                         <v-radio
@@ -248,14 +251,15 @@
                         :items="filtered_cells"
                         :items-per-page="-1"
                         group-by="_id"
+                        selec
                         dense>
 
                         <!-- TODO: group title formatting and tooltip. potentially just put in the summary? -->
 
                         <template v-slot:item="{ item }">
-                          <tr @mouseover="throttle(handleRowOnMouseOver(item), 200)"
-                              @mouseleave="throttle(handleRowOnMouseAway(item), 200)"
-                              @mouseup="handleRowOnClick(item)">
+                          <tr @mouseover="handleRowOnMouseOver(item)()"
+                              @mouseleave="handleRowOnMouseAway(item)()"
+                              @mouseup="handleRowOnClick(item)()">
                             <td v-for="[test, result] in Object.entries(item)"
                                 v-bind:key="`${test}_${result}`"
                                 :style="cellStyle(result.outcome)">
@@ -394,61 +398,6 @@
                        </ul>
                       </v-card-text>
 
-                    <!--
-                    <v-treeview :items="selected_result_treeview" dense>
-
-                      <template v-slot:prepend="{ item, open }">
-
-                       <span v-if="!!item.data"></span>
-
-                       <div v-else-if="!!item.outcome">
-                         {{ stateIcon(item.outcome, icon_only=true) }}
-                        </div>
-                        <span v-else>
-                          {{ !!item.name ? stateIcon(item.name, icon_only=true)
-                             : !!item.children && item.children.length === 0 ? '⚫' : '' }}
-                        </span>
-
-                      </template>
-
-                      <template v-slot:label="{ item }">
-
-                              <span v-if="!!item.data">
-                                <ul>
-                                  <li>{{ parseResultCode(item.data.code).subcode }}</li>
-                                  <ul class="noindent">
-                                    <li v-for="result_data in Object.entries(item.data)" v-if="result_data[0] !== 'code'" :key="result_data+Math.random()">
-                                      <b>{{ result_data[0] }}: </b> {{ result_data[1] }}<br>
-                                    </li>
-                                  </ul>
-                                </ul>
-                              </span>
-
-                              <span v-else>
-                                {{ item.name }}
-                              </span>
-
-                     </template>
-
-                     <template v-slot:append="{ item }">
-
-                       <span v-if="['errors', 'warnings', 'information'].includes(item.name)">
-                          {{ item.children.length }}
-                        </span>
-                        <span v-else-if="!!!item.data">
-                           <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="item+[name, val]+i">
-                              <span v-if="val > 0">
-                                {{
-                                }}
-                                &nbsp;{{ val }}
-                              </span>
-                            </span>
-                         </span>
-
-                      </template>
-
-                     </v-treeview>
-                      -->
                     </v-card>
                   </v-col>
                 </v-row>
@@ -468,7 +417,7 @@
 
 import jp from 'jsonpath';
 
-import { isObject, isArray, isString, sortBy, countBy, throttle } from "lodash";
+import { isObject, isArray, isString, sortBy, countBy, throttle, debounce } from "lodash";
 import * as _ from "lodash";
 
 // Components
@@ -851,14 +800,19 @@ export default {
             this.triggerReloadTestRunSelections()
         },
         handleRowOnClick(item) {
-          this.data_table_selected_item = this.data_table_hold_selection ? this.data_table_selected_item : item;
-          this.data_table_current_item = this.data_table_selected_item;
+          function lam() {
+              this.data_table_selected_item = this.data_table_hold_selection ? this.data_table_selected_item : item;
+              this.data_table_current_item = this.data_table_selected_item;
+            }
+            return lam.bind(this)
         },
         handleRowOnMouseOver(item) {
-            this.data_table_current_item = this.data_table_hold_selection ? this.data_table_selected_item : item;
+            function lam() { this.data_table_current_item = this.data_table_hold_selection ? this.data_table_selected_item : item; }
+            return throttle(lam.bind(this), 125)
         },
         handleRowOnMouseAway() {
-            this.data_table_current_item = this.data_table_selected_item;
+            function lam() { this.data_table_current_item = this.data_table_selected_item; }
+            return throttle(lam.bind(this), 125)
         },
         handleJsonDownload(name, data) {
           fileDownload(JSON.stringify(data, null, 4), `${name}.json`)
@@ -1102,6 +1056,7 @@ export default {
         isObject,
         countBy,
         throttle,
+        debounce,
 
         // custom methods for application testing
         tap: el => { console.log("hello", el, this); return el },
