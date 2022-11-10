@@ -123,82 +123,82 @@
                 <br>
 
                 <div v-for="resource_key in flat_index" :key="resource_key+'index'">
-                      <v-chip-group :key="`chip_${resource_key}`">
-                        <h3>{{ resource_key }}</h3>&nbsp;
-                        <v-chip small><strong>BioLink:&nbsp;</strong> {{ _stats_summary[resource_key].biolink_version }}</v-chip>
-                        <v-chip small><strong>TRAPI:&nbsp;</strong> {{ _stats_summary[resource_key].trapi_version }}</v-chip>
-                      </v-chip-group><br>
+                  <v-chip-group :key="`chip_${resource_key}`">
+                    <h3>{{ resource_key }}</h3>&nbsp;
+                    <v-chip small><strong>BioLink:&nbsp;</strong> {{ _stats_summary[resource_key].biolink_version }}</v-chip>
+                    <v-chip small><strong>TRAPI:&nbsp;</strong> {{ _stats_summary[resource_key].trapi_version }}</v-chip>
+                  </v-chip-group><br>
 
-                      <v-row no-gutter>
-                        <v-col>
-                          <vc-piechart
-                            v-once
-                            :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === resource_key))"/>
-                        </v-col>
-                        <v-col :cols="9">
-                          <SizeProvider>
-                            <div class="wrapper" slot-scope="{ width, height }" :style="{ height: height + 'px' }">
-                              <SizeObserver>
-                                <strong style="{ marginBottom: 5px }"># edges vs tests</strong>
-                                <la-cartesian narrow stacked
-                                              :bound="[0]"
-                                              :data="Object.entries(_stats_summary[resource_key].results).map(([name, rest]) => ({ name, ...rest }))"
-                                              :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]"
-                                              :width="width">
-                                  <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
-                                  <la-bar label="failed" prop="failed" :color="status_color('failed')"></la-bar>
-                                  <la-bar label="skipped" prop="skipped" :color="status_color('skipped')"></la-bar>
-                                  <la-x-axis class="x-axis" :font-size="10" prop="name"></la-x-axis>
-                                  <la-y-axis></la-y-axis>
-                                  <la-tooltip></la-tooltip>
-                                </la-cartesian>
-                              </SizeObserver>
-                            </div>
-                          </SizeProvider>
-                        </v-col>
-                      </v-row>
+                  <v-row no-gutter>
+                    <v-col>
+                      <vc-piechart
+                        v-once
+                        :data="reduce_provider_summary(denormalized_stats_summary.filter(stats => stats.provider === resource_key))"/>
+                    </v-col>
+                    <v-col :cols="9">
+                      <SizeProvider>
+                        <div class="wrapper" slot-scope="{ width, height }" :style="{ height: height + 'px' }">
+                          <SizeObserver>
+                            <strong style="{ marginBottom: 5px }"># edges vs tests</strong>
+                            <la-cartesian narrow stacked
+                                          :bound="[0]"
+                                          :data="Object.entries(_stats_summary[resource_key].results).map(([name, rest]) => ({ name, ...rest }))"
+                                          :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]"
+                                          :width="width">
+                              <la-bar label="passed" prop="passed" :color="status_color('passed')"></la-bar>
+                              <la-bar label="failed" prop="failed" :color="status_color('failed')"></la-bar>
+                              <la-bar label="skipped" prop="skipped" :color="status_color('skipped')"></la-bar>
+                              <la-x-axis class="x-axis" :font-size="10" prop="name"></la-x-axis>
+                              <la-y-axis></la-y-axis>
+                              <la-tooltip></la-tooltip>
+                            </la-cartesian>
+                          </SizeObserver>
+                        </div>
+                      </SizeProvider>
+                    </v-col>
+                  </v-row>
 
-                      <v-row v-if="resources !== null && Object.keys(resources).length > 0 && reduced_message_summary_stats !== null">
-                        <v-col>
-                          <vc-piechart
-                              v-once
-                            :data="reduced_message_summary_stats[resource_key]"/>
-                        </v-col>
-                        <v-col :cols="9">
-                          <SizeProvider>
-                            <div class="wrapper" slot-scope="{ width, height }" :style="{ height: height + 'px' }">
-                              <SizeObserver>
-                                <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
-                                <la-cartesian narrow stacked
-                                              :bound="[0]"
-                                              :data="message_summary_stats[resource_key]"
-                                              :width="width"
-                                              :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
-                                  <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
-                                  <la-bar label="info" prop="info" :color="status_color('passed')"></la-bar>
-                                  <la-bar label="error" prop="error" :color="status_color('failed')"></la-bar>
-                                  <la-x-axis class="x-axis" :font-size="10" prop="name"></la-x-axis>
-                                  <la-y-axis></la-y-axis>
-                                  <la-tooltip></la-tooltip>
-                                </la-cartesian>
-                              </SizeObserver>
-                            </div>
-                          </SizeProvider>
-                        </v-col>
-                      </v-row>
+                  <v-row v-if="resources !== null && Object.keys(resources).length > 0 && reduced_message_summary_stats !== null">
+                    <v-col>
+                      <vc-piechart
+                        v-once
+                        :data="reduced_message_summary_stats[resource_key]"/>
+                    </v-col>
+                    <v-col :cols="9">
+                      <SizeProvider>
+                        <div class="wrapper" slot-scope="{ width, height }" :style="{ height: height + 'px' }">
+                          <SizeObserver>
+                            <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
+                            <la-cartesian narrow stacked
+                                          :bound="[0]"
+                                          :data="message_summary_stats[resource_key]"
+                                          :width="width"
+                                          :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
+                              <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
+                              <la-bar label="info" prop="info" :color="status_color('passed')"></la-bar>
+                              <la-bar label="error" prop="error" :color="status_color('failed')"></la-bar>
+                              <la-x-axis class="x-axis" :font-size="10" prop="name"></la-x-axis>
+                              <la-y-axis></la-y-axis>
+                              <la-tooltip></la-tooltip>
+                            </la-cartesian>
+                          </SizeObserver>
+                        </div>
+                      </SizeProvider>
+                    </v-col>
+                  </v-row>
 
-                      <!-- Not all ARAs have the same KPs. So need to check for the joint key explicitly. -->
-                      <TranslatorCategoriesList
-                        v-if="categories_index !== null && categories_index !== {} && !!categories_index[resource_key]"
-                        :resource="resource_key"
-                        :subject_categories="categories_index[resource_key].subject_category"
-                        :object_categories="categories_index[resource_key].object_category"
-                        :predicates="categories_index[resource_key].predicate"
-                        ></TranslatorCategoriesList>
+                  <!-- Not all ARAs have the same KPs. So need to check for the joint key explicitly. -->
+                  <TranslatorCategoriesList
+                    v-if="categories_index !== null && categories_index !== {} && !!categories_index[resource_key]"
+                    :resource="resource_key"
+                    :subject_categories="categories_index[resource_key].subject_category"
+                    :object_categories="categories_index[resource_key].object_category"
+                    :predicates="categories_index[resource_key].predicate"
+                    ></TranslatorCategoriesList>
 
                 </div>
 
-             </div>
+              </div>
             </v-container>
           </div>
 
@@ -308,9 +308,9 @@
                               <div v-else-if="!!item.outcome">
                                 {{ stateIcon(item.outcome, icon_only=true) }}
                               </div>
-                                <span v-else>
+                              <span v-else>
                                 {{ !!item.name ? stateIcon(item.name, icon_only=true) : !!item.children && item.children.length === 0 ? '⚫' : '' }}
-                                </span>
+                              </span>
 
                             </template>
                             <template v-slot:label="{ item }">
@@ -338,7 +338,7 @@
                               <span v-else-if="!!!item.data">
                                 <span v-for="([name, val], i) in Object.entries(countResultMessagesWithCode(item.children.flatMap(item => item.children).map(item => item.data)))" :key="item+[name, val]+i">
                                   <span v-if="val > 0">
-                                      {{ stateIcon(name, icon_only=true) }}
+                                    {{ stateIcon(name, icon_only=true) }}
                                     &nbsp;{{ val }}
                                   </span>
                                 </span>
@@ -361,6 +361,14 @@
 
             <v-container>
 
+              <v-row>
+                <v-col>
+                  <v-btn @click="handleJsonDownload(`${id}_recommendations_${resource}`, recommendations)">
+                    Download All Test Recommendations
+                  </v-btn>
+                </v-col>
+              </v-row>
+
               <span v-for="resource in flat_index" :key="resource">
 
                 <v-row>
@@ -381,21 +389,25 @@
                       </v-card-title>
 
                       <v-card-text>
-                        <ul class="noindent">
-                          <li v-for="code in Object.keys(cleaned_recommendations[resource][message_type])" :key="resource+message_type+code">
-                            <h3>{{code}}</h3>
-                            <b>({{ cleaned_recommendations[resource][message_type][code].count.total }} message{{ cleaned_recommendations[resource][message_type][code].count.total > 1 ? 's' : ''}}{{ cleaned_recommendations[resource][message_type][code].count.total > cleaned_recommendations[resource][message_type][code].count.unique ? ` , ${cleaned_recommendations[resource][message_type][code].count.unique} unique` : '' }})</b>
-                            <ul>
-                              <li v-for="el in cleaned_recommendations[resource][message_type][code].values" :key="resource+message_type+code+JSON.stringify(el.test_data)+Math.random()">
-                                <span v-for="detail in Object.keys(orderObjectKeysBy(el.message, ['edge_id', 'context', 'name', 'reason'])).filter(key => key !== 'code')" :key="resource+message_type+code+detail+JSON.stringify(el.test_data)+Math.random()">
-                                  <b>{{detail}}:</b> {{ el.message[detail] }}<br>
-                                </span>
-                                {{ formatEdge(el.test_data) }}<br>
-                                {{ formatConcreteEdge(el.test_data) }}<br>
-                              </li>
-                            </ul>
-                          </li>
-                       </ul>
+                        <v-treeview v-if="recommendations_treeview !== null"
+                                    item-key="name"
+                                    :items="recommendations_treeview[resource][message_type]">
+                          <template v-slot:label="{ item, open }">
+                            <span v-if="item.type === 'code'">
+                              <h3>{{item.name}}</h3>
+                              <b>({{ cleaned_recommendations[resource][message_type][item.name].count.total }} message{{ cleaned_recommendations[resource][message_type][item.name].count.total > 1 ? 's' : ''}}{{ cleaned_recommendations[resource][message_type][item.name].count.total > cleaned_recommendations[resource][message_type][item.name].count.unique ? ` , ${cleaned_recommendations[resource][message_type][item.name].count.unique} unique` : '' }})</b>
+                            </span>
+                            <span class="text-subtitle-2" v-else-if="item.type === 'test_data'">Test data</span>
+                            <span v-else-if="item.type === 'message'">
+                              <ul class="noindent">
+                                <li v-for="[detail, detail_value] in Object.entries(item.message)" :key="resource+message_type+code_detail_detail_value+Math.random()">
+                                  <span class="text-subtitle-1">{{ detail | capitalize }}:&nbsp;</span>{{detail_value}}<br>
+                                </li>
+                              </ul>
+                            </span>
+                            <span v-else>{{ item.name }}</span>
+                          </template>
+                        </v-treeview>
                       </v-card-text>
 
                     </v-card>
@@ -433,6 +445,7 @@ import { Cartesian, Line, Bar } from 'laue'
 import { SizeProvider, SizeObserver } from 'vue-size-provider'
 
 import fileDownload from 'js-file-download';
+import { Fragment } from 'vue-frag'
 
 // API code in separate file so we can switch between live and mock instance,
 // also configure location for API in environment variables and build variables
@@ -455,6 +468,7 @@ export default {
         VcPiechart,
         LaCartesian: Cartesian,
         LaBar: Bar,
+        Fragment
     },
     filters: {
         capitalize: function (value) {
@@ -502,7 +516,8 @@ export default {
             data_table_selected_item: null,
             data_table_current_item: null,
             data_table_hold_selection: false,
-            recommendations: null
+            recommendations: null,
+            active: [],
         }
     },
     created () {
@@ -766,6 +781,13 @@ export default {
             }, {}),
             ...this.stats_summary.KP,
           }
+        },
+        recommendations_treeview() {
+            if (!!!this.cleaned_recommendations) return null;
+            return Object.keys(this.cleaned_recommendations).reduce((acc, item) => {
+                acc[item] = this.recommendationsToTreeView(this.cleaned_recommendations[item])
+                return acc;
+            }, {})
         }
     },
     methods: {
@@ -1157,6 +1179,40 @@ export default {
             value = value.toString()
             return value.charAt(value.length - 1) === 's' ? value.slice(0,-1) : value;
         },
+        recommendationsToTreeView(recommendations) {
+            return Object.keys(recommendations).reduce((message_types, message_type) => {
+                const messages = Object.keys(recommendations[message_type]).reduce((codes, code) => {
+                        return codes.concat({
+                            name: code,
+                            type: 'code',
+                            children: recommendations[message_type][code].values.map((el, n) => ({
+                                id: `${message_type}_${code}_message_${n}`,
+                                name: JSON.stringify(el.message),
+                                type: 'message',
+                                message: el.message,
+                                children: [{
+                                    id: `${message_type}_${code}_test_data_${n}`,
+                                    name: 'test_data',
+                                    type: 'test_data',
+                                    test_data: el.test_data,
+                                    children: [
+                                        { name: this.formatConcreteEdge(el.test_data) },
+                                        { name: this.formatEdge(el.test_data) }
+                                    ]
+                                }]
+                            }))
+                        })
+                    }, [])
+                message_types[message_type] = messages;
+                return message_types;
+            }, {})
+        },
+        groupByCond(message_type, values) {
+          return message_type === "warnings" ? _.groupBy(values,_.property(['message', 'categories']) )
+          : message_type === "errors" ? _.groupBy(values, _.property(['message', 'context']))
+          : message_type === "information" ?  _.groupBy(values, _.property(['message', 'name']))
+          : values
+        }
     }
 }
 
