@@ -5,8 +5,6 @@ from typing import Optional, Union, List, Set, Dict, Any
 from os import path, walk, sep
 from collections import defaultdict
 
-import json
-
 import logging
 
 from deprecation import deprecated
@@ -722,20 +720,47 @@ def get_kp_edge(resource_id: str, edge_idx: int) -> Optional[Dict[str, Any]]:
     return None
 
 
-def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) -> List:
-    """
-    Generate set of TRAPI Knowledge Provider unit tests with test data edges.
+def get_resource_identifier(config: Dict, source: str) -> Optional[str]:
+    if 'infores' in config:
+        infores_id = config['infores']
+    else:
+        logger.warning(
+            f"get_resource_identifier(): test configuration file from '{source}' " +
+            "is missing its 'infores' field value? Infer one from the API name?"
+        )
+        # create a pseudo-infores from a lower cased and hyphenated API name
+        api_name: str = config['api_name']
+        if not api_name:
+            logger.warning("get_resource_identifier(): API Name is missing? Skipping entry...")
+            return None
 
-    :param metafunc: Dict, diverse One Step Pytest metadata
-    :param trapi_version, str, TRAPI release set to be used in the validation
-    :param biolink_version, str, Biolink Model release set to be used in the validation
-    """
-    edges: List = []
-    idlist: List = []
+        infores_id = api_name.lower().replace("_", "-")
 
-    # TODO: test_run_id is currently unused in this method; it is otherwise an
-    #       optional user session identifier for the test (can be an empty string)
-    # test_run_id = metafunc.config.getoption('test_run_id')
+    return infores_id
+
+
+def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict[str, Optional[str]]]:
+    # Here, the ara_id may be None, in which case,
+    # 'ara_metadata' returns all available ARA's
+    ara_id = metafunc.config.getoption('ara_id')
+
+    if ara_id == "SKIP":
+        return dict()  # no ARA's to validate
+
+    return get_test_data_sources(
+            source=ara_id,
+            trapi_version=trapi_version,
+            biolink_version=biolink_version,
+            component_type="ARA"
+    )
+
+
+def get_kp_metadata(
+        metafunc,
+        ara_metadata: Dict,
+        trapi_version: str,
+        biolink_version: str
+) -> Dict[str, Dict[str, Optional[str]]]:
 
     # Here, the kp_id may be None, in which case,
     # 'kp_metadata' returns all available KP's
@@ -749,6 +774,36 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
             component_type="KP"
         )
 
+    if len(ara_metadata) == 1:
+        # if we have exactly one ARA, then perhaps we should only pay
+        # attention to KPs indicated by test configuration as called by that ARA?
+        # Since we don't want to pop the metadata from its dictionary,
+        # and don't ab initio know the ara_id, we just use a for loop to access it
+        for ara_source, ara_metadata in ara_metadata.items():
+            arajson: Dict = load_test_data_source(ara_source, ara_metadata)
+            kps: Set[str] = {kp_id for kp_id in arajson['KPs']}
+
+            # Blight assumption here is that our kp_metadata
+            # entries all have infores CURIE references
+            kept: Dict = dict()
+            for kp_source, kp_metadata in kp_metadata.items():
+                if 'infores' in kp_metadata and f"infores:{kp_metadata['infores']}" in kps:
+                    kept[kp_source] = kp_metadata
+            kp_metadata = kept
+
+    return kp_metadata
+
+
+def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
+    """
+    Generate set of TRAPI Knowledge Provider unit tests with test data edges.
+
+    :param metafunc: Dict, diverse One Step Pytest metadata
+    :param kp_metadata, Dict[str, Dict[str, Optional[str]]], test edge data for one or more KPs
+    """
+    edges: List = []
+    idlist: List = []
+
     for source, metadata in kp_metadata.items():
 
         # User CLI may trapi_version, biolink_version may (but not necessarily) here
@@ -760,6 +815,11 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
             logger.error(
                 f"generate_trapi_kp_tests():  JSON file at test data location '{source}' is missing or invalid"
             )
+            continue
+
+        kp_id: Optional[str] = get_resource_identifier(kpjson, source)
+        if not kp_id:
+            # can't identify the Infores source of the data?
             continue
 
         # No point in caching for latest implementation of reporting
@@ -807,20 +867,6 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
             edge['trapi_version'] = kpjson['trapi_version']
             edge['biolink_version'] = kpjson['biolink_version']
 
-            if 'infores' in kpjson:
-                kp_id = kpjson['infores']
-            else:
-                logger.warning(
-                    f"generate_trapi_kp_tests(): input file '{source}' "
-                    "is missing its 'infores' field value? Inferred from its API name?"
-                )
-                # create a pseudo-infores from a lower cased and hyphenated API name
-                kp_api_name: str = edge['kp_api_name']
-                if not kp_api_name:
-                    logger.warning("generate_trapi_kp_tests(): KP API Name is missing? Skipping entry...")
-                    continue
-                kp_id = kp_api_name.lower().replace("_", "-")
-
             edge['kp_source'] = f"infores:{kp_id}"
 
             if 'source_type' in kpjson:
@@ -844,8 +890,8 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
             edges.append(edge)
             #
             # TODO: caching the edge here doesn't help parsing of the results into a report since
-            #       the cache is not shared with the parent process.
-            #       Instead, we will try to echo the edge directly to stdout, for later parsing for the report.
+            #       the cache is not shared with the parent process. Instead, we will try to echo
+            #       the edge directly to stdout, for later parsing for the report.
             #
             # add_kp_edge(resource_id, edge_i, edge)
             # json.dump(edge, stdout)
@@ -889,14 +935,13 @@ def generate_trapi_kp_tests(metafunc, trapi_version: str, biolink_version: str) 
 
 
 # Once the smartapi tests are up, we'll want to pass them in here as well
-def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version):
+def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
     """
     Generate set of TRAPI Autonomous Relay Agents (ARA) unit tests with KP test data edges.
 
     :param metafunc: Dict, diverse One Step Pytest metadata
     :param kp_edges: List, list of knowledge provider test edges from knowledge providers associated
-    :param trapi_version, str, TRAPI release set to be used in the validation
-    :param biolink_version, str, Biolink Model release set to be used in the validation
+    :param ara_metadata, Dict[str, Dict[str, Optional[str]]], test run configuration for one or more ARAs
     """
     kp_dict = defaultdict(list)
     for e in kp_edges:
@@ -905,21 +950,6 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
 
     ara_edges = []
     idlist = []
-
-    # Here, the ara_id may be None, in which case,
-    # 'ara_metadata' returns all available ARA's
-    ara_id = metafunc.config.getoption('ara_id')
-
-    if ara_id == "SKIP":
-        return
-
-    ara_metadata: Dict[str, Dict[str, Optional[str]]] = \
-        get_test_data_sources(
-            source=ara_id,
-            trapi_version=trapi_version,
-            biolink_version=biolink_version,
-            component_type="ARA"
-        )
 
     for source, metadata in ara_metadata.items():
 
@@ -977,20 +1007,10 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                     # defer reporting of errors to higher level of test harness
                     edge['pre-validation'] = biolink_validator.get_messages()
 
-                if 'infores' in arajson:
-                    ara_id = arajson['infores']
-                else:
-                    logger.warning(
-                        f"generate_trapi_ara_tests(): input file '{source}' " +
-                        "is missing its ARA 'infores' field.  We infer one from "
-                        "the ARA 'api_name', but edge provenance may not be properly tested?"
-                    )
-                    # create a pseudo-infores from a lower cased and hyphenated API name
-                    ara_api_name: str = edge['ara_api_name']
-                    if not ara_api_name:
-                        logger.warning("generate_trapi_ara_tests(): ARA API Name is missing? Skipping entry...")
-                        continue
-                    ara_id = ara_api_name.lower().replace("_", "-")
+                ara_id: Optional[str] = get_resource_identifier(arajson, source)
+                if not ara_id:
+                    # can't identify the Infores source of the data?
+                    continue
 
                 edge['ara_source'] = f"infores:{ara_id}"
 
@@ -1004,7 +1024,8 @@ def generate_trapi_ara_tests(metafunc, kp_edges, trapi_version, biolink_version)
                     edge['kp_source'] = f"infores:{kp}"
                 edge['kp_source_type'] = kp_edge['kp_source_type']
 
-                # Start using the object_id of the Infores CURIEs of the ARA's and KP's, instead of their api_names...
+                # Start using the object_id of the Infores CURIEs of the
+                # ARA's and KP's, instead of their api_names...
                 # resource_id = f"{edge['ara_api_name']}|{edge['kp_api_name']}"
                 kp_id = edge['kp_source'].replace("infores:", "")
                 resource_id = f"{ara_id}|{kp_id}"
@@ -1033,16 +1054,10 @@ def pytest_generate_tests(metafunc):
     biolink_version = metafunc.config.getoption('biolink_version')
     logger.debug(f"pytest_generate_tests(): caller specified biolink_version == {str(biolink_version)}")
 
-    trapi_kp_edges = generate_trapi_kp_tests(
-        metafunc,
-        trapi_version=trapi_version,
-        biolink_version=biolink_version
-    )
+    ara_metadata = get_ara_metadata(metafunc, trapi_version, biolink_version)
+    kp_metadata = get_kp_metadata(metafunc, ara_metadata, trapi_version, biolink_version)
+
+    trapi_kp_edges = generate_trapi_kp_tests(metafunc, kp_metadata)
 
     if metafunc.definition.name == 'test_trapi_aras':
-        generate_trapi_ara_tests(
-            metafunc,
-            trapi_kp_edges,
-            trapi_version=trapi_version,
-            biolink_version=biolink_version
-        )
+        generate_trapi_ara_tests(metafunc, trapi_kp_edges, ara_metadata)
