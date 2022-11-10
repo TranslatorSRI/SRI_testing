@@ -25,31 +25,31 @@ def mock_registry(status: bool):
 MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
     "total": 3,
     "hits": [
-        # {
-        #     "info": {
-        #         "title": "SRI Reference Knowledge Graph API (trapi v-1.3.0)",
-        #         "version": "1.3.0-1",
-        #         "x-translator": {
-        #             "component": "KP",
-        #             "infores": "infores:sri-reference-kg",
-        #             "team": ["SRI"],
-        #             "biolink-version": "2.4.7"
-        #         },
-        #         "x-trapi": {
-        #             "version": "1.3.0",
-        #             "test_data_location": "https://raw.githubusercontent.com/monarch-initiative/" +
-        #                                   "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
-        #         }
-        #     },
-        #     "servers": [
-        #         {
-        #             "description": "Default server",
-        #             "url": "https://automat.renci.org/sri-reference-kg/1.3",
-        #             "x-location": "ITRB",
-        #             "x-maturity": "testing"
-        #          }
-        #     ]
-        # },
+        {
+            "info": {
+                "title": "SRI Reference Knowledge Graph API (trapi v-1.3.0)",
+                "version": "1.3.0-1",
+                "x-translator": {
+                    "component": "KP",
+                    "infores": "infores:sri-reference-kg",
+                    "team": ["SRI"],
+                    "biolink-version": "2.4.7"
+                },
+                "x-trapi": {
+                    "version": "1.3.0",
+                    "test_data_location": "https://raw.githubusercontent.com/monarch-initiative/" +
+                                          "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
+                }
+            },
+            "servers": [
+                {
+                    "description": "Default server",
+                    "url": "https://automat.renci.org/sri-reference-kg/1.3",
+                    "x-location": "ITRB",
+                    "x-maturity": "testing"
+                 }
+            ]
+        },
         #
         # MolePro used as a part of MOCK Registry
         #
