@@ -4,3 +4,6 @@ API_PORT=8090             # comment out if not using.
 isAxiosMock=false
 _FEATURE_RUN_TEST_BUTTON=false
 _FEATURE_RUN_TEST_SELECT=true
+_FEATURE_RECOMMENDATIONS=true
+_FEATURE_SELECT_TEST_RUN_RESOURCES=true
+_FEATURE_REGISTRY_CALL=false
