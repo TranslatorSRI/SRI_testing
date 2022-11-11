@@ -495,7 +495,7 @@ def extract_component_test_metadata_from_registry(
         registry_data: Dict,
         component_type: str,
         source: Optional[str] = None
-) -> Dict[str, Dict[str,  Optional[str]]]:
+) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
 
@@ -524,7 +524,7 @@ def extract_component_test_metadata_from_registry(
             infores = infores.strip()
             target_sources.add(infores)
 
-    service_metadata: Dict[str, Dict[str, Optional[str]]] = dict()
+    service_metadata: Dict[str, Dict[str, Optional[Union[str, Dict]]]] = dict()
 
     for index, service in enumerate(registry_data['hits']):
 

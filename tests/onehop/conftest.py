@@ -562,7 +562,7 @@ def get_test_data_sources(
         source: Optional[str] = None,
         trapi_version: Optional[str] = None,
         biolink_version: Optional[str] = None
-) -> Dict[str, Dict[str, Optional[str]]]:
+) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     """
     Retrieves a dictionary of metadata of 'component_type', indexed by 'source' identifier.
 
@@ -579,10 +579,8 @@ def get_test_data_sources(
     :param trapi_version: SemVer caller override of TRAPI release target for validation (Default: None)
     :param biolink_version: SemVer caller override of Biolink Model release target for validation (Default: None)
 
-    :return: Dict[str, Dict[str, Optional[str]]], service metadata dictionary
+    :return: Dict[str, Dict[str, Optional[Union[str, Dict]]]], service metadata dictionary
     """
-    service_metadata: Dict[str, Dict[str, Optional[str]]]
-
     # Access service metadata from the Translator SmartAPI Registry,
     # indexed using the "test_data_location" field as the unique key
     registry_data: Dict = get_the_registry_data()
@@ -603,17 +601,21 @@ def get_test_data_sources(
 
 def load_test_data_source(
         source: str,
-        metadata: Dict[str, Optional[str]]
+        registry_metadata: Dict[str, Optional[Union[str, Dict]]]
 ) -> Optional[Dict]:
     """
-    Load one specified component test data source.
+    Load JSON metadata file(s) from a specified component test data source. Note that with the latest
+    Translator SmartAPI Registry data model for info.x-trapi.test_data_location properties, that the
+    actual data loaded may be from multiple file sources, and may represent distinct x-maturity environments.
 
-    :param source: source string, URL if from "remote"; file path if local
-    :param metadata: metadata associated with source
-    :return: json test data with (some) metadata; 'None' if unavailable
+    :param source: source string, is now  a 3-tuple common delimited string of (infores, trapi_version, biolink_version)
+    :param registry_metadata: Dict[str, Optional[Union[str, Dict]]], metadata associated with source
+    :return: Optional[Dict], annotated KP test edges or ARA configuration parameters metadata; 'None' if unavailable
     """
     # sanity check
-    assert metadata is not None
+    assert registry_metadata is not None
+
+    # TODO: the test_data_location value in the registry_metadata is now complex ...
 
     #
     # Some KP or ARA sources don't bother to use the .json file extension even though
@@ -630,7 +632,8 @@ def load_test_data_source(
     if source.startswith('http'):
         # Source is an online test data repository, likely harvested
         # from the Translator SmartAPI Registry 'test_data_location'
-        test_data = get_remote_test_data_file(source)
+        # TODO: handle (x-maturity indexed?) lists of test_data_locations URLs - hence, multiple files - here?
+        test_data = get_remote_test_data_file(source) xxx
     else:
         # # Source is a local data file
         # with open(source, 'r') as local_file:
@@ -642,24 +645,25 @@ def load_test_data_source(
         # Local test data files are deprecated now.
         return None
 
-    if test_data is not None:
+    if test_data is not None: xxx # TODO: how do I handle diverse x-maturities here? a list of test_data_locations?
 
-        if 'url' in metadata and 'url' in test_data:
+        if 'url' in registry_metadata and 'url' in test_data:
             # Registry metadata 'url' value may now
             # override the corresponding test_data value
             test_data.pop('url')
 
         # append/override test data to metadata
-        metadata.update(test_data)
+        registry_metadata.update(test_data)
 
-        metadata['location'] = source
+        registry_metadata['location'] = source xxx # TODO: this should come from the test_data_location map now
 
         # the api_name extracted from a URL path
         api_name: str = source.split('/')[-1]
         # remove the trailing file extension
-        metadata['api_name'] = api_name.replace(".json", "")
+        registry_metadata['api_name'] = api_name.replace(".json", "")
 
-    return metadata
+    # TODO: should the metadata files here here be x-maturity indexed(?!?)
+    return registry_metadata
 
 
 # Key is a resource identifier a.k.a. 'api_name'
@@ -739,7 +743,7 @@ def get_resource_identifier(config: Dict, source: str) -> Optional[str]:
     return infores_id
 
 
-def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict[str, Optional[str]]]:
+def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     # Here, the ara_id may be None, in which case,
     # 'ara_metadata' returns all available ARA's
     ara_id = metafunc.config.getoption('ara_id')
@@ -760,7 +764,7 @@ def get_kp_metadata(
         ara_metadata: Dict,
         trapi_version: str,
         biolink_version: str
-) -> Dict[str, Dict[str, Optional[str]]]:
+) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
 
     # Here, the kp_id may be None, in which case,
     # 'kp_metadata' returns all available KP's
@@ -799,7 +803,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
     Generate set of TRAPI Knowledge Provider unit tests with test data edges.
 
     :param metafunc: Dict, diverse One Step Pytest metadata
-    :param kp_metadata, Dict[str, Dict[str, Optional[str]]], test edge data for one or more KPs
+    :param kp_metadata, Dict[str, Dict[str, Optional[Union[str, Dict]]]], test edge data for one or more KPs
     """
     edges: List = []
     idlist: List = []
@@ -953,28 +957,16 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
 
     for source, metadata in ara_metadata.items():
 
-        # User CLI may override here the target Biolink Model version during KP test data preparation
+        # TODO: how will testing for distinct x-maturity environments
+        #       now be handled here? As an x-maturity map?
         arajson = load_test_data_source(source, metadata)
 
         if not arajson:
             # valid test data file not found?
-            logger.error(
-                f"generate_trapi_ara_tests(): JSON file at test data location '{source}' is missing or invalid"
-            )
+            logger.error(f"generate_trapi_ara_tests(): '{source}' has no valid test_data_location information?")
             continue
 
-        # No point in caching for latest implementation of reporting
-        # cache_resource_metadata(arajson)
-
         for kp in arajson['KPs']:
-
-            #
-            # TODO: use of KP infores ('kp_source') CURIES in the Registry ARA spec
-            #       likely now completely breaks the old filename-centric
-            #       (non-Registry) local test_triples mechanism for KP resolution
-            # # By replacing spaces in name with underscores,
-            # # should give get the KP "api_name" indexing the edges.
-            # kp = '_'.join(kp.split())
 
             if kp not in kp_dict:
                 logger.warning(
