@@ -9,13 +9,49 @@
   <v-app>
 
     <v-container id="page-header">
-      <v-row>
+
+      <span v-if="FEATURE_SELECT_TEST_RUN_RESOURCES">
+      <v-row v-if="id === null && test_runs_contents !== null" dense>
+        <v-col>
+          <v-select
+            v-model="ara_choice"
+            :label="'Choose an ARA'"
+            :items="[''].concat(Object.values(test_runs_contents).flatMap(el => el.ARAs))"
+            dense></v-select>
+        </v-col>
+        <v-col>
+          <v-select
+            v-model="kp_choice"
+            :label="'Choose a KP'"
+            :items="[''].concat(Object.values(test_runs_contents).flatMap(el => el.KPs))"
+            dense></v-select>
+        </v-col>
+      </v-row>
+      </span>
+
+      <v-row dense>
         <!-- TODO: remove blur on click -->
         <v-select v-model="id"
                   :label="loading === null ? 'Choose a previous test run' : ''"
-                  :items="test_runs_selections"
+                  :items="test_runs_selections
+                          .filter(test_run =>
+                          (ara_choice !== '' || kp_choice !== '') ?
+                          test_runs_contents[test_run].ARAs.includes(ara_choice)
+                          || test_runs_contents[test_run].KPs.includes(kp_choice)
+                          || false : true)"
                   @click="handleTestRunSelection"
                   dense>
+          <template v-slot:item="{ item }">
+            <v-container v-if="test_runs_contents !== null" class="d-flex mb-6" no-gutters>
+              <v-row>
+              <span class="pa-2 mr-auto">{{ item }}</span>
+              <v-spacer/>
+              <v-chip v-for="kp in test_runs_contents[item].KPs" class="pa-2" :key="kp+'select'+item">{{ kp }}</v-chip>
+              <v-chip v-for="ara in test_runs_contents[item].ARAs" class="pa-2" :key="ara+'select'+item">{{ ara }}</v-chip>
+              </v-row>
+            </v-container>
+            <span v-else>{{ item }}</span>
+          </template>
         </v-select>
         <span v-if="FEATURE_RUN_TEST_BUTTON && FEATURE_RUN_TEST_SELECT" style="{ padding-top: 1px; }">
           <span>&nbsp;&nbsp;</span>OR
@@ -47,6 +83,7 @@
       <v-row>
 
         <!-- TODO replace event handlers with single filter dispatch event -->
+        <!-- Sync? -->
         <!-- Lift scope for translator filter to page scope -->
         <TranslatorFilter :index="index"
                           :subject_categories="subject_categories"
@@ -122,7 +159,7 @@
 
                 <br>
 
-                <div v-for="resource_key in flat_index" :key="resource_key+'index'">
+                <div v-for="resource_key in filtered_index" :key="resource_key+'index'">
                   <v-chip-group :key="`chip_${resource_key}`">
                     <h3>{{ resource_key }}</h3>&nbsp;
                     <v-chip small><strong>BioLink:&nbsp;</strong> {{ _stats_summary[resource_key].biolink_version }}</v-chip>
@@ -204,7 +241,6 @@
 
           <div :name="'Details'" v-if="tab === 1">
             <v-container v-bind:key="`${id}_details`" id="page-details" v-if="loading !== null">
-
               <v-row v-if="loading !== null" no-gutter>
 
                 <v-col v-if="loading === true">
@@ -360,7 +396,6 @@
           <div :name="'Recommendations'" v-if="tab === 2">
 
             <v-container>
-
               <v-row>
                 <v-col>
                   <v-btn @click="handleJsonDownload(`${id}_recommendations_${resource}`, recommendations)">
@@ -369,7 +404,7 @@
                 </v-col>
               </v-row>
 
-              <span v-for="resource in flat_index" :key="resource">
+              <span v-for="resource in filtered_index" :key="resource">
 
                 <v-row>
                   <v-col class="d-flex justify-space-between">
@@ -399,7 +434,7 @@
                             </span>
                             <span class="text-subtitle-2" v-else-if="item.type === 'test_data'">Test data</span>
                             <span v-else-if="item.type === 'message'">
-                              <ul class="noindent">
+                              <ul>
                                 <li v-for="[detail, detail_value] in Object.entries(item.message)" :key="resource+message_type+code_detail_detail_value+Math.random()">
                                   <span class="text-subtitle-1">{{ detail | capitalize }}:&nbsp;</span>{{detail_value}}<br>
                                 </li>
@@ -445,7 +480,6 @@ import { Cartesian, Line, Bar } from 'laue'
 import { SizeProvider, SizeObserver } from 'vue-size-provider'
 
 import fileDownload from 'js-file-download';
-import { Fragment } from 'vue-frag'
 
 // API code in separate file so we can switch between live and mock instance,
 // also configure location for API in environment variables and build variables
@@ -456,7 +490,9 @@ import axios from "./api.js";
 const MOCK = process.env.isAxiosMock;
 const FEATURE_RUN_TEST_BUTTON = process.env._FEATURE_RUN_TEST_BUTTON;
 const FEATURE_RUN_TEST_SELECT = process.env._FEATURE_RUN_TEST_SELECT;
-const FEATURE_RECOMMENDATIONS = true // process.env._FEATURE_RECOMMENDATIONS;
+const FEATURE_RECOMMENDATIONS = process.env._FEATURE_RECOMMENDATIONS;
+const FEATURE_SELECT_TEST_RUN_RESOURCES = process.env._FEATURE_SELECT_TEST_RUN_RESOURCES;
+const FEATURE_REGISTRY_CALL = process.env._FEATURE_REGISTRY_CALL
 
 export default {
     name: 'App',
@@ -466,9 +502,8 @@ export default {
         TranslatorFilter,
         TranslatorCategoriesList,
         VcPiechart,
-        LaCartesian: Cartesian,
-        LaBar: Bar,
-        Fragment
+        Cartesian,
+        Bar,
     },
     filters: {
         capitalize: function (value) {
@@ -485,6 +520,8 @@ export default {
             FEATURE_RUN_TEST_BUTTON,
             FEATURE_RUN_TEST_SELECT,
             FEATURE_RECOMMENDATIONS,
+            FEATURE_SELECT_TEST_RUN_RESOURCES,
+            FEATURE_REGISTRY_CALL,
             tabs,
             hover: false,
             id: null,
@@ -494,12 +531,13 @@ export default {
             token: null,
             tab: '',
             registryResults: [],
-            kp_selections: [],
-            ara_selections: [],
             test_runs_selections: [],
+            test_runs_contents: null,
             status_interval: -1,
             status: -1,
             outcome_filter: "all",
+            ara_choice: '',
+            kp_choice: '',
             ara_filter: [],
             kp_filter: [],
             predicate_filter: [],
@@ -518,15 +556,18 @@ export default {
             data_table_hold_selection: false,
             recommendations: null,
             active: [],
+            registry: null
         }
     },
     created () {
-        // initialize application
-        if (!(this._FEATURE_RUN_TEST_BUTTON || this._FEATURE_RUN_TEST_SELECT)) {
-            axios.get(`/test_runs`).then(async response => {
-                const test_runs = response.data.test_runs;
+        if (FEATURE_REGISTRY_CALL) {
+            axios.get(`/registry`).then(async response => {
+                this.registry = response.data;
+            })
+        } else {
+            axios.get(`/test_runs`).then(response => {
                 this.test_runs_selections = response.data.test_runs;
-           })
+            })
         }
     },
     watch: {
@@ -564,11 +605,40 @@ export default {
                 this.status = -1;
             }
         },
-        index(newIndex, oldIndex) {
-            if (newIndex !== null) {
-                this.getAllCategories(this.id, newIndex);
-                this.getAllRecommendations(this.id, newIndex);
-            };
+        index: {
+            handler(newIndex, oldIndex) {
+                if (newIndex !== null) {
+                    this.getAllCategories(this.id, newIndex);
+                    this.getAllRecommendations(this.id, newIndex);
+                };
+            },
+        },
+        test_runs_selections: {
+            handler(newTestRuns, oldTestRuns) {
+                if (!FEATURE_REGISTRY_CALL) {
+                    Promise.all(newTestRuns.map(test_run =>
+                        axios.get(`/index?test_run_id=${test_run}`).then(response => {
+                            const { KP, ARA } = response.data.summary;
+                            return {
+                                "test_run_id": test_run,
+                                "KPs": !!KP ? KP : [],
+                                "ARAs": !!ARA ? Object.keys(ARA) : [],
+                            }
+                        })
+                    )).then(values => {
+                        const grouped_values = _.groupBy(values, 'test_run_id');
+                        let test_runs_contents = {};
+                        for (let key in grouped_values) {
+                            if (!!!test_runs_contents[key]) test_runs_contents[key] = { 'KPs': [], 'ARAs': [] };
+                            test_runs_contents[key]["KPs"].push(...grouped_values[key][0]["KPs"])
+                            test_runs_contents[key]["ARAs"].push(...grouped_values[key][0]["ARAs"])
+                        }
+                        this.test_runs_contents = test_runs_contents;
+                        return test_runs_contents;
+                    })
+                }
+            },
+            deep: true
         }
     },
     computed: {
@@ -642,6 +712,15 @@ export default {
             ...Object.keys(this.index.ARA).flatMap(ara_key => this.index.ARA[ara_key].map(kp_key => `${ara_key}_${kp_key}`)),
             ...this.index.KP
           ]
+        },
+        filtered_index() {
+            if (this.flat_index.length === 0) return []
+            return this.flat_index.filter(key => {
+                return this.ara_filter.length > 0 || this.kp_filter.length > 0 ?
+                    _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(key, provider_name))
+                 || _.some(this.kp_filter, kp => _.includes(key, kp))
+                 : true
+            })
         },
         denormalized_message_summary() {
             if (!!!this.recommendations) return null;
@@ -725,17 +804,10 @@ export default {
                           && (this.subject_category_filter.length > 0 ? this.subject_category_filter.includes(el.spec.subject_category) : true)
                           && (this.predicate_filter.length > 0 ? this.predicate_filter.includes(el.spec.predicate) : true)
                           && (this.object_category_filter > 0 ? this.object_category_filter.includes(el.spec.object_category) : true)
-                          && (this.ara_filter.length > 0
-                              || this.kp_filter.length > 0 ? _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(el._id, provider_name))
+                          && (this.ara_filter.length > 0 || this.kp_filter.length > 0 ? _.every(this.ara_filter.concat(this.kp_filter), provider_name => _.includes(el._id, provider_name))
                               || _.some(this.kp_filter, kp => _.includes(el._id, kp))
                               : true)
-                          && (this.kp_selections.length > 0 || this.ara_selections.length > 0 ?
-                              this.kp_selections.some(el =>
-                                (el.includes(cell._id)
-                                  || this.kps_only ? el.includes(cell._id.split('|')[0]) || el.includes(cell._id.split('|')[1]) : false)
-                                  || this.ara_selections.some(el => el.includes(el._id.split('|')[0]) || el.includes(el._id.split('|')[1])))
-                              : true)
-                  })
+                 })
             return filtered_cells;
         },
         combined_provider_summary() {
@@ -840,7 +912,12 @@ export default {
           fileDownload(JSON.stringify(data, null, 4), `${name}.json`)
         },
         async triggerReloadTestRunSelections() {
-            await axios.get(`/test_runs`).then(response => {
+            let query_params = [];
+            if (this.FEATURE_SELECT_TEST_RUN_RESOURCES) {
+                if (!_.isEmpty(this.ara_choice)) query_params.push(['ara_id', this.ara_choice])
+                if (!_.isEmpty(this.kp_choice)) query_params.push(['kp_id', this.kp_choice])
+            }
+            axios.get(`/test_runs`).then(response => {
                 this.test_runs_selections = response.data.test_runs;
             })
         },
@@ -975,6 +1052,7 @@ export default {
             let new_resources = {};
             let resource_promises = [];
 
+            // TODO: prevent duplicate call to resource
             index.KP.forEach(kp_id => {
                 resource_promises.push(
                     axios.get(`/resource?test_run_id=${id}&kp_id=${kp_id}`)
@@ -1010,12 +1088,11 @@ export default {
 
            return categories;
         },
-        flatten_ara_keys(ARAIndex, delimiter='_') {
-            return Object.entries(ARAIndex).flatMap(([ara, entry]) => Object.values(entry).map(kp => ara+delimiter+kp))
-        },
         makeTableData(id, stats_summary) {
             this.headers = [];
             this.cells = [];
+
+            // TODO: prevent duplicate call to `resource`
             const report = Promise.resolve(stats_summary).then(response => {
                 if (response !== null) {
                     const { KP={}, ARA={} } = response;
@@ -1074,23 +1151,22 @@ export default {
         },
 
 
-        // import methods from packages
-        isObject,
-        countBy,
-        throttle,
-        debounce,
-
         // custom methods for application testing
         tap: el => { console.log("hello", el, this); return el },
 
+        // import methods from packages
+        throttle,
+        debounce,
+
+        // object manipulation
         omit: (...keys) => object => _.omit(object, keys),
         pick: (...keys) => object => _.pick(object, keys),
         notEmpty: (list) => list.filter(el => el !== ""),
         orderObjectKeysBy(obj, keys) {
             return Object.fromEntries(Object.entries(obj).sort(([a, _], [b, __]) => orderByArrayFunc(keys)(a, b)))
         },
-        // `custom-filter` in v-data-table props: https://vuetifyjs.com/en/api/v-data-table/#props
 
+        // `custom-filter` in v-data-table props: https://vuetifyjs.com/en/api/v-data-table/#props
         // adjust cell style:
         // TODO - move on to use style classes instead
         cellStyle(state) {
@@ -1169,16 +1245,6 @@ export default {
                 subcode
             }
         },
-        lowercase: function (value) {
-            if (!value) return ''
-            value = value.toString();
-            return value.toLowerCase();
-        },
-        unplural: function(value) {
-            if (!value) return ''
-            value = value.toString()
-            return value.charAt(value.length - 1) === 's' ? value.slice(0,-1) : value;
-        },
         recommendationsToTreeView(recommendations) {
             return Object.keys(recommendations).reduce((message_types, message_type) => {
                 const messages = Object.keys(recommendations[message_type]).reduce((codes, code) => {
@@ -1206,12 +1272,6 @@ export default {
                 message_types[message_type] = messages;
                 return message_types;
             }, {})
-        },
-        groupByCond(message_type, values) {
-          return message_type === "warnings" ? _.groupBy(values,_.property(['message', 'categories']) )
-          : message_type === "errors" ? _.groupBy(values, _.property(['message', 'context']))
-          : message_type === "information" ?  _.groupBy(values, _.property(['message', 'name']))
-          : values
         }
     }
 }
