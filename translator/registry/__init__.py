@@ -1,7 +1,7 @@
 """
 Translator SmartAPI Registry access module.
 """
-from typing import Optional, List, Dict, NamedTuple, Set, Tuple
+from typing import Optional, Union, List, Dict, NamedTuple, Set, Tuple
 from datetime import datetime
 
 import requests
@@ -194,44 +194,87 @@ def rewrite_github_url(url: str) -> str:
     return url
 
 
-def validate_test_data_location(url: str) -> Optional[str]:
-    """
-    Validates the resource file name and internet access of the specified test_data_location, but not file content.
-
-    :param url: original URL value asserted to be the internet resolvable component's test data file
-    :return: bool, True if accessible JSON file; False otherwise.
-    """
-    if not url:
-        logger.error(f"validate_test_data_location(): empty URL?")
-    elif not url.startswith('http'):
-        logger.error(f"validate_test_data_location(): Resource '{url}' is not an internet URL?")
+def validate_test_data_url(url: str) -> Optional[str]:
+    # Simple URL string to validate
+    if not url.startswith('http'):
+        logger.error(
+            f"validate_test_data_location(): Simple string test_data_location " + \
+            f"'{url}' is not a valid URL?"
+        )
     #
     # As it happens, Translator teams are not fastidious about using .json file
     # extensions to their test data, so we relax this constraint on test data files.
     #
     # elif not url.endswith('json'):
-    #     logger.error(f"validate_test_data_location(): JSON Resource '{url}' expected to have a 'json' file extension?")
+    #     logger.error(f"validate_test_data_location(): JSON Resource " +
+    #                  f"'{url}' expected to have a 'json' file extension?")
     else:
         # Sanity check: rewrite 'regular' Github page endpoints to
         # test_data_location JSON files, into 'raw' file endpoints
         # before attempting access to the resource
-        url = rewrite_github_url(url)
+        test_data_location = rewrite_github_url(url)
 
         try:
-            request = requests.get(url)
+            request = requests.get(test_data_location)
             if request.status_code == 200:
                 # Success! return the successfully accessed
                 # (possibly rewritten) test_data_location URL
                 return url
             else:
                 logger.error(
-                    f"validate_test_data_location(): '{url}' access returned http status code: {request.status_code}?"
+                    f"validate_test_data_location(): '{test_data_location}' access " +
+                    f"returned http status code: {request.status_code}?"
                 )
         except RequestException as re:
             logger.error(f"validate_test_data_location(): exception {str(re)}?")
 
-    # default is to fail here
     return None
+
+
+def parse_test_data_location_object(test_data_specification: Dict) -> Optional[Union[str, List, Dict]]:
+    """
+    Parses 'full' Translator SmartAPI Registry entry info.x-trapi.test_data_location property specification
+    (option 2 format discussed in https://github.com/TranslatorSRI/SRI_testing/issues/59#issuecomment-1275136793)
+    :param test_data_specification: Dict, complex specification of test_data_location (see schema)
+    :return: Optional[Union[str, List, Dict]], single string URL, array of URL's or an x-maturity indexed URL catalog
+    """
+    return None
+
+
+def validate_test_data_location(
+        test_data_location: Optional[Union[str, List, Dict]]
+) -> Optional[Union[str, List, Dict]]:
+    """
+    Parses the contents of the test_data_location but not (yet) the REST file to which the test data location points.
+
+    :param test_data_location: original URL value asserted to specify an REST resolvable file
+    :return: Optional[Union[str, List, Dict]], single string URL, array of URL's or an x-maturity indexed URL catalog
+    """
+    try:
+        if not test_data_location:
+            logger.error(f"validate_test_data_location(): empty URL?")
+
+        elif isinstance(test_data_location, str):
+            # 'classical' simply string URL value
+            # Note: the Translator SmartAPI Registry may no longer simply return this, LOL?
+            return validate_test_data_url(test_data_location)
+
+        elif isinstance(test_data_location, Dict):
+            # Parse in an instance of the new extended JSON object data model for info.x-trapi.test_data_location.
+            # See https://github.com/NCATSTranslator/translator_extensions/pull/19/files for the applicable schema.
+            return parse_test_data_location_object(test_data_location)
+
+        else:
+            logger.error(
+                f"validate_test_data_location(): unexpected data type " +
+                f"for test_data_location '{str(test_data_location)}'"
+            )
+
+        # default is to fail here
+        raise RuntimeError
+
+    except RuntimeError:
+        return None
 
 
 class RegistryEntryId(NamedTuple):
@@ -293,11 +336,13 @@ def testable_resource(index, service, component) -> Optional[Dict[str, str]]:
         )
         return None
 
-    raw_test_data_location: Optional[str] = tag_value(service, "info.x-trapi.test_data_location")
+    raw_test_data_location: Optional[Union[str, Dict]] = tag_value(service, "info.x-trapi.test_data_location")
 
     # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
-    test_data_location = validate_test_data_location(raw_test_data_location)
+    test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_location(raw_test_data_location)
     if test_data_location:
+        # Optional[Union[str, List, Dict]], single string URL,
+        # array of URL's or an x-maturity indexed URL catalog
         resource_metadata['test_data_location'] = test_data_location
     else:
         logger.warning(
@@ -529,9 +574,9 @@ def extract_component_test_metadata_from_registry(
 _the_registry_data: Optional[Dict] = None
 
 
-def get_the_registry_data():
+def get_the_registry_data(refresh: bool = False):
     global _the_registry_data
-    if not _the_registry_data:
+    if not _the_registry_data or refresh:
         _the_registry_data = query_smart_api(parameters=SMARTAPI_QUERY_PARAMETERS)
     return _the_registry_data
 
