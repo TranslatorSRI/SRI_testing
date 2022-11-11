@@ -1,7 +1,7 @@
 """
 Translator SmartAPI Registry access module.
 """
-from typing import Optional, Union, List, Dict, NamedTuple, Set, Tuple
+from typing import Optional, Union, List, Dict, NamedTuple, Set, Tuple, Any
 from datetime import datetime
 
 import requests
@@ -194,7 +194,7 @@ def rewrite_github_url(url: str) -> str:
     return url
 
 
-def validate_test_data_url(url: str) -> Optional[str]:
+def validate_url(url: str) -> Optional[str]:
     # Simple URL string to validate
     if not url.startswith('http'):
         logger.error(
@@ -231,14 +231,48 @@ def validate_test_data_url(url: str) -> Optional[str]:
     return None
 
 
-def parse_test_data_location_object(test_data_specification: Dict) -> Optional[Union[str, List, Dict]]:
+def parse_test_urls(test_data_location) -> Optional[Union[str, List[str]]]:
+
+    if isinstance(test_data_location, str):
+        # 'classical' simple string URL value
+        return validate_url(test_data_location)
+
+    elif isinstance(test_data_location, List):
+        # List of URL strings
+        url_list: List[str] = list()
+        for location in test_data_location:
+            url: Optional[str] = validate_url(location)
+            if url:
+                url_list.append(url)
+        if url_list:
+            return url_list
+
+    # Fall through value is failure
+    return None
+
+
+def parse_test_environment_urls(test_environments: Dict) -> Optional[Dict]:
     """
     Parses 'full' Translator SmartAPI Registry entry info.x-trapi.test_data_location property specification
     (option 2 format discussed in https://github.com/TranslatorSRI/SRI_testing/issues/59#issuecomment-1275136793)
-    :param test_data_specification: Dict, complex specification of test_data_location (see schema)
-    :return: Optional[Union[str, List, Dict]], single string URL, array of URL's or an x-maturity indexed URL catalog
+    :param test_environments: Dict, complex specification of test_data_location (see schema)
+    :return: Optional[Dict], an x-maturity indexed URL catalog
     """
-    return None
+    valid_urls: Dict = dict()
+    for x_maturity in test_environments.keys():
+        if x_maturity not in {'default', 'production', 'staging', 'testing', 'development'}:
+            logger.warning(f"Unknown x-maturity value: {x_maturity}")
+        else:
+            test_url_object = test_environments[x_maturity]
+            if isinstance(test_url_object, Dict) and 'url' in test_url_object:
+                urls: Optional[Union[str, List[str]]] = parse_test_urls(test_url_object['url'])
+                if urls:
+                    valid_urls[x_maturity] = urls
+                    continue
+
+            logger.warning(f"Invalid test_url_object: '{test_url_object}'")
+
+    return valid_urls
 
 
 def validate_test_data_location(
@@ -254,24 +288,19 @@ def validate_test_data_location(
         if not test_data_location:
             logger.error(f"validate_test_data_location(): empty URL?")
 
-        elif isinstance(test_data_location, str):
-            # 'classical' simply string URL value
-            # Note: the Translator SmartAPI Registry may no longer simply return this, LOL?
-            return validate_test_data_url(test_data_location)
-
         elif isinstance(test_data_location, Dict):
             # Parse in an instance of the new extended JSON object data model for info.x-trapi.test_data_location.
             # See https://github.com/NCATSTranslator/translator_extensions/pull/19/files for the applicable schema.
-            return parse_test_data_location_object(test_data_location)
-
+            x_maturity_urls: Dict = parse_test_environment_urls(test_data_location)
+            if x_maturity_urls:
+                return x_maturity_urls
         else:
-            logger.error(
-                f"validate_test_data_location(): unexpected data type " +
-                f"for test_data_location '{str(test_data_location)}'"
-            )
+            # simpler url specification
+            urls: Optional[Union[str, List[str]]] = parse_test_urls(test_data_location)
+            if urls:
+                return urls
 
-        # default is to fail here
-        raise RuntimeError
+        raise RuntimeError("Valid test_data_location values not found?")
 
     except RuntimeError:
         return None
@@ -284,8 +313,8 @@ class RegistryEntryId(NamedTuple):
     biolink_version: str
 
 
-# here, we track Registry duplications of KP and ARA infores identifiers
-_infores_catalog: Dict[str, List[RegistryEntryId]] = dict()
+# here, we track Registry duplications of KP and ARA services
+_service_catalog: Dict[str, List[RegistryEntryId]] = dict()
 
 # Some ARA's and KP's may be tagged tp be ignored for practical reasons
 _ignored_resources: Set[str] = {
@@ -300,7 +329,7 @@ _ignored_resources: Set[str] = {
 }
 
 
-def testable_resource(index, service, component) -> Optional[Dict[str, str]]:
+def testable_resource(index, service, component) -> Optional[Dict[str, Union[str, List, Dict]]]:
     #
     # This 'overloaded' function actually checks a number of parameters that need to be present for testable resources.
     # If the validation of all parameters succeeds, it returns a dictionary of those values; otherwise, returns 'None'
@@ -341,8 +370,8 @@ def testable_resource(index, service, component) -> Optional[Dict[str, str]]:
     # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
     test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_location(raw_test_data_location)
     if test_data_location:
-        # Optional[Union[str, List, Dict]], single string URL,
-        # array of URL's or an x-maturity indexed URL catalog
+        # Optional[Union[str, List, Dict]], is a single string URL,
+        # array of URL's, or an x-maturity indexed catalog of URLs
         resource_metadata['test_data_location'] = test_data_location
     else:
         logger.warning(
@@ -414,7 +443,7 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
         if not (component and component in ["KP", "ARA"]):
             continue
 
-        resource_metadata: Optional[Dict[str, str]] = testable_resource(index, service, component)
+        resource_metadata: Optional[Dict[str, Any]] = testable_resource(index, service, component)
         if not resource_metadata:
             continue
 
@@ -504,7 +533,7 @@ def extract_component_test_metadata_from_registry(
         if not (component and component == component_type):
             continue
 
-        resource_metadata: Optional[Dict[str, str]] = testable_resource(index, service, component)
+        resource_metadata: Optional[Dict[str, Any]] = testable_resource(index, service, component)
         if not resource_metadata:
             continue
 
@@ -512,7 +541,13 @@ def extract_component_test_metadata_from_registry(
         # the following parameters are assumed valid and non-empty
         service_title: str = resource_metadata['service_title']
         infores: str = resource_metadata['infores']
+
+        # this 'url' is the service endpoing
         url: str = resource_metadata['url']
+
+        # The 'test_data_location' also has url's but these are expressed
+        # in a polymorphic manner: Optional[Dict[str, Union[str, List, Dict]]].
+        # See validate_test_data_location above for details
         test_data_location: str = resource_metadata['test_data_location']
 
         # Filter on target sources of interest
@@ -534,8 +569,11 @@ def extract_component_test_metadata_from_registry(
         if not biolink_version or SemVer.from_string(MINIMUM_BIOLINK_VERSION) >= SemVer.from_string(biolink_version):
             biolink_version = MINIMUM_BIOLINK_VERSION
 
-        if infores not in _infores_catalog:
-            _infores_catalog[infores] = list()
+        # Index services by (infores, trapi_version, biolink_version)
+        service_id: str = f"{infores},{trapi_version},{biolink_version}"
+
+        if service_id not in _service_catalog:
+            _service_catalog[service_id] = list()
         else:
             logger.warning(
                 f"Infores '{infores}' appears duplicated among {component} Registry entries. " +
@@ -543,28 +581,27 @@ def extract_component_test_metadata_from_registry(
                 f"TRAPI version '{str(trapi_version)}' and Biolink Version '{str(biolink_version)}'."
             )
 
-        if test_data_location not in service_metadata:
-            service_metadata[test_data_location] = dict()
+        if service_id not in service_metadata:
+            service_metadata[service_id] = dict()
         else:
-            # TODO: duplicate test_data_locations may be problematic for our unique indexing of the service,
-            #       Should be rather now be indexing the services by (infores, trapi_version, biolink_version)?
             logger.warning(
-                f"Ignoring service {index}: '{service_title}' " +
-                f"with a duplicate test_data_location '{test_data_location}'?"
+                f"Ignoring service {index}: '{service_title}' with a duplicate service" +
+                f"'infores,trapi_version,biolink_version' identifier: '{service_id}'?"
             )
             continue
 
         entry_id: RegistryEntryId = RegistryEntryId(service_title, service_version, trapi_version, biolink_version)
 
-        _infores_catalog[infores].append(entry_id)
+        _service_catalog[service_id].append(entry_id)
 
-        capture_tag_value(service_metadata, test_data_location, "url", url)
-        capture_tag_value(service_metadata, test_data_location, "service_title", service_title)
-        capture_tag_value(service_metadata, test_data_location, "service_version", service_version)
-        capture_tag_value(service_metadata, test_data_location, "component", component_type)
-        capture_tag_value(service_metadata, test_data_location, "infores", infores)
-        capture_tag_value(service_metadata, test_data_location, "biolink_version", biolink_version)
-        capture_tag_value(service_metadata, test_data_location, "trapi_version", trapi_version)
+        capture_tag_value(service_metadata, service_id, "url", url)
+        capture_tag_value(service_metadata, service_id, "service_title", service_title)
+        capture_tag_value(service_metadata, service_id, "service_version", service_version)
+        capture_tag_value(service_metadata, service_id, "component", component_type)
+        capture_tag_value(service_metadata, service_id, "infores", infores)
+        capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)  # may be complex!
+        capture_tag_value(service_metadata, service_id, "biolink_version", biolink_version)
+        capture_tag_value(service_metadata, service_id, "trapi_version", trapi_version)
 
     return service_metadata
 
