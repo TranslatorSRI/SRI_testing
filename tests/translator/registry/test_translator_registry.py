@@ -1,11 +1,12 @@
 """
 Unit tests for Translator SmartAPI Registry
 """
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Union, Tuple, Dict, List
 import logging
 import pytest
 
 from translator.registry import (
+    get_default_url,
     rewrite_github_url,
     query_smart_api,
     SMARTAPI_QUERY_PARAMETERS,
@@ -16,6 +17,55 @@ from translator.registry import (
 )
 
 logger = logging.getLogger(__name__)
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        (None, None),
+        ("", None),
+        (list(), None),
+        (dict(), None),
+        ("http://test_data", "http://test_data"),
+        (
+            [
+                "http://first_test_data",
+                "http://second_test_data"
+            ],
+            "http://first_test_data"
+        ),
+        (
+            {
+                'default': "http://default_test_data",
+                'production': "http://production_test_data",
+                'staging': "http://staging_test_data",
+                'testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+            },
+            "http://default_test_data"
+        ),
+        (
+            {
+                'testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+                'production': "http://production_test_data",
+                'staging': "http://staging_test_data"
+            },
+            "http://production_test_data"
+        ),
+        (
+            {
+                'our_testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+                'the_production': "http://production_test_data",
+                'staging': "http://staging_test_data"
+            },
+            "http://staging_test_data"
+        )
+    ]
+)
+def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
+    # get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Optional[str]
+    assert get_default_url(query[0]) == query[1]
 
 
 @pytest.mark.parametrize(

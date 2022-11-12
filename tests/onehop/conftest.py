@@ -14,6 +14,7 @@ from reasoner_validator.biolink import check_biolink_model_compliance_of_input_e
 from reasoner_validator.versioning import latest
 
 from translator.registry import (
+    get_default_url,
     get_remote_test_data_file,
     get_the_registry_data,
     extract_component_test_metadata_from_registry
@@ -599,16 +600,13 @@ def get_test_data_sources(
     return service_metadata
 
 
-def load_test_data_source(
-        source: str,
-        registry_metadata: Dict[str, Optional[Union[str, Dict]]]
-) -> Optional[Dict]:
+def load_test_data_source(registry_metadata: Dict[str, Optional[Union[str, Dict]]]) -> Optional[Dict]:
     """
     Load JSON metadata file(s) from a specified component test data source. Note that with the latest
     Translator SmartAPI Registry data model for info.x-trapi.test_data_location properties, that the
-    actual data loaded may be from multiple file sources, and may represent distinct x-maturity environments.
+    actual data loaded may relate to several distinct x-maturity environments that may have more than
+    one JSON test file sources.
 
-    :param source: source string, is now  a 3-tuple common delimited string of (infores, trapi_version, biolink_version)
     :param registry_metadata: Dict[str, Optional[Union[str, Dict]]], metadata associated with source
     :return: Optional[Dict], annotated KP test edges or ARA configuration parameters metadata; 'None' if unavailable
     """
@@ -616,53 +614,35 @@ def load_test_data_source(
     assert registry_metadata is not None
 
     # TODO: the test_data_location value in the registry_metadata is now complex ...
-
-    #
-    # Some KP or ARA sources don't bother to use the .json file extension even though
-    # they are JSON formatted files. We'll now turn a blind eye to this for now.
-    #
-    # if not source.endswith('json'):
-    #     # Source file, whatever its origin -
-    #     # local or Translator SmartAPI Registry x-trapi
-    #     # specified test_data_location - should be a JSON file.
-    #     # Ignore this test data source...
-    #     return None
-
-    test_data: Optional[Dict] = None
-    if source.startswith('http'):
-        # Source is an online test data repository, likely harvested
-        # from the Translator SmartAPI Registry 'test_data_location'
-        # TODO: handle (x-maturity indexed?) lists of test_data_locations URLs - hence, multiple files - here?
-        test_data = get_remote_test_data_file(source) xxx
-    else:
-        # # Source is a local data file
-        # with open(source, 'r') as local_file:
-        #     try:
-        #         test_data = json.load(local_file)
-        #     except (json.JSONDecodeError, TypeError):
-        #         logger.error(f"load_test_data_source(): input file '{source}': Invalid JSON")
-
-        # Local test data files are deprecated now.
+    #       We will patch this up later.. for now, we just infer a default REST Url
+    test_data_location: Optional[str] = get_default_url(registry_metadata['test_data_location'])
+    if not test_data_location:
         return None
 
-    if test_data is not None: xxx # TODO: how do I handle diverse x-maturities here? a list of test_data_locations?
+    # TODO: handle (x-maturity indexed?) lists of test_data_locations
+    #       URLs - hence, multiple files - here later?
+    test_data = get_remote_test_data_file(test_data_location)
+    if not test_data:
+        return None
 
-        if 'url' in registry_metadata and 'url' in test_data:
-            # Registry metadata 'url' value may now
-            # override the corresponding test_data value
-            test_data.pop('url')
+    if 'url' in registry_metadata and 'url' in test_data:
+        # Registry metadata 'url' value may now
+        # override the corresponding test_data value
+        test_data.pop('url')
 
-        # append/override test data to metadata
-        registry_metadata.update(test_data)
+    # append/override test data to metadata
+    registry_metadata.update(test_data)
 
-        registry_metadata['location'] = source xxx # TODO: this should come from the test_data_location map now
+    registry_metadata['location'] = test_data_location
 
-        # the api_name extracted from a URL path
-        api_name: str = source.split('/')[-1]
-        # remove the trailing file extension
-        registry_metadata['api_name'] = api_name.replace(".json", "")
+    # the api_name extracted from a URL path
+    api_name: str = test_data_location.split('/')[-1]
 
-    # TODO: should the metadata files here here be x-maturity indexed(?!?)
+    # remove any trailing file extension
+    registry_metadata['api_name'] = api_name.replace(".json", "")
+
+    # TODO: should the metadata files returned here eventually be a
+    #       x-maturity indexed possibly with an array of values (?!?)
     return registry_metadata
 
 
@@ -751,6 +731,7 @@ def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict
     if ara_id == "SKIP":
         return dict()  # no ARA's to validate
 
+    # Note: the ARA's trapi_version and biolink_version may be overridden here
     return get_test_data_sources(
             source=ara_id,
             trapi_version=trapi_version,
@@ -770,6 +751,7 @@ def get_kp_metadata(
     # 'kp_metadata' returns all available KP's
     target_kp_id = metafunc.config.getoption('kp_id')
 
+    # Note: the KP's trapi_version and biolink_version may be overridden here
     kp_metadata: Dict[str, Dict[str, Optional[str]]] = \
         get_test_data_sources(
             source=target_kp_id,
@@ -781,10 +763,14 @@ def get_kp_metadata(
     if len(ara_metadata) == 1:
         # if we have exactly one ARA, then perhaps we should only pay
         # attention to KPs indicated by test configuration as called by that ARA?
-        # Since we don't want to pop the metadata from its dictionary,
-        # and don't ab initio know the ara_id, we just use a for loop to access it
+        # Since we don't want to pop the metadata from its dictionary but
+        # don't know the ara_id, we need to use a for loop to access it
         for ara_source, ara_metadata in ara_metadata.items():
-            arajson: Dict = load_test_data_source(ara_source, ara_metadata)
+
+            # TODO: with x-maturity environments and the possibility of a list
+            #       of test data files, the arajson may not soon be what it seems!
+            arajson: Dict = load_test_data_source(ara_metadata)
+
             kps: Set[str] = {kp_id for kp_id in arajson['KPs']}
 
             # Blight assumption here is that our kp_metadata
@@ -810,9 +796,9 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
     for source, metadata in kp_metadata.items():
 
-        # User CLI may trapi_version, biolink_version may (but not necessarily) here
-        # override the target Biolink Model version during KP test data preparation
-        kpjson = load_test_data_source(source, metadata)
+        # TODO: with x-maturity environments and the possibility of a list
+        #       of test data files, the kpjson may not soon be what it seems!
+        kpjson = load_test_data_source(metadata)
 
         if not kpjson:
             # valid test data file not found?
@@ -957,9 +943,9 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
 
     for source, metadata in ara_metadata.items():
 
-        # TODO: how will testing for distinct x-maturity environments
-        #       now be handled here? As an x-maturity map?
-        arajson = load_test_data_source(source, metadata)
+        # TODO: with x-maturity environments and the possibility of a list
+        #       of test data files, the arajson may not soon be what it seems!
+        arajson = load_test_data_source(metadata)
 
         if not arajson:
             # valid test data file not found?
@@ -1046,6 +1032,8 @@ def pytest_generate_tests(metafunc):
     biolink_version = metafunc.config.getoption('biolink_version')
     logger.debug(f"pytest_generate_tests(): caller specified biolink_version == {str(biolink_version)}")
 
+    # Note: the ARA and KP trapi_version and biolink_version values
+    #       may be overridden here by the CLI caller values
     ara_metadata = get_ara_metadata(metafunc, trapi_version, biolink_version)
     kp_metadata = get_kp_metadata(metafunc, ara_metadata, trapi_version, biolink_version)
 

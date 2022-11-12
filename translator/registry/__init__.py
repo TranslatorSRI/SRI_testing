@@ -231,6 +231,43 @@ def validate_url(url: str) -> Optional[str]:
     return None
 
 
+def _select_url(urls: Optional[Union[str, List, Dict]]) -> Optional[str]:
+    if urls:
+        if isinstance(urls, str):
+            return urls
+        elif isinstance(urls, List):
+            # This is most often incorrect since it may ignore
+            # most of the test data, but it won't crash the system
+            return urls[0]
+    return None
+
+
+def get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Optional[str]:
+    """
+    This method selects a default test_data_location url for use in test data / configuration retrieval.
+
+    This is an temporary heuristic solution for the SRI Testing framework to work around complexity in the new
+    info.x-trapi.test_data_location data model, with its x-maturity indexed, possible multiple, test data sources.
+
+    :param test_data_location: Optional[Union[str, List, Dict]]
+    :return: a single resolved URL to a REST JSON file - KP test data or ARA test configuration; None if not available
+    """
+    resolved_url: Optional[str] = _select_url(test_data_location)
+    if resolved_url:
+        return resolved_url
+    elif isinstance(test_data_location, Dict):
+        urls: Optional[Union[str, List[str]]] = None
+        # assume an x_maturity precedence order
+        for x_maturity in ['default', 'production', 'staging', 'testing', 'development']:
+            if x_maturity in test_data_location:
+                urls = test_data_location[x_maturity]
+                break
+        return _select_url(urls)
+    else:
+        # fall through failure
+        return None
+
+
 def parse_test_urls(test_data_location) -> Optional[Union[str, List[str]]]:
 
     if isinstance(test_data_location, str):
@@ -548,7 +585,7 @@ def extract_component_test_metadata_from_registry(
         # The 'test_data_location' also has url's but these are expressed
         # in a polymorphic manner: Optional[Dict[str, Union[str, List, Dict]]].
         # See validate_test_data_location above for details
-        test_data_location: str = resource_metadata['test_data_location']
+        test_data_location = resource_metadata['test_data_location']
 
         # Filter on target sources of interest
         if not source_of_interest(source=infores, target_sources=target_sources):
