@@ -18,6 +18,7 @@ from translator.registry import (
 
 logger = logging.getLogger(__name__)
 
+
 @pytest.mark.parametrize(
     "query",
     [
@@ -27,11 +28,29 @@ logger = logging.getLogger(__name__)
         (dict(), None),
         ("http://test_data", "http://test_data"),
         (
+            "https://github.com/broadinstitute/molecular-data-provider/blob" +
+            "/master/test/data/MolePro-test-data.json",
+            "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider" +
+            "/master/test/data/MolePro-test-data.json"
+        ),
+        (
             [
                 "http://first_test_data",
                 "http://second_test_data"
             ],
             "http://first_test_data"
+        ),
+        (
+            {
+                'default': "https://github.com/broadinstitute/molecular-data-provider" +
+                           "/blob/master/test/data/MolePro-test-data.json",
+                'production': "http://production_test_data",
+                'staging': "http://staging_test_data",
+                'testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+            },
+            "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider" +
+            "/master/test/data/MolePro-test-data.json"
         ),
         (
             {

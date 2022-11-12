@@ -232,14 +232,18 @@ def validate_url(url: str) -> Optional[str]:
 
 
 def _select_url(urls: Optional[Union[str, List, Dict]]) -> Optional[str]:
+    simple_raw_url: Optional[str] = None
     if urls:
         if isinstance(urls, str):
-            return urls
+            simple_raw_url = urls
         elif isinstance(urls, List):
             # This is most often incorrect since it may ignore
             # most of the test data, but it won't crash the system
-            return urls[0]
-    return None
+            simple_raw_url = urls[0]
+
+    # A regular Git URL's may need to be
+    # rewritten to a 'raw' Git file access REST url
+    return rewrite_github_url(simple_raw_url) if simple_raw_url else None
 
 
 def get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Optional[str]:
@@ -582,7 +586,7 @@ def extract_component_test_metadata_from_registry(
         # this 'url' is the service endpoing
         url: str = resource_metadata['url']
 
-        # The 'test_data_location' also has url's but these are expressed
+        # The 'test_data_location' also has url's but these are now expressed
         # in a polymorphic manner: Optional[Dict[str, Union[str, List, Dict]]].
         # See validate_test_data_location above for details
         test_data_location = resource_metadata['test_data_location']
