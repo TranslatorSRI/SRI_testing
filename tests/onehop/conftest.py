@@ -536,28 +536,6 @@ def _fix_path(file_path: str) -> str:
     return file_path
 
 
-def _build_filelist(entry):
-    filelist = []
-    if path.isfile(entry):
-        filelist.append(entry)
-    else:
-        dtrips = walk(entry)
-        for dirpath, dirnames, filenames in dtrips:
-            # SKIP specific test folders, if so tagged
-            if dirpath and dirpath.endswith("SKIP"):
-                continue
-            # Windows OS quirk - fix path
-            real_dirpath = _fix_path(dirpath)
-            for f in filenames:
-                # SKIP specific test files, if so tagged
-                if f.endswith("SKIP"):
-                    continue
-                kpfile = f'{real_dirpath}{sep}{f}'
-                filelist.append(kpfile)
-    
-    return filelist
-
-
 def get_test_data_sources(
         component_type: str,
         source: Optional[str] = None,
