@@ -58,7 +58,8 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
         test_report.skip(code="error.non_compliant", edge_id=edge_id, messages=test_case['pre-validation'])
 
 
-def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
+@pytest.mark.asyncio
+async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
     """Generic Test for TRAPI KPs. The kp_trapi_case fixture is created in conftest.py by looking at the test_triples
     These get successively fed to test_TRAPI.  This function is further parameterized by trapi_creator, which knows
     how to take an input edge and create some kind of TRAPI query from it.  For instance, by_subject removes the object,
@@ -95,7 +96,7 @@ def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report
         )
     else:
-        execute_trapi_lookup(
+        await execute_trapi_lookup(
             case=kp_trapi_case,
             creator=trapi_creator,
             rbag=results_bag,
@@ -104,6 +105,7 @@ def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         results_bag.unit_test_report.assert_test_outcome()
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "trapi_creator",
     [
@@ -114,7 +116,7 @@ def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         oh_util.raise_predicate_by_subject
     ]
 )
-def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
+async def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
     """Generic Test for ARA TRAPI.  It does the same thing as the KP TRAPI, calling an ARA that should be pulling
     data from the KP.
     Then it performs a check on the result to make sure that the provenance is correct.
@@ -148,7 +150,7 @@ def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report
         )
     else:
-        execute_trapi_lookup(
+        await execute_trapi_lookup(
             case=ara_trapi_case,
             creator=trapi_creator,
             rbag=results_bag,

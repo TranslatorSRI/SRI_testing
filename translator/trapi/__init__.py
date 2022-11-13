@@ -134,7 +134,7 @@ def generate_test_error_msg_prefix(case: Dict, test_name: str) -> str:
     return test_msg_prefix
 
 
-def call_trapi(url: str, trapi_message):
+async def call_trapi(url: str, trapi_message):
     """
     Given an url and a TRAPI message, post the message
     to the url and return the status and json response.
@@ -209,7 +209,7 @@ def constrain_trapi_request_to_kp(trapi_request: Dict, kp_source: str) -> Dict:
     return trapi_request
 
 
-def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
+async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
     """
     Method to execute a TRAPI lookup, using the 'creator' test template.
 
@@ -250,7 +250,7 @@ def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
                 )
 
             # Make the TRAPI call to the Case targeted KP or ARA resource, using the case-documented input test edge
-            trapi_response = call_trapi(case['url'], trapi_request)
+            trapi_response = await call_trapi(case['url'], trapi_request)
 
             # Record the raw TRAPI query input and output for later test harness reference
             rbag.request = trapi_request
