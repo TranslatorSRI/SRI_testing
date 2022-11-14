@@ -39,6 +39,8 @@
                           test_runs_contents[test_run].ARAs.includes(ara_choice)
                           || test_runs_contents[test_run].KPs.includes(kp_choice)
                           || false : true)"
+                  :clearable="FEATURE_CLEAR_ID"
+                  @click:clear="reinitializeState"
                   @click="handleTestRunSelection"
                   dense>
           <template v-slot:item="{ item }">
@@ -476,6 +478,8 @@ import VcPiechart from "vc-piechart";
 import 'vc-piechart/dist/lib/vc-piechart.min.css';
 import { Cartesian, Line, Bar } from 'laue'
 
+import vuejsStorage from 'vuejs-storage'
+
 // For dynamic resizing
 import { SizeProvider, SizeObserver } from 'vue-size-provider'
 
@@ -492,76 +496,84 @@ const FEATURE_RUN_TEST_BUTTON = process.env._FEATURE_RUN_TEST_BUTTON;
 const FEATURE_RUN_TEST_SELECT = process.env._FEATURE_RUN_TEST_SELECT;
 const FEATURE_RECOMMENDATIONS = process.env._FEATURE_RECOMMENDATIONS;
 const FEATURE_SELECT_TEST_RUN_RESOURCES = process.env._FEATURE_SELECT_TEST_RUN_RESOURCES;
-const FEATURE_REGISTRY_CALL = process.env._FEATURE_REGISTRY_CALL
+const FEATURE_REGISTRY_CALL = process.env._FEATURE_REGISTRY_CALL;
+const FEATURE_SESSION_STORAGE = true //process.env._FEATURE_SESSION_STORAGE;
+const FEATURE_CLEAR_ID = true;
+
+const _initial_state = {
+  id: null,
+  tab: '',
+  registryResults: [],
+  test_runs_selections: [],
+  test_runs_contents: null,
+  status_interval: -1,
+  status: -1,
+  outcome_filter: "all",
+  ara_choice: '',
+  kp_choice: '',
+  ara_filter: [],
+  kp_filter: [],
+  predicate_filter: [],
+  subject_category_filter: [],
+  object_category_filter: [],
+  index: null,
+  stats_summary: null,
+  subject_categories: [],
+  object_categories: [],
+  predicates: [],
+  categories_index: null,
+  resources: null,
+  data_table_selected: null,
+  data_table_selected_item: null,
+  data_table_current_item: null,
+  data_table_hold_selection: false,
+  recommendations: null,
+  active: [],
+  registry: null,
+  loading: null,
+  headers: [],
+  cells: [],
+  token: null,
+  hover: false,
+}
 
 export default {
-    name: 'App',
-    components: {
-        SizeProvider,
-        SizeObserver,
-        TranslatorFilter,
-        TranslatorCategoriesList,
-        VcPiechart,
-        Cartesian,
-        Bar,
+  name: 'App',
+  components: {
+    SizeProvider,
+    SizeObserver,
+    TranslatorFilter,
+    TranslatorCategoriesList,
+    VcPiechart,
+    Cartesian,
+    Bar,
+  },
+  filters: {
+    capitalize: function (value) {
+      if (!value) return ''
+      value = value.toString()
+      return value.charAt(0).toUpperCase() + value.slice(1)
     },
-    filters: {
-        capitalize: function (value) {
-            if (!value) return ''
-            value = value.toString()
-            return value.charAt(0).toUpperCase() + value.slice(1)
-        },
-    },
-    data() {
-        let tabs = ['Overview', 'Details'];
-        if (!!FEATURE_RECOMMENDATIONS) tabs.push('Recommendations')
-        return {
-            MOCK,
-            FEATURE_RUN_TEST_BUTTON,
-            FEATURE_RUN_TEST_SELECT,
-            FEATURE_RECOMMENDATIONS,
-            FEATURE_SELECT_TEST_RUN_RESOURCES,
-            FEATURE_REGISTRY_CALL,
-            tabs,
-            hover: false,
-            id: null,
-            loading: null,
-            headers: [],
-            cells: [],
-            token: null,
-            tab: '',
-            registryResults: [],
-            test_runs_selections: [],
-            test_runs_contents: null,
-            status_interval: -1,
-            status: -1,
-            outcome_filter: "all",
-            ara_choice: '',
-            kp_choice: '',
-            ara_filter: [],
-            kp_filter: [],
-            predicate_filter: [],
-            subject_category_filter: [],
-            object_category_filter: [],
-            index: null,
-            stats_summary: null,
-            subject_categories: [],
-            object_categories: [],
-            predicates: [],
-            categories_index: null,
-            resources: null,
-            data_table_selected: null,
-            data_table_selected_item: null,
-            data_table_current_item: null,
-            data_table_hold_selection: false,
-            recommendations: null,
-            active: [],
-            registry: null
-        }
-    },
-    created () {
-        if (FEATURE_REGISTRY_CALL) {
-            axios.get(`/registry`).then(async response => {
+  },
+  data() {
+    let tabs = ['Overview', 'Details'];
+    if (!!FEATURE_RECOMMENDATIONS) tabs.push('Recommendations')
+    return {
+      MOCK,
+      FEATURE_RUN_TEST_BUTTON,
+      FEATURE_RUN_TEST_SELECT,
+      FEATURE_RECOMMENDATIONS,
+      FEATURE_SELECT_TEST_RUN_RESOURCES,
+      FEATURE_REGISTRY_CALL,
+      FEATURE_SESSION_STORAGE,
+      FEATURE_CLEAR_ID,
+      tabs,
+      ..._initial_state,
+    }
+  },
+  created () {
+    if (FEATURE_REGISTRY_CALL) {
+      axios.get(`/registry`).then(async response => {
                 this.registry = response.data;
             })
         } else {
@@ -570,8 +582,14 @@ export default {
             })
         }
     },
+    storage: FEATURE_SESSION_STORAGE ? {
+      keys: ['id', 'tab'],
+      namespace: 'dashboard-init',
+      driver: vuejsStorage.drivers.sessionStorage,
+    } : undefined,
     watch: {
         id(id, oldId) {
+          if (!_.isEmpty(id)) {
             this.loading = true;
             this.status_interval = setInterval(() => axios.get(`/status?test_run_id=${id}`).then(response => {
                 this.status = response.data.percent_complete;
@@ -579,6 +597,7 @@ export default {
                     window.clearInterval(this.status_interval)
                 }
             }), 3000);
+          }
         },
         status(newStatus, oldStatus) {
             if (!!this.id && newStatus >= 100 && (this.headers.length === 0 && this.cells.length === 0)) {
@@ -1087,6 +1106,11 @@ export default {
             }))
 
            return categories;
+        },
+        reinitializeState() {
+          for (let state in _initial_state) {
+            this[state] = _initial_state[state];
+          }
         },
         makeTableData(id, stats_summary) {
             this.headers = [];

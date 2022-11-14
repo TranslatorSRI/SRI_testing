@@ -2,7 +2,6 @@
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 
-
 import vuejsStorage from 'vuejs-storage';
 
 // autoload plugins
@@ -14,10 +13,9 @@ import { Laue } from 'laue'
 import VcPiechart from 'vc-piechart'
 import 'vc-piechart/dist/lib/vc-piechart.min.css'
 
+Vue.use(vuejsStorage)
 Vue.use(Laue)
 Vue.use(VcPiechart)
-
-Vue.use(vuejsStorage)
 
 Vue.config.productionTip = false
 
