@@ -1,11 +1,12 @@
 """
 Unit tests for Translator SmartAPI Registry
 """
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Union, Tuple, Dict, List
 import logging
 import pytest
 
 from translator.registry import (
+    get_default_url,
     rewrite_github_url,
     query_smart_api,
     SMARTAPI_QUERY_PARAMETERS,
@@ -16,6 +17,74 @@ from translator.registry import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        (None, None),
+        ("", None),
+        (list(), None),
+        (dict(), None),
+        ("http://test_data", "http://test_data"),
+        (
+            "https://github.com/broadinstitute/molecular-data-provider/blob" +
+            "/master/test/data/MolePro-test-data.json",
+            "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider" +
+            "/master/test/data/MolePro-test-data.json"
+        ),
+        (
+            [
+                "http://first_test_data",
+                "http://second_test_data"
+            ],
+            "http://first_test_data"
+        ),
+        (
+            {
+                'default': "https://github.com/broadinstitute/molecular-data-provider" +
+                           "/blob/master/test/data/MolePro-test-data.json",
+                'production': "http://production_test_data",
+                'staging': "http://staging_test_data",
+                'testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+            },
+            "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider" +
+            "/master/test/data/MolePro-test-data.json"
+        ),
+        (
+            {
+                'default': "http://default_test_data",
+                'production': "http://production_test_data",
+                'staging': "http://staging_test_data",
+                'testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+            },
+            "http://default_test_data"
+        ),
+        (
+            {
+                'testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+                'production': "http://production_test_data",
+                'staging': "http://staging_test_data"
+            },
+            "http://production_test_data"
+        ),
+        (
+            {
+                'our_testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+                'the_production': "http://production_test_data",
+                'staging': "http://staging_test_data"
+            },
+            "http://staging_test_data"
+        )
+    ]
+)
+def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
+    # get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Optional[str]
+    assert get_default_url(query[0]) == query[1]
 
 
 @pytest.mark.parametrize(
@@ -265,8 +334,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                     }
                 ]
             },
-            'https://raw.githubusercontent.com/broadinstitute/molecular-data-provider/' +
-            'master/test/data/MolePro-test-data.json',   # KP test_data_location, converted to Github raw data link
+            'molepro,1.3.0,2.4.7',   # KP test_data_location, converted to Github raw data link
             'https://molepro-trapi.transltr.io/molepro/trapi/v1.3'  # 'production' endpoint url preferred for testing?
         ),
         (   # Query 1 - Empty "hits" List
@@ -417,8 +485,7 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                         }
                     ]
                 },
-                'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                'arax,1.3.0,2.2.11',
                 'https://arax.ncats.io/api/arax/v1.3'
         )
     ]
@@ -451,10 +518,10 @@ def test_get_translator_kp_test_data_metadata():
 def test_get_one_specific_target_kp():
     registry_data: Dict = get_the_registry_data()
     # we filter on the 'sri-reference-kg' since it is used both in the mock and real registry?
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, "KP", source="sri-reference-kg")
+    service_metadata = extract_component_test_metadata_from_registry(registry_data, "KP", source="molepro")
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
-        assert service["infores"] == "sri-reference-kg"
+        assert service["infores"] == "molepro"
 
 
 def test_get_translator_ara_test_data_metadata():
