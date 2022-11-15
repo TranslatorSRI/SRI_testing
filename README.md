@@ -92,3 +92,8 @@ docker-compose -f run-mongodb.yaml down
 ```
 
 Of course, the above `docker-compose` commands may be overridden by the user to suit their needs. Note that the docker implementation assumes the use of uvicorn (installed as a dependency).
+
+## Limitations (and Future Work?)
+
+- SRI Testing uses the reasoner-validator library which uses specific versions of the Biolink Model Toolkit. See the [list of reasoner-validator limitations](https://github.com/NCATSTranslator/reasoner-validator/blob/master/README.md#code-limitations-implied-future-work) for further details (e.g. why is my canonical predicate in my Biolink 2.4.8 compliant knowledge graph tagged as non-compliant?)
+
