@@ -13,7 +13,9 @@ from translator.registry import (
     tag_value,
     get_the_registry_data,
     extract_component_test_metadata_from_registry,
-    get_testable_resource_ids_from_registry, source_of_interest
+    get_testable_resource_ids_from_registry,
+    source_of_interest,
+    validate_testable_resource
 )
 
 logger = logging.getLogger(__name__)
@@ -435,63 +437,458 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
     "query",
     [
         (  # Query 0 - Valid 'hits' ARA entry with non-empty 'info.x-trapi.test_data_location'
-                {
-                    "hits": [
-                        {
-                            'info': {
-                                'contact': {
-                                    'email': 'edeutsch@systemsbiology.org'
-                                },
-                                'description': 'TRAPI 1.3 endpoint for the NCATS Biomedical Translator Reasoner called ARAX',
-                                'license': {
-                                    'name': 'Apache 2.0',
-                                    'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
-                                },
-                                'termsOfService': 'https://github.com/RTXteam/RTX/blob/master/LICENSE',
-                                'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
-                                'version': '1.3.0',
-                                'x-translator': {
-                                    'biolink-version': '2.2.11',
-                                    'component': 'ARA',
-                                    'infores': 'infores:arax',
-                                    'team': ['Expander Agent']
-                                },
-                                'x-trapi': {
-                                    'test_data_location':
-                                        'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                        'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
-                                    'version': '1.3.0'
-                                }
+            {
+                "hits": [
+                    {
+                        'info': {
+                            'contact': {
+                                'email': 'edeutsch@systemsbiology.org'
                             },
-                            'servers': [
-                                {
-                                    'description': 'ARAX TRAPI 1.3 endpoint - production',
-                                    'url': 'https://arax.ncats.io/api/arax/v1.3',
-                                    'x-maturity': 'production'
-                                }, {
-                                    'description': 'ARAX TRAPI 1.3 endpoint - testing',
-                                    'url': 'https://arax.test.transltr.io/api/arax/v1.3',
-                                    'x-maturity': 'testing'
-                                }, {
-                                    'description': 'ARAX TRAPI 1.3 endpoint - staging',
-                                    'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
-                                    'x-maturity': 'staging'
-                                }, {
-                                    'description': 'ARAX TRAPI 1.3 endpoint - development',
-                                    'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
-                                    'x-maturity': 'development'
-                                },
-                            ],
-                        }
-                    ]
-                },
-                'arax,1.3.0,2.2.11',
-                'https://arax.ncats.io/api/arax/v1.3'
+                            'description': 'TRAPI 1.3 endpoint for the NCATS Biomedical Translator Reasoner called ARAX',
+                            'license': {
+                                'name': 'Apache 2.0',
+                                'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                            },
+                            'termsOfService': 'https://github.com/RTXteam/RTX/blob/master/LICENSE',
+                            'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                            'version': '1.3.0',
+                            'x-translator': {
+                                'biolink-version': '2.2.11',
+                                'component': 'ARA',
+                                'infores': 'infores:arax',
+                                'team': ['Expander Agent']
+                            },
+                            'x-trapi': {
+                                'test_data_location':
+                                    'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                    'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                                'version': '1.3.0'
+                            }
+                        },
+                        'servers': [
+                            {
+                                'description': 'ARAX TRAPI 1.3 endpoint - production',
+                                'url': 'https://arax.ncats.io/api/arax/v1.3',
+                                'x-maturity': 'production'
+                            }, {
+                                'description': 'ARAX TRAPI 1.3 endpoint - testing',
+                                'url': 'https://arax.test.transltr.io/api/arax/v1.3',
+                                'x-maturity': 'testing'
+                            }, {
+                                'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                                'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                                'x-maturity': 'staging'
+                            }, {
+                                'description': 'ARAX TRAPI 1.3 endpoint - development',
+                                'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                                'x-maturity': 'development'
+                            },
+                        ],
+                    }
+                ]
+            },
+            'arax,1.3.0,2.2.11',
+            'https://arax.ncats.io/api/arax/v1.3'
         )
     ]
 )
 def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, str]):
     shared_test_extract_component_test_data_metadata_from_registry(query, "ARA")
+
+
+# validate_testable_resource(index, service, component) -> Optional[Dict[str, Union[str, List, Dict]]]
+@pytest.mark.parametrize(
+    "query",
+    [
+        (  # query 0 - 'empty' service dictionary
+            dict(),  # service
+            False,   # True if expecting that resource_metadata is not None; False otherwise
+            ""       # expected 'url'
+
+        ),
+        (   # query 1 - minimally 'complete' service dictionary implies that the resource is amenable to testing
+            {
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location':
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    }
+                ],
+            },       # service
+            True,    # True if expecting that resource_metadata is not None; False otherwise
+            "https://arax.ncats.io/beta/api/arax/v1.3"  # expected testable endpoint (only 'development' available)
+        ),
+        (
+            {  # query 2. missing service 'title' - won't return any resource_metadata
+                'info': {
+                    # 'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location':
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    }
+                ],
+            },      # service
+            False,  # True if expecting that resource_metadata is not None; False otherwise
+            ""      # expected 'url'
+        ),
+        (
+            {  # query 3. missing 'infores' - won't return any resource_metadata
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        # 'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location':
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    }
+                ],
+            },      # service
+            False,  # True if expecting that resource_metadata is not None; False otherwise
+            ""      # expected 'url'
+        ),
+        (
+            {  # query 4. missing 'servers' block - won't return any resource_metadata
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location':
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                }
+            },      # service
+            False,  # True if expecting that resource_metadata is not None; False otherwise
+            ""      # expected 'url'
+        ),
+        (
+            {  # query 5. empty 'servers' block - won't return any resource_metadata
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location':
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                },
+                'servers': [],
+            },      # service
+            False,  # True if expecting that resource_metadata is not None; False otherwise
+            ""      # expected 'url'
+        ),
+        (
+            {  # query 6. missing 'test_data_location' (i.e. not testable!)
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        # 'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        # 'test_data_location':
+                        #     'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                        #     'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    }
+                ],
+            },      # service
+            False,  # True if expecting that resource_metadata is not None; False otherwise
+            ""      # expected 'url'
+        ),
+        (
+            {   # query 7. testable, simple single testdata URL; 'production' endpoint prioritized
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location':
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - testing',
+                        'url': 'https://arax.test.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'testing'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - production',
+                        'url': 'https://arax.ncats.io/api/arax/v1.3',
+                        'x-maturity': 'production'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                        'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'staging'
+                    },
+
+                ],
+            },       # service
+            True,    # True if expecting that resource_metadata is not None; False otherwise
+            "https://arax.ncats.io/api/arax/v1.3"  # expected 'url' is 'production'
+        ),
+        (
+            {   # query 8. testable, simple single testdata URL; 'staging' endpoint has greatest precedence
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location':
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                        'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'staging'
+                    }
+                ],
+            },       # service
+            True,    # True if expecting that resource_metadata is not None; False otherwise
+            "https://arax.ci.transltr.io/api/arax/v1.3"  # expected 'url' is 'staging'
+        ),
+        (
+            {   # query 9. testable, list of URLs, uses only first one; 'production' endpoint prioritized
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location': [
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json',
+                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                        ]
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - testing',
+                        'url': 'https://arax.test.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'testing'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - production',
+                        'url': 'https://arax.ncats.io/api/arax/v1.3',
+                        'x-maturity': 'production'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                        'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'staging'
+                    },
+
+                ],
+            },       # service
+            True,    # True if expecting that resource_metadata is not None; False otherwise
+            "https://arax.ncats.io/api/arax/v1.3"  # expected 'url' is 'production' with unclassified list of data urls
+        ),
+        (
+            {   # query 10. testable, x-maturity dictionary with default; 'production' endpoint prioritized
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location': {
+                            "default": {
+                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                       'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json'
+                            },
+                            "development": {
+                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                            }
+                        }
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - testing',
+                        'url': 'https://arax.test.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'testing'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - production',
+                        'url': 'https://arax.ncats.io/api/arax/v1.3',
+                        'x-maturity': 'production'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                        'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'staging'
+                    },
+
+                ],
+            },       # service
+            True,    # True if expecting that resource_metadata is not None; False otherwise
+            "https://arax.ncats.io/api/arax/v1.3"  # expected 'url' is the 'production' since it can use 'default' data
+        ),
+        (
+            {   # query 11. testable, x-maturity dictionary with 'testing' x-maturity
+                #           but without default; 'testing' endpoint prioritized
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location': {
+                            "testing": {
+                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                            }
+                        }
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - testing',
+                        'url': 'https://arax.test.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'testing'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - production',
+                        'url': 'https://arax.ncats.io/api/arax/v1.3',
+                        'x-maturity': 'production'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                        'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'staging'
+                    },
+
+                ],
+            },       # service
+            True,    # True if expecting that resource_metadata is not None; False otherwise
+            "https://arax.test.transltr.io/api/arax/v1.3"  # expected 'url' is the 'testing' endpoint
+        ),
+        (
+            {   # query 12. testable, x-maturity dictionary with 'testing' x-maturity but without default;
+                # but since 'testing' servers endpoint is not specified, cannot test... return None
+                'info': {
+                    'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+                    'x-translator': {
+                        'infores': 'infores:arax',
+                    },
+                    'x-trapi': {
+                        'test_data_location': {
+                            "testing": {
+                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                            }
+                        }
+                    }
+                },
+                'servers': [
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - development',
+                        'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+                        'x-maturity': 'development'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - production',
+                        'url': 'https://arax.ncats.io/api/arax/v1.3',
+                        'x-maturity': 'production'
+                    },
+                    {
+                        'description': 'ARAX TRAPI 1.3 endpoint - staging',
+                        'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+                        'x-maturity': 'staging'
+                    },
+
+                ],
+            },      # service
+            False,  # True if expecting that resource_metadata is not None; False otherwise
+            ""      # expected 'url'
+        )
+    ]
+)
+def test_validate_testable_resource(query: Tuple):
+    resource_metadata: Optional[Dict[str, Union[str, List, Dict]]] = \
+        validate_testable_resource("test_testable_resource", query[0], "ARA")
+    if query[1]:
+        assert 'url' in resource_metadata
+        assert resource_metadata['url'] == query[2]
+    else:
+        assert not resource_metadata
 
 
 def test_get_testable_resource_ids_from_registry():

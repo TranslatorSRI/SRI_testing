@@ -295,7 +295,8 @@ def parse_test_urls(test_data_location) -> Optional[Union[str, List[str]]]:
 def parse_test_environment_urls(test_environments: Dict) -> Optional[Dict]:
     """
     Parses 'full' Translator SmartAPI Registry entry info.x-trapi.test_data_location property specification
-    (option 2 format discussed in https://github.com/TranslatorSRI/SRI_testing/issues/59#issuecomment-1275136793)
+    (option 2 format discussed in https://github.com/TranslatorSRI/SRI_testing/issues/59#issuecomment-1275136793).
+
     :param test_environments: Dict, complex specification of test_data_location (see schema)
     :return: Optional[Dict], an x-maturity indexed URL catalog
     """
@@ -370,7 +371,7 @@ _ignored_resources: Set[str] = {
 }
 
 
-def testable_resource(index, service, component) -> Optional[Dict[str, Union[str, List, Dict]]]:
+def validate_testable_resource(index: str, service: Dict, component: str) -> Optional[Dict[str, Union[str, List, Dict]]]:
     #
     # This 'overloaded' function actually checks a number of parameters that need to be present for testable resources.
     # If the validation of all parameters succeeds, it returns a dictionary of those values; otherwise, returns 'None'
@@ -384,11 +385,9 @@ def testable_resource(index, service, component) -> Optional[Dict[str, Union[str
         logger.warning(f"Registry {component} entry '{index}' lacks a 'service_title'... Skipped?")
         return None
 
-    if 'servers' not in service:
+    if not ('servers' in service and service['servers']):
         logger.warning(f"Registry {component} entry '{service_title}' lacks a 'servers' block... Skipped?")
         return None
-
-    servers: Optional[List[Dict]] = service['servers']
 
     infores = tag_value(service, "info.x-translator.infores")
     # Internally, within SRI Testing, we only track the object_id of the infores CURIE
@@ -411,14 +410,16 @@ def testable_resource(index, service, component) -> Optional[Dict[str, Union[str
     # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
     test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_location(raw_test_data_location)
     if test_data_location:
-        # Optional[Union[str, List, Dict]], is a single string URL,
-        # array of URL's, or an x-maturity indexed catalog of URLs
+        # Optional[Union[str, List, Dict]], may be a single URL string, an array of URL string's,
+        # or an x-maturity indexed catalog of URLs (single or List of URL string(s))
         resource_metadata['test_data_location'] = test_data_location
     else:
         logger.warning(
             f"Empty, invalid or inaccessible info.x-trapi.test_data_location '{str(raw_test_data_location)}' " +
             f"for Registry {component} entry '{service_title}' ... Service entry skipped?")
         return None
+
+    servers: Optional[List[Dict]] = service['servers']
 
     server_urls: Dict = dict()
     for server in servers:
@@ -445,12 +446,32 @@ def testable_resource(index, service, component) -> Optional[Dict[str, Union[str
                 f"Still using '{server_urls[environment]}', the first server endpoint parsed..."
             )
 
-    # Check the possible target testing environments in order
+    # Check the possible target testing environments
+    # in an ad hoc hardcoded 'precedence/rank' order
     url: Optional[str] = None
     for environment in DEPLOYMENT_TYPES:
         if environment in server_urls:
-            url = server_urls[environment]
-            break
+            # If available, filter environments against x-maturity
+            # tagged test_data_location values targeted for testing
+            if isinstance(test_data_location, Dict):
+                if environment in test_data_location:
+                    url = server_urls[environment]
+                elif 'default' in test_data_location:
+                    # first iteration: we can use the 'default' url for this environment
+                    url = server_urls[environment]
+                else:
+                    # nothing hit yet... and no default to fall back on, so we keep looking...
+                    continue
+
+                # we are currently only looking to match one 'x-maturity'
+                # or 'default' url in this iteration of the system
+                break
+            else:
+                # The test_data_location is a simple string or list of strings thus
+                # no discrimination in the test_data_location(s) concerning target
+                # x-maturity so just return the 'highest ranked' server endpoint
+                url = server_urls[environment]
+                break
 
     if url:
         resource_metadata['url'] = url
@@ -484,7 +505,7 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
         if not (component and component in ["KP", "ARA"]):
             continue
 
-        resource_metadata: Optional[Dict[str, Any]] = testable_resource(index, service, component)
+        resource_metadata: Optional[Dict[str, Any]] = validate_testable_resource(index, service, component)
         if not resource_metadata:
             continue
 
@@ -574,7 +595,7 @@ def extract_component_test_metadata_from_registry(
         if not (component and component == component_type):
             continue
 
-        resource_metadata: Optional[Dict[str, Any]] = testable_resource(index, service, component)
+        resource_metadata: Optional[Dict[str, Any]] = validate_testable_resource(index, service, component)
         if not resource_metadata:
             continue
 
