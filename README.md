@@ -2,7 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-This repository contains a compendium of semantics-driven tests for assessing Translator Knowledge Providers (KPs) and Autonomous Relay Agents (ARAs) within the [Biomedical Data Translator](https://ncats.nih.gov/translator).
+This repository contains a compendium of semantics-driven tests for assessing Translator Knowledge Providers (KPs) and Autonomous Relay Agents (ARAs) within the [Biomedical Data Translator](https://ncats.nih.gov/translator). The application may be accessed directly programmatically, via a [web services API](./api) or using an available [web dashboard](./dashboard).
+
+Further details about the application is available in the project's [GitPages repository](https://ncatstranslator.github.io/SRI_Testing/) and also [Translator Developer Documentation](https://translator-developer-documentation.readthedocs.io/en/latest/guide-for-developers/sri_testing/).
 
 # Contents of the Repository
 
