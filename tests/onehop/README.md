@@ -24,7 +24,7 @@ The default operation of SRI Testing now relies on the interrogation of the Tran
 
 - **info.x-translator.biolink-version:** _must_ be set to the actual Biolink Model release to which the given KP or ARA is asserting compliance. Validation to the 'wrong' Biolink Model version will generate unnecessary validation errors!
 - **info.x-trapi.version:** _must_ be set to the TRAPI version to which the given KP or ARA is asserting compliance.
-- **info.x-trapi.test_data_location:** _must_ be a public REST resource URL dereferencing the online JSON test configuration file (see KP and ARA instructions below). This can typically (although not necessarily) be a URL to a Github public repository hosted file (note: this can be 'rawdata' URL or a regular Github URL - the latter is automatically rewritten to a 'rawdata' access for file retrieval). If a non-Github URL is given, it should be visible on the internet without authentication.
+- **info.x-trapi.test_data_location:** see the full specification of the [info.x-trapi.test_data_location](https://github.com/NCATSTranslator/translator_extensions#x-trapi) for the range of formats now available for specifying SRI Testing harness test or configuration data files. URL's registered in whatever fashion within the **info.x-trapi.test_data_location:** values can typically (although not necessarily) be a URL to a Github public repository hosted file (note: this can be 'rawdata' URL or a regular Github URL - the latter is automatically rewritten to a 'rawdata' access for file retrieval). If a non-Github URL is given, it should be visible on the internet without authentication.
 - **servers block:** the SRI Testing harness now sets the TRAPI server endpoint used for testing of KP and ARA resources by selecting a **`url`** specified in the Registry `servers` block. Lack of standardization of testing targets means that the system is currently agnostic about **`x-maturity`** but simply takes the first **`servers`** block entry with a '**`url`**' property set. If there is more than one server entry in the **`servers`** block, then the wrong testing endpoint may be used. Note that future iterations of the system may follow a different heuristic using the **`x-maturity`** property.
 
 **Note:** the **info.x-trapi.test_data_location** may change in the near future to accommodate the need for differential testing across various `x-maturity` deployments of KPs and ARAs.
@@ -82,7 +82,7 @@ So the steps for a KP:
 
 1. Copy the KP template from the repository  [templates/KP](templates/KP) into a distinctly named file.
 2. Edit the copied file to add or remove test data edges using the KP's metaknowledge graph catalog of S-P-O patterns as a guide, and specifying subject and object entries for each triple with a real identifiers that should be retrievable from the KP (Note: update the file to the latest standards as described above)
-3. Publish the resulting file as a JSON resource dereferenced online by the **info.x-trapi.test_data_location** property in the KP's Translator SmartAPI Registry entry.
+3. Publish the resulting file as a JSON resource [dereferenced by a test data location configured as described above](#translator-smartapi-registry-configuration) in the KP's Translator SmartAPI Registry entry.
 
 #### General Recommendations for Edge Test Data
 
@@ -158,7 +158,7 @@ In order to correctly link ARAs to KPs, ARAs will need to:
 
 1. Copy the ARA template from the repository [templates/ARA](templates/ARA) into a distinctly named file.
 2. Edit the copied file to add or remove KPs that the ARA does not access (Note: update the file to the latest standards as described above).
-3. Publish the resulting file as a JSON resource dereferenced online by the **info.x-trapi.test_data_location** property in the ARA's Translator SmartAPI Registry entry.
+3. Publish the resulting file as a JSON resource [dereferenced by a test data location configured as described above](#translator-smartapi-registry-configuration) in the ARA's Translator SmartAPI Registry entry.
 
 ARA test templates do not explicitly show the edges to be be tested, but rather, inherit the test data of their dereferenced KP's.  Once again, an infores tag value should be specified, in this case, for the ARA. However, all ARA's are expected to be `biolink:aggregator_knowledge_source` types of knowledge sources, hence, no `source_type` tag is needed (nor expected) here; however, they are checked for proper `'biolink:aggregator_knowledge_source': '<ARA infores CURIE>'` provenance declarations of their TRAPI knowledge graph edge attributes.
 
@@ -236,14 +236,15 @@ These include the following Testing-specific custom options:
 
 The ARA tests cannot generally be run in isolation of the above KP tests (given their dependency on the generation of the KP test cases).
 
+## What do the Validation Tests mean?
 
-## How the One Hop Tests Work
+## How the One Hop Tests are Generated and Run
 
 The overall strategy of the SRI Testing Harness is explained in a [slide presentation here](https://docs.google.com/presentation/d/1p9n-UjMNlhWCyQrbI2GonsQKXz0PFdi4-ydDcrF5_tc).
 
-The tests are dynamically generated from sample data Subject-Predicate-Object ("S-P-O") statement triples for each KP with test data rewtrieved from JSON test data/configuration files published online by KP (ARA) owners as web accessible JSON REST document resources (typically, a document in a Github repository) [dereferenced by a test data location configured as described above](#translator-smartapi-registry-configuration).
+The tests are dynamically generated from the test data Subject-Predicate-Object ("S-P-O") statement triples ('edges') retrieved from KP component owner curated [KP Test Data Formatted files](#kp-test-data-format) noted above. Similarly, [ARA Test Configuration JSON Files](#ara-test-configuration-file) prepared by ARA component owners indicate which KP's they access, directing that suitable test TRAPI queries be attempted using KP-specified test data.
 
-The KP files contain sample data for each triple that the KP can provide.  Each triple noted therein is used to build a set of distinct types of unit tests (see the [One Hop utility module](util.py) for the specific code dynamically generating each specific TRAPI query test message within the unit test set for that triple).  The following specific unit tests are currently available:
+Either way, each KP S-P-O test triple is used to generate set of several distinct types of unit tests (see the [One Hop utility module](util.py) for the specific code dynamically generating each specific TRAPI query test message within the unit test set for that triple).  The following specific unit tests are currently available:
 
 - by subject
 - inverse by new subject
@@ -252,7 +253,7 @@ The KP files contain sample data for each triple that the KP can provide.  Each 
 - raise object by subject
 - raise predicate by subject
 
-See the [aforementioned slide presentation](https://docs.google.com/presentation/d/1p9n-UjMNlhWCyQrbI2GonsQKXz0PFdi4-ydDcrF5_tc) for specific details about each unit test.
+A more complete description of each unit test is provided [here](https://translator-reasoner-validator.readthedocs.io/en/latest/).
 
 Instances of ARA being tested are similarly configured for testing their expected outputs using the list of KPs noted a corresponding JSON configuration files also [dereferenced by a specified test data location](#translator-smartapi-registry-configuration).
 
