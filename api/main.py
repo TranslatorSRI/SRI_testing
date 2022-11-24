@@ -15,6 +15,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from reasoner_validator.report import CodeDictionary
 
 from reasoner_validator.versioning import (
     latest,
@@ -694,6 +695,7 @@ class TestRecommendations(BaseModel):
     test_run_id: str
     recommendations: Dict
 
+
 @app.get(
     "/recommendations",
     tags=['report'],
@@ -760,6 +762,50 @@ async def get_recommendations(
             content={
                 "message": f"Resource summary, for ara_id '{str(ara_id)}' and kp_id '{str(kp_id)}', " +
                            f"is not (yet) available from test run '{test_run_id}'?"
+            }
+        )
+
+
+class ValidationCodes(BaseModel):
+    code: str
+    entry: Dict
+
+
+@app.get(
+    "/code_entry",
+    tags=['report'],
+    response_model=ValidationCodes,
+    summary="Retrieve the validation code subtree - message template, description or 'all' - for a given code.",
+    responses={400: {"model": Message}, 404: {"model": Message}}
+)
+async def get_code_entry(code: str, facet: Optional[str]) -> Union[ValidationCodes, JSONResponse]:
+    """
+
+    :param code: str, 'dot' path specified code identifier from reasoner-validator codes.yaml validation message codes.
+    :param facet: Optional[str], constraint on code entry facet to be returned; if specified,
+                  should be either "message" or "description" (default: return both facets of the code entry)
+    :return: Optional[Dict], entry for code, may be subtree with all leaves, or single entry leaf,
+                             with specified entry facets; None if code not in CodeDictionary
+    """
+    if facet:
+        facet = facet.lower()
+        if facet not in ["message", "description"]:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "message": f"Unknown information type '{facet}' requested?"
+                }
+            )
+
+    entry: Dict = CodeDictionary.get_code_entry(code=code, facet=facet)
+
+    if entry is not None:
+        return ValidationCodes(code=code, entry=entry)
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "message": f"Validation message code {facet if facet else ' '}information unavailable for '{code}'?"
             }
         )
 
