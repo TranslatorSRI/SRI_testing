@@ -784,6 +784,8 @@ async def get_code_entry(
         distinct: bool = False
 ) -> Union[ValidationCodes, JSONResponse]:
     """
+    Retrieves validation distinct validation message code or a subtree (for partial code paths).
+    Either the message template and/or description 'facet' of the code may be returned.
 
     :param code: str, 'dot' path specified code identifier from reasoner-validator codes.yaml validation message codes.
     :param facet: Optional[str], constraint on code entry facet to be returned; if specified,
