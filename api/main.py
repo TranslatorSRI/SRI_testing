@@ -778,12 +778,17 @@ class ValidationCodes(BaseModel):
     summary="Retrieve the validation code subtree - message template, description or 'all' - for a given code.",
     responses={400: {"model": Message}, 404: {"model": Message}}
 )
-async def get_code_entry(code: str, facet: Optional[str]) -> Union[ValidationCodes, JSONResponse]:
+async def get_code_entry(
+        code: str,
+        facet: Optional[str] = None,
+        distinct: bool = False
+) -> Union[ValidationCodes, JSONResponse]:
     """
 
     :param code: str, 'dot' path specified code identifier from reasoner-validator codes.yaml validation message codes.
     :param facet: Optional[str], constraint on code entry facet to be returned; if specified,
                   should be either "message" or "description" (default: return both facets of the code entry)
+    :param distinct: Optional[bool], only return entry if it is distinct code entry (default: False)
     :return: Optional[Dict], entry for code, may be subtree with all leaves, or single entry leaf,
                              with specified entry facets; None if code not in CodeDictionary
     """
@@ -796,16 +801,24 @@ async def get_code_entry(code: str, facet: Optional[str]) -> Union[ValidationCod
                     "message": f"Unknown information type '{facet}' requested?"
                 }
             )
-
-    entry: Dict = CodeDictionary.get_code_entry(code=code, facet=facet)
-
-    if entry is not None:
-        return ValidationCodes(code=code, entry=entry)
+        facet_label = f" '{facet}' "
     else:
+        facet_label = ''
+
+    result = CodeDictionary.get_code_subtree(code=code, facet=facet, is_leaf=distinct)
+
+    if result is not None:
+        return ValidationCodes(code=code, entry=result[1])
+    else:
+        if distinct:
+            as_item = "distinct code"
+        else:
+            as_item = "as subtree"
         return JSONResponse(
             status_code=404,
             content={
-                "message": f"Validation message code {facet if facet else ' '}information unavailable for '{code}'?"
+                "message": f"Validation message code{facet_label if facet_label else ' '}" +
+                           f"information unavailable for '{code}' as {as_item}?"
             }
         )
 
