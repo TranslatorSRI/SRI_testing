@@ -371,7 +371,7 @@ _ignored_resources: Set[str] = {
 }
 
 
-def validate_testable_resource(index: str, service: Dict, component: str) -> Optional[Dict[str, Union[str, List, Dict]]]:
+def validate_testable_resource(index: int, service: Dict, component: str) -> Optional[Dict[str, Union[str, List, Dict]]]:
     #
     # This 'overloaded' function actually checks a number of parameters that need to be present for testable resources.
     # If the validation of all parameters succeeds, it returns a dictionary of those values; otherwise, returns 'None'
@@ -382,7 +382,7 @@ def validate_testable_resource(index: str, service: Dict, component: str) -> Opt
     if service_title:
         resource_metadata['service_title'] = service_title
     else:
-        logger.warning(f"Registry {component} entry '{index}' lacks a 'service_title'... Skipped?")
+        logger.warning(f"Registry {component} entry '{str(index)}' lacks a 'service_title'... Skipped?")
         return None
 
     if not ('servers' in service and service['servers']):
@@ -477,7 +477,7 @@ def validate_testable_resource(index: str, service: Dict, component: str) -> Opt
         resource_metadata['url'] = url
     else:
         # not likely, but another sanity check!
-        logger.warning(f"Service {index} lacks a suitable SRI Testing endpoint... Skipped?")
+        logger.warning(f"Service {str(index)} lacks a suitable SRI Testing endpoint... Skipped?")
         return None
 
     return resource_metadata
