@@ -128,6 +128,12 @@ class TestRunParameters(BaseModel):
     # designating a KP which is the target of validation in the new test run.
     kp_id: Optional[str] = None
 
+    # (Optional) x_maturity environment target for test run. We assume here that any and both ARA and KP
+    # specified above have servers block endpoints specified under the corresponding 'x-maturity' tag in
+    # their respective Translator SmartAPI Registry entry 'servers' block.
+    # If unspecified, then SRI Testing makes an educated guess of which 'x-maturity' endpoint to test.
+    x_maturity: Optional[str] = None
+
     # (Optional) TRAPI version override against which
     # SRI Testing will be applied to Translator KPs and ARA's.
     # This version will override Translator SmartAPI Registry
@@ -208,6 +214,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     infores identifier being filtered. Note that all identifiers here should be the reference (object)
     identifiers of the Infores CURIE of the target resource(s).
 
+    - **x_maturity**: Optional[str], **x_maturity** environment target for test run (system chooses if not specified)
     - **trapi_version**: Optional[str], possible TRAPI version overriding Translator SmartAPI 'Registry' specification.
     - **biolink_version**: Optional[str], possible Biolink Model version overriding Registry specification.
     - **timeout**: Optional[int], query timeout
@@ -219,6 +226,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
     ara_id: Optional[str] = None
     kp_id: Optional[str] = None
+    x_maturity: Optional[str] = None
     trapi_version: Optional[str] = None
     biolink_version: Optional[str] = None
     log: Optional[str] = None
@@ -232,6 +240,9 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
         if test_parameters.kp_id:
             kp_id = test_parameters.kp_id
+
+        if test_parameters.x_maturity:
+            x_maturity = test_parameters.x_maturity
 
         if test_parameters.trapi_version:
             trapi_version = test_parameters.trapi_version
@@ -264,6 +275,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     test_harness.run(
         ara_id=ara_id,
         kp_id=kp_id,
+        x_maturity=x_maturity,
         trapi_version=trapi_version,
         biolink_version=biolink_version,
         log=log,

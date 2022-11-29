@@ -522,6 +522,10 @@ def pytest_addoption(parser):
         "--ara_id", action="store", default=None,  # 'test_triples/ARA',
         help='Autonomous Relay Agent ("ARA") targeted for testing (Default: None).'
     )
+    parser.addoption(
+        "--x_maturity", action="store", default=None,  # 'testing',
+        help='Target x_maturity server environment for testing (Default: None).'
+    )
     parser.addoption("--teststyle", action="store", default='all', help='Which Test to Run?')
     parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
     
@@ -539,6 +543,7 @@ def _fix_path(file_path: str) -> str:
 def get_test_data_sources(
         component_type: str,
         source: Optional[str] = None,
+        x_maturity: Optional[str] = None,
         trapi_version: Optional[str] = None,
         biolink_version: Optional[str] = None
 ) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
@@ -554,6 +559,8 @@ def get_test_data_sources(
 
     :param source: Optional[str], ara_id or kp_id source of test configuration data in the registry.
                                   Take 'all' of the given component type if the source is None
+                                  
+    :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
     :param component_type: str, component type 'KP' or 'ARA'
     :param trapi_version: SemVer caller override of TRAPI release target for validation (Default: None)
     :param biolink_version: SemVer caller override of Biolink Model release target for validation (Default: None)
@@ -705,6 +712,10 @@ def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict
     # Here, the ara_id may be None, in which case,
     # 'ara_metadata' returns all available ARA's
     ara_id = metafunc.config.getoption('ara_id')
+    x_maturity: Optional[str] = metafunc.config.getoption('x_maturity')
+
+    if x_maturity and x_maturity.lower() not in ["production", "staging", "testing", "development"]:
+        x_maturity = None
 
     if ara_id == "SKIP":
         return dict()  # no ARA's to validate
@@ -712,6 +723,7 @@ def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict
     # Note: the ARA's trapi_version and biolink_version may be overridden here
     return get_test_data_sources(
             source=ara_id,
+            x_maturity=x_maturity,
             trapi_version=trapi_version,
             biolink_version=biolink_version,
             component_type="ARA"
@@ -728,11 +740,16 @@ def get_kp_metadata(
     # Here, the kp_id may be None, in which case,
     # 'kp_metadata' returns all available KP's
     target_kp_id = metafunc.config.getoption('kp_id')
+    x_maturity: Optional[str] = metafunc.config.getoption('x_maturity')
+
+    if x_maturity and x_maturity.lower() not in ["production", "staging", "testing", "development"]:
+        x_maturity = None
 
     # Note: the KP's trapi_version and biolink_version may be overridden here
     kp_metadata: Dict[str, Dict[str, Optional[str]]] = \
         get_test_data_sources(
             source=target_kp_id,
+            x_maturity=x_maturity,
             trapi_version=trapi_version,
             biolink_version=biolink_version,
             component_type="KP"

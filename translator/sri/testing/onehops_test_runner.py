@@ -210,6 +210,7 @@ class OneHopTestHarness:
             self,
             ara_id: Optional[str] = None,
             kp_id: Optional[str] = None,
+            x_maturity: Optional[str] = None,
             trapi_version: Optional[str] = None,
             biolink_version: Optional[str] = None,
             one: bool = False,
@@ -225,6 +226,7 @@ class OneHopTestHarness:
             - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
             - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
 
+        :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)
         :param one: bool, Only use first edge from each KP file (default: False if omitted).
@@ -253,6 +255,7 @@ class OneHopTestHarness:
         self._command_line += f" --biolink_version={biolink_version}" if biolink_version else ""
         self._command_line += f" --kp_id=\"{kp_id}\"" if kp_id else ""
         self._command_line += f" --ara_id=\"{ara_id}\"" if ara_id else ""
+        self._command_line += f" --x_maturity=\"{x_maturity}\"" if x_maturity else ""
         self._command_line += " --one" if one else ""
 
         logger.debug(f"OneHopTestHarness.run() command line: {self._command_line}")
