@@ -696,3 +696,26 @@ def get_remote_test_data_file(url: str) -> Optional[Dict]:
         data = {"Error": f"Translator component test data file '{url}' cannot be accessed: "+str(re)}
 
     return data
+
+
+def get_remote_test_data(test_data_locations: Optional[Union[str, List, Dict]]) -> Optional[Dict]:
+    """
+    The 'full' Translator SmartAPI Registry info.x-trapi.test_data_location property value specification
+    has a complex structure, which is captured above in the validate_test_data_location() method above.
+
+    TODO: this iteration of the test data processing will simply merge all the external test data into a single
+          dictionary, but one with a bit more internal structure, which the unit test generators will try to interpret.
+
+    :param test_data_locations: Optional[Union[str, List, Dict]], single, list or object definitions of URLs
+    :return: dictionary of test data parameters
+    """
+    data: Optional[Dict] = None
+    try:
+        request = requests.get(f"{url}")
+        if request.status_code == 200:
+            data = request.json()
+    except RequestException as re:
+        print(re)
+        data = {"Error": f"Translator component test data file '{url}' cannot be accessed: "+str(re)}
+
+    return data

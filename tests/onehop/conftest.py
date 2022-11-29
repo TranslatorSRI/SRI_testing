@@ -15,7 +15,7 @@ from reasoner_validator.versioning import latest
 
 from translator.registry import (
     get_default_url,
-    get_remote_test_data_file,
+    get_remote_test_data,
     get_the_registry_data,
     extract_component_test_metadata_from_registry
 )
@@ -591,15 +591,20 @@ def load_test_data_source(registry_metadata: Dict[str, Optional[Union[str, Dict]
     # sanity check
     assert registry_metadata is not None
 
-    # TODO: the test_data_location value in the registry_metadata is now complex ...
-    #       We will patch this up later.. for now, we just infer a default REST Url
-    test_data_location: Optional[str] = get_default_url(registry_metadata['test_data_location'])
-    if not test_data_location:
-        return None
+    #
+    # 29 Nov 2022 - we now attempt to *directly* consume the
+    # test_data_location values with all their complexities..
+    #
+    # # TODO: the test_data_location value in the registry_metadata is now complex ...
+    # #       We will patch this up later.. for now, we just infer a default REST Url
+    # test_data_location: Optional[str] = get_default_url(registry_metadata['test_data_location'])
+    # if not test_data_location:
+    #     return None
 
-    # TODO: handle (x-maturity indexed?) lists of test_data_locations
-    #       URLs - hence, multiple files - here later?
-    test_data = get_remote_test_data_file(test_data_location)
+    # TODO: handle (possibly x-maturity indexed?) test_data_location
+    #       lists of URLs - hence, multiple files - here later?
+    test_data_locations: Optional[Union[str, List, Dict]] = registry_metadata['test_data_location']
+    test_data = get_remote_test_data(test_data_locations)
     if not test_data:
         return None
 
