@@ -24,6 +24,7 @@ from reasoner_validator.versioning import (
     SemVerUnderspecified
 )
 
+from tests.onehop.util import get_unit_test_definitions
 from translator.sri.testing.onehops_test_runner import (
     OneHopTestHarness,
     DEFAULT_WORKER_TIMEOUT
@@ -791,8 +792,8 @@ async def get_code_entry(
     :param facet: Optional[str], constraint on code entry facet to be returned; if specified,
                   should be either "message" or "description" (default: return both facets of the code entry)
     :param distinct: Optional[bool], only return entry if it is distinct code entry (default: False)
-    :return: Optional[Dict], entry for code, may be subtree with all leaves, or single entry leaf,
-                             with specified entry facets; None if code not in CodeDictionary
+    :return: ValidationCodes, entry for code, may be subtree with all leaves, or single entry leaf, with specified
+                              entry facets raises JSONResponse, if code is unknown (or service unavailable).
     """
     if facet:
         facet = facet.lower()
@@ -821,6 +822,34 @@ async def get_code_entry(
             content={
                 "message": f"Validation message code{facet_label if facet_label else ' '}" +
                            f"information unavailable for '{code}' as {as_item}?"
+            }
+        )
+
+
+@app.get(
+    "/unit_tests",
+    tags=['report'],
+    # response_model=Dict,
+    summary="Retrieves a simple dictionary of SRI Testing unit test descriptions.",
+    responses={400: {"model": Message}, 404: {"model": Message}}
+)
+async def get_unit_test_descriptions() -> Union[Dict, JSONResponse]:
+    """
+    Retrieves a simple dictionary of SRI Testing unit test descriptions.
+    This first iteration is a simple GET call to a default dictionary of OneHop unit test descriptions.
+
+    :return: Optional[Dict], catalog of unit test descriptions indexed by test name string (in snake case)
+    """
+
+    result = get_unit_test_definitions()
+
+    if result is not None:
+        return result
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "message": f"Unit test catalog unavailable?"
             }
         )
 

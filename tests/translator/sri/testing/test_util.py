@@ -1,8 +1,11 @@
 """
 Unit tests for OneHop unit test processing functions
 """
+from typing import Dict
+
 import pytest
 
+from tests.onehop.util import get_unit_test_definitions
 from translator.sri.testing.onehops_test_runner import (
     parse_unit_test_name,
     build_resource_summary_key,
@@ -116,3 +119,12 @@ def test_clean_up_unit_test_filename(query):
     assert part[3] == query[4]  # int(edge_num)
     assert part[4] == query[5]  # test_id
     assert part[5] == query[6]  # edge_details_file_path
+
+
+def test_get_unit_test_catalog():
+    catalog: Dict = get_unit_test_definitions()
+    assert catalog
+    assert "by_subject" in catalog.keys()
+    assert catalog["by_subject"] == "Given a known triple, create a TRAPI message " + \
+                                    "that looks up the object by the subject"
+

@@ -71,6 +71,11 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
 #
 #####################################################################################################
 _unit_tests: Dict = dict()
+_unit_test_definitions: Dict = dict()
+
+
+def get_unit_test_definitions() -> Dict:
+    return _unit_test_definitions.copy()
 
 
 def get_unit_test_codes() -> Set[str]:
@@ -113,11 +118,12 @@ class TestCode:
     """
     Assigns a shorthand test code to a unit test method.
     """
-    def __init__(self, code, unit_test_name):
+    def __init__(self, code: str, unit_test_name: str, description: str):
         global _unit_tests
         self.code = code
         self.method = unit_test_name
         _unit_tests[code] = unit_test_name
+        _unit_test_definitions[unit_test_name] = description
 
     def __call__(self, fn):
         @wraps(fn)
@@ -127,14 +133,23 @@ class TestCode:
         return wrapper
 
 
-@TestCode("BS", "by_subject")
+@TestCode(
+    code="BS",
+    unit_test_name="by_subject",
+    description="Given a known triple, create a TRAPI message that looks up the object by the subject"
+)
 def by_subject(request):
     """Given a known triple, create a TRAPI message that looks up the object by the subject"""
     message = create_one_hop_message(request)
     return message, 'object', 'b'
 
 
-@TestCode("IBNS", "inverse_by_new_subject")
+@TestCode(
+    code="IBNS",
+    unit_test_name="inverse_by_new_subject",
+    description="Given a known triple, create a TRAPI message that inverts the predicate, " +
+                "then looks up the new object by the new subject (original object)"
+)
 def inverse_by_new_subject(request):
     """Given a known triple, create a TRAPI message that inverts the predicate,
        then looks up the new object by the new subject (original object)"""
@@ -175,7 +190,11 @@ def inverse_by_new_subject(request):
     return message, 'subject', 'b'
 
 
-@TestCode("BO", "by_object")
+@TestCode(
+    code="BO",
+    unit_test_name="by_object",
+    description="Given a known triple, create a TRAPI message that looks up the subject by the object"
+)
 def by_object(request):
     """Given a known triple, create a TRAPI message that looks up the subject by the object"""
     message = create_one_hop_message(request, look_up_subject=True)
@@ -197,7 +216,14 @@ def no_parent_error(unit_test_name: str, element: Dict, suffix: Optional[str] = 
     return None, context, reason
 
 
-@TestCode("RSE", "raise_subject_entity")
+@TestCode(
+    code="RSE",
+    unit_test_name="raise_subject_entity",
+    description="Given a known triple, create a TRAPI message that uses a parent instance " +
+                "of the original entity and looks up the object. This only works if a given " +
+                "instance (category) has an identifier (prefix) namespace bound to some kind " +
+                "of hierarchical class of instances (i.e. ontological structure)"
+)
 def raise_subject_entity(request):
     """
     Given a known triple, create a TRAPI message that uses
@@ -220,7 +246,12 @@ def raise_subject_entity(request):
     return message, 'object', 'b'
 
 
-@TestCode("ROBS", "raise_object_by_subject")
+@TestCode(
+    code="ROBS",
+    unit_test_name="raise_object_by_subject",
+    description="Given a known triple, create a TRAPI message that uses the parent " +
+                "of the original object category and looks up the object by the subject"
+)
 def raise_object_by_subject(request):
     """
     Given a known triple, create a TRAPI message that uses the parent
@@ -244,7 +275,12 @@ def raise_object_by_subject(request):
     return message, 'object', 'b'
 
 
-@TestCode("RPBS", "raise_predicate_by_subject")
+@TestCode(
+    code="RPBS",
+    unit_test_name="raise_predicate_by_subject",
+    description="Given a known triple, create a TRAPI message that uses the parent " +
+                "of the original predicate and looks up the object by the subject"
+)
 def raise_predicate_by_subject(request):
     """
     Given a known triple, create a TRAPI message that uses the parent
