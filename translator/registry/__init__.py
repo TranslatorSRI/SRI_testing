@@ -372,9 +372,9 @@ _ignored_resources: Set[str] = {
 
 
 def select_endpoint(
-        server_urls: Dict,
+        server_urls: Dict[str, List[str]],
         test_data_location: Optional[Union[str, List, Dict]]
-) -> Optional[Tuple[str, str]]:
+) -> Optional[Tuple[str, str, Union[str, List[str]]]]:
     """
     Select one test URL based on available server_urls and test_data_location specification. Usually, by the time
     this method is called, any 'x_maturity' preference has constrained the server_urls. The expectation at this point
@@ -386,58 +386,66 @@ def select_endpoint(
 
     :param server_urls: Dict, the indexed catalog of available Translator SmartAPI Registry entry 'servers' block urls
     :param test_data_location: Optional[Union[str, List, Dict]], info.x-trapi.test_data_location specification
-    :return: Optional[Tuple[str, str]], selected URL endpoint and the associated name of the
-                                        'x-maturity' environment from which it originated
+    :return: Optional[Tuple[str, str, Union[str, List]]], selected URL endpoint, 'x-maturity' tag and
+                                                          associated test data reference: single URL or list of URLs
     """
     # Check the possible target testing environments
     # in an ad hoc hardcoded of the 'precedence/rank'
     # ordering of the DEPLOYMENT_TYPES list
-    url: Optional[str] = None
+    urls: Optional[List[str]] = None
     x_maturity: Optional[str] = None
+    test_data: Optional[Union[str, List[str]]] = None
     for environment in DEPLOYMENT_TYPES:
         if environment in server_urls:
             # If available, filter environments against 'x-maturity'
             # tagged 'test_data_location' values targeted for testing
             if isinstance(test_data_location, Dict):
-                if environment in test_data_location:
-                    # A 'test_data_location' specification is
-                    # available for the given x-maturity key
-                    url = server_urls[environment]
-                else:
-                    # nothing hit yet... and no default to fall back on, so we keep looking...
+                if environment not in test_data_location:
                     continue
 
-                # Successfully matched one of the selected 'x-maturity',
+                # Otherwise,  'test_data_location' specification is
+                # available for the given x-maturity key and
+                # successfully matched one of the selected 'x-maturity',
                 # one of the DEPLOYMENT_TYPES or the 'default' url?
-
+                test_data = test_data_location[environment]
             else:
-                # The test_data_location is a simple string or list of strings thus
+                # Otherwise, the test_data_location is a simple string or list of strings thus
                 # no discrimination in the test_data_location(s) concerning target
                 # 'x-maturity' thus, we just return the 'highest ranked'
                 # x-maturity server endpoint found in the servers block
-                url = server_urls[environment]
+                test_data = test_data_location
 
-        if url:
+            urls = server_urls[environment]
             x_maturity = environment
             break
 
-    if not url and 'default' in test_data_location:
-        # The first time around, we couldn't align with an explicitly equivalent test data location.
-        # So we repeat the ordered search for an available x-maturity endpoint now assuming that
-        # suitable 'default' test data is available
+    if not urls and isinstance(test_data_location, Dict) and 'default' in test_data_location:
+        # The first time around, we couldn't align with an *explicitly*
+        # equivalent x-maturity object-model specified test data location.
+        # So we repeat the ordered search for available x-maturity endpoints,
+        # now using any suitable 'default' test data set which is available
         for environment in DEPLOYMENT_TYPES:
             if environment in server_urls:
-                url = server_urls[environment]
+                urls = server_urls[environment]
                 x_maturity = environment
+                test_data = test_data_location['default']
                 break
 
-    # Selected endpoint(s), if successfully resolved
-    if not url:
-        return None
+    # ... Now, resolve one of the available endpoints
+    url: Optional[str] = None
+    if urls:
+        for endpoint in urls:
+            # TODO: here, we need to test http access of the available x-maturity endpoints.
+            #       Since they are deemed 'functionally equivalent' by the Translator team,
+            #       the first endpoint with a http 200 success code is selected.
+            #       Current STUB implementation: just take first endpoint (untested)
+            url = endpoint
+
+    if url:
+        # Selected endpoint, if successfully resolved
+        return url, x_maturity, test_data
     else:
-        # TODO: need to test multiple x-maturity URL(s) for http access here?
-        #       If code 200 success for one of them, then return it...
-        return url, x_maturity
+        return None
 
 
 def validate_testable_resource(
@@ -545,19 +553,25 @@ def validate_testable_resource(
     # available 'x_maturity' environments from which to select for testing.
 
     # Now, we try to select one of the endpoints for testing
-    endpoint: Optional = select_endpoint(server_urls, test_data_location)
+    testable_system: Optional[Tuple[str, str, Union[str, List[str]]]] = \
+        select_endpoint(server_urls, test_data_location)
 
-    if endpoint:
+    if testable_system:
         url: str
         x_maturity: str
-        url, x_maturity = endpoint
+        test_data: Union[str, List]
+        url, x_maturity, test_data = testable_system
         resource_metadata['url'] = url
         resource_metadata['x_maturity'] = x_maturity
+        resource_metadata['test_data_location'] = test_data
     else:
         # not likely, but another sanity check!
-        logger.warning(f"Service {str(index)} lacks a suitable SRI Testing endpoint... Skipped?")
+        logger.warning(f"Service {str(index)} has incomplete testable system parameters... Skipped?")
         return None
 
+    # Resource Metadata returned with 'testable' endpoint, tagged
+    # with by x-maturity and associated with suitable test data
+    # (single or list of test data file url strings)
     return resource_metadata
 
 

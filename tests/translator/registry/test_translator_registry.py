@@ -90,44 +90,55 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
 
 
 # def select_endpoint(
-#         server_urls: Dict,
+#         server_urls: Dict[str, List],
 #         test_data_location: Optional[Union[str, List, Dict]]
 # ) -> Optional[Tuple[str, str]]
 @pytest.mark.parametrize(
     "query",
     [
-        (dict(), "", None),
-        (dict(), list(), None),
-        (dict(), dict(), None),
-        (
+        (dict(), "", None),  # Query 0: empty parameters - variant 1
+        (dict(), list(), None),  # Query 1: empty parameters - variant 2
+        (dict(), dict(), None),  # Query 2: empty parameters - variant 3
+        (   # Query 3 - complete server_urls for all x-maturity; simple string URL text_data_location
             {
-                'testing': "http://testing_endpoint",
-                'development': "http://development_endpoint",
-                'production': "http://production_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'development': ["http://development_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             "http://test_data",
-            ("http://production_endpoint", "production")
+            (
+                "http://production_endpoint",
+                "production",
+                "http://test_data"
+            )
         ),
-        (
+        (   # Query 4 - complete server_urls for all x-maturity; direct list of string URLs text_data_location
             {
-                'testing': "http://testing_endpoint",
-                'development': "http://development_endpoint",
-                'production': "http://production_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'development': ["http://development_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             [
                 "http://test_data_1",
                 "http://test_data_2",
             ],
-            ("http://production_endpoint", "production")
+            (
+                "http://production_endpoint",
+                "production",
+                [
+                    "http://test_data_1",
+                    "http://test_data_2",
+                ]
+            )
         ),
-        (
+        (   # Query 5 - complete server_urls for all x-maturity; full JSON object text_data_location without 'default'
             {
-                'testing': "http://testing_endpoint",
-                'development': "http://development_endpoint",
-                'production': "http://production_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'development': ["http://development_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             {
                 'testing': "http://testing_test_data",
@@ -135,76 +146,123 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
                 'production': "http://production_test_data",
                 'staging': "http://staging_test_data"
             },
-            ("http://production_endpoint", "production")
+            (
+                "http://production_endpoint",
+                "production",
+                "http://production_test_data"
+            )
         ),
-        (
+        (   # Query 6 - complete server_urls for all x-maturity; JSON object text_data_location with just 'default'
             {
-                'testing': "http://testing_endpoint",
-                'development': "http://development_endpoint",
-                'production': "http://production_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'development': ["http://development_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             {
                 'default': "http://default_test_data"
             },
-            ("http://production_endpoint", "production")
+            (
+                "http://production_endpoint",
+                "production",
+                "http://default_test_data"
+            )
         ),
-        (
+        (   # Query 7 - partial server_urls for x-maturity; JSON object text_data_location with just 'default'
             {
-                'testing': "http://testing_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             {
                 'default': "http://default_test_data"
             },
-            ("http://staging_endpoint", "staging")
+            (
+                "http://staging_endpoint",
+                "staging",
+                "http://default_test_data"
+            )
         ),
-        (
+        (   # Query 8 - partial server_urls for x-maturity; non-overlapping object text_data_location without 'default'
             {
-                'testing': "http://testing_endpoint",
-                'production': "http://production_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             {
                 'development': "http://development_test_data"
             },
             None
         ),
-        (
+        (   # Query 9 - partial server_urls for x-maturity; non-overlapping object text_data_location with 'default'
             {
-                'testing': "http://testing_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             {
                 'default': "http://default_test_data",
                 'development': "http://development_test_data"
             },
-            ("http://staging_endpoint", "staging")
+            (
+                "http://staging_endpoint",
+                "staging",
+                "http://default_test_data"
+            )
         ),
-        (
+        (   # Query 10 - full server_urls for x-maturity; JSON object text_data_location with only one x-maturity
             {
-                'testing': "http://testing_endpoint",
-                'development': "http://development_endpoint",
-                'production': "http://production_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'development': ["http://development_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             {
                 'development': "http://development_test_data"
             },
-            ("http://development_endpoint", "development")
+            (
+                "http://development_endpoint",
+                "development",
+                "http://development_test_data"
+            )
         ),
-        (
+        (   # Query 11 - full server_urls for x-maturity; JSON object text_data_location with one x-maturity + default
             {
-                'testing': "http://testing_endpoint",
-                'development': "http://development_endpoint",
-                'production': "http://production_endpoint",
-                'staging': "http://staging_endpoint"
+                'testing': ["http://testing_endpoint"],
+                'development': ["http://development_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
             },
             {
                 'default': "http://default_test_data",
                 'development': "http://development_test_data"
             },
-            ("http://development_endpoint", "development")
+            (
+                "http://development_endpoint",
+                "development",
+                "http://development_test_data"
+            )
+        ),
+        (   # Query 12 - full server_urls for x-maturity;
+            #            JSON object text_data_location with one x-maturity  with list of test data URLs
+            {
+                'testing': ["http://testing_endpoint"],
+                'development': ["http://development_endpoint"],
+                'production': ["http://production_endpoint"],
+                'staging': ["http://staging_endpoint"]
+            },
+            {
+                'development': [
+                    "http://development_test_data_1",
+                    "http://development_test_data_2"
+                ]
+            },
+            (
+                "http://development_endpoint",
+                "development",
+                [
+                    "http://development_test_data_1",
+                    "http://development_test_data_2"
+                ]
+            )
         )
     ]
 )
