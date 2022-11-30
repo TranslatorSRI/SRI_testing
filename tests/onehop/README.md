@@ -11,6 +11,7 @@ This suite tests the ability to retrieve given triples, which we know exist, fro
 - [Running the Tests](#running-the-tests)
     - [Running only the KP tests](#running-only-the-kp-tests)
     - [Running only the ARA tests](#running-only-the-ara-tests)
+    - [Test CLI Help](#test-cli-help)
 - [How the Framework works](#how-the-one-hop-tests-work)
     - [Validation Code](#validation-code)
     - [Biolink Model Compliance (Test Input Edges)](#biolink-model-compliance-test-input-edges)
@@ -164,77 +165,92 @@ ARA test templates do not explicitly show the edges to be be tested, but rather,
 
 ## Running the Tests
 
-Tests are implemented with pytest.  To run all tests, from _within_ the `tests/onehop` project subdirectory, simply run:
+Tests are implemented with pytest.  To run all tests (from _within_ the `tests/onehop` project subdirectory) simply run:
 
 ```bash
-pytest test_onehops.py
+pytest -vv test_onehops.py
 ```
+Use of the **-vv** Pytest option gives more descriptive output. The full test results are stored in JSON documents which may be stored on the local filing system under the 'test_results' folder (adjacent to the test_onehops.py script) or (or, in MongoDb, if MongoDb is running and properly configured - see the main SRI Testing repository README for details). 
 
-But this likely takes quite some time, so frequently you will want to limit the tests run.
+Running tests likely takes quite some time, since all ARA and KP services with test data will trigger a test run.  Thus, frequently you will want to limit the tests run.
 
 ### Running only the KP tests
 
 To run only KP tests:
 ```
-pytest test_onehops.py::test_trapi_kps
+pytest -vv test_onehops.py::test_trapi_kps
 ```
 
 To run KP Tests, but only using one triple from each KP:
 ```
-pytest test_onehops.py::test_trapi_kps --one
+pytest -vv test_onehops.py::test_trapi_kps --one
 ```
 
-To restrict test triples to one accessed from "REGISTRY" (the default value), that is, KP test data files retrieved from the 'test_data_location' URL defined in the KP records in the Translator SmartAPI Registry Translatorthose from a given directory or file:
+To restrict test triples to one accessed from one specific KP in the Translator SmartAPI Registry, KP test data file dereferenced by the [**info.x-trapi.test_data_location**  specification defined in the KP entry in the Translator SmartAPI Registry](https://github.com/NCATSTranslator/translator_extensions#x-trapi) correponding to the KP object id of the Infores CURIE of the target KP, e.g. **`sri-reference-kg`** (for **`infores:sri-reference-kg`**)
 ```
-pytest test_onehops.py::test_trapi_kps --triple_source=<triple_source>
+pytest -vv test_onehops.py --kp_id=<kp infores reference>
 ```
 e.g.
 ```
-pytest test_onehops.py::test_trapi_kps --triple_source=test_triples/KP/Unit_Test_KP
-```
-or
-```
-pytest test_onehops.py::test_trapi_kps --triple_source=test_triples/KP/Unit_Test_KP/Test_KP.json
+pytest -vv test_onehops.py --kp_id=sri-reference-kg
 ```
 
 The tests may be globally constrained to validate against a specified TRAPI and/or Biolink Version, as follows:
 
 ```shell
-pytest test_onehops.py::test_trapi_kps --TRAPI_Version ="1.3" --Biolink_Version="3.0.3"
+pytest -vv test_onehops.py --trapi_version ="1.3" --biolink_version="3.0.3"
 ```
 
-The full set of available command line options may be viewed using the help function:
+### Running the ARA tests
 
+Running tests for individual ARAs may be run with the **--ara_id** directive:
+
+```
+pytest -vv test_onehops.py --ara_id=<ara infores reference>
+```
+e.g.
+```
+pytest -vv test_onehops.py --ara_id=arax
+```
+
+This will run tests with test data from all KPs specified in the JSON ARA test configuration file "KPs" section, which also concurrently have valid test data dereferenced by the **info.x-trapi.test_data_location**  specifications defined in the corresponding KP entries.
+
+Constraining the test to one KP accessed via a given ARA may be achieved by combining the --ara_id and --kp_id directives:
+
+```
+pytest -vv test_onehops.py --ara_id=<ara infores reference> --kp_id=<kp infores reference>
+```
+e.g.
+```
+pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro
+```
+
+## Test CLI Help
+
+The full set of the currently available command line options may be viewed using the help function:
 
 ```shell
 pytest test_onehops.py --help
 ```
 
-These include the following Testing-specific custom options:
+The above SRI Testing-specific parameters are described as PyTest custom options:
 
 ```
-  --teststyle=TESTSTYLE
-                        Which Test to Run?
+  --test_run_id=TEST_RUN_ID
+                        Optional Test Run Identifier for internal use to index test results.
+  --trapi_version=TRAPI_VERSION
+                        TRAPI API version to use for validation, overriding Translator SmartAPI Registry property value (Default: latest public release or ).
+  --biolink_version=BIOLINK_VERSION
+                        Biolink Model version to use for validation, overriding Translator SmartAPI Registry property value (Default: latest public release or ).
+  --kp_id=KP_ID         Knowledge Provider identifier ("KP") targeted for testing (Default: None).
+ 
+  --ara_id=ARA_ID       Autonomous Relay Agent ("ARA") targeted for testing (Default: None).
+  
+  --teststyle=TESTSTYLE Which Test to Run?
+  
   --one                 Only use first edge from each KP file
-  --triple_source=TRIPLE_SOURCE
-                        'REGISTRY', directory or file from which to retrieve triples.
-                        (Default: 'REGISTRY', which triggers the use of metadata, in KP entries
-                        from the Translator SmartAPI Registry, to configure the tests).
-  --ARA_source=ARA_SOURCE
-                        'REGISTRY', directory or file from which to retrieve ARA Config.
-                        (Default: 'REGISTRY', which triggers the use of metadata, in ARA entries
-                        from the Translator SmartAPI Registry, to configure the tests).
-  --TRAPI_Version=TRAPI_VERSION
-                        TRAPI API Version to use for the tests 
-                        (Default: latest public release or REGISTRY metadata value).
-  --Biolink_Version=BIOLINK_VERSION
-                        Biolink Model Version to use for the tests
-                        (Default: latest Biolink Model Toolkit default or REGISTRY metadata value).
+
 ```
-
-### Running only the ARA tests
-
-The ARA tests cannot generally be run in isolation of the above KP tests (given their dependency on the generation of the KP test cases).
 
 ## What do the Validation Tests mean?
 
