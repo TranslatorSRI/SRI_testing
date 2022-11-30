@@ -15,7 +15,7 @@ from translator.registry import (
     extract_component_test_metadata_from_registry,
     get_testable_resource_ids_from_registry,
     source_of_interest,
-    validate_testable_resource
+    validate_testable_resource, select_endpoint
 )
 
 logger = logging.getLogger(__name__)
@@ -87,6 +87,129 @@ logger = logging.getLogger(__name__)
 def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
     # get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Optional[str]
     assert get_default_url(query[0]) == query[1]
+
+
+# def select_endpoint(
+#         server_urls: Dict,
+#         test_data_location: Optional[Union[str, List, Dict]]
+# ) -> Optional[Tuple[str, str]]
+@pytest.mark.parametrize(
+    "query",
+    [
+        (dict(), "", None),
+        (dict(), list(), None),
+        (dict(), dict(), None),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'development': "http://development_endpoint",
+                'production': "http://production_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            "http://test_data",
+            ("http://production_endpoint", "production")
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'development': "http://development_endpoint",
+                'production': "http://production_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            [
+                "http://test_data_1",
+                "http://test_data_2",
+            ],
+            ("http://production_endpoint", "production")
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'development': "http://development_endpoint",
+                'production': "http://production_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            {
+                'testing': "http://testing_test_data",
+                'development': "http://development_test_data",
+                'production': "http://production_test_data",
+                'staging': "http://staging_test_data"
+            },
+            ("http://production_endpoint", "production")
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'development': "http://development_endpoint",
+                'production': "http://production_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            {
+                'default': "http://default_test_data"
+            },
+            ("http://production_endpoint", "production")
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            {
+                'default': "http://default_test_data"
+            },
+            ("http://staging_endpoint", "staging")
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'production': "http://production_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            {
+                'development': "http://development_test_data"
+            },
+            None
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            {
+                'default': "http://default_test_data",
+                'development': "http://development_test_data"
+            },
+            ("http://staging_endpoint", "staging")
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'development': "http://development_endpoint",
+                'production': "http://production_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            {
+                'development': "http://development_test_data"
+            },
+            ("http://development_endpoint", "development")
+        ),
+        (
+            {
+                'testing': "http://testing_endpoint",
+                'development': "http://development_endpoint",
+                'production': "http://production_endpoint",
+                'staging': "http://staging_endpoint"
+            },
+            {
+                'default': "http://default_test_data",
+                'development': "http://development_test_data"
+            },
+            ("http://development_endpoint", "development")
+        )
+    ]
+)
+def test_select_endpoint(query: Tuple):
+    assert select_endpoint(query[0], query[1]) == query[2]
 
 
 @pytest.mark.parametrize(
@@ -274,7 +397,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
             f"Missing test_data_location '{query[1]}' expected in {component_type} '{service_metadata}' dictionary?"
 
         assert_tag(service_metadata, query[1], "url")
-        assert service_metadata[query[1]]['url'] == query[2]
+        assert query[2] in service_metadata[query[1]]['url']
         assert_tag(service_metadata, query[1], "service_title")
         assert_tag(service_metadata, query[1], "service_version")
         assert_tag(service_metadata, query[1], "infores")
@@ -886,7 +1009,7 @@ def test_validate_testable_resource(query: Tuple):
         validate_testable_resource("test_testable_resource", query[0], "ARA")
     if query[1]:
         assert 'url' in resource_metadata
-        assert resource_metadata['url'] == query[2]
+        assert query[2] in resource_metadata['url']
     else:
         assert not resource_metadata
 
@@ -921,9 +1044,28 @@ def test_get_one_specific_target_kp():
         assert service["infores"] == "molepro"
 
 
+def test_get_one_specific_multi_url_target_kp():
+    registry_data: Dict = get_the_registry_data()
+    # we filter on the 'sri-reference-kg' since it is used both in the mock and real registry?
+    service_metadata = extract_component_test_metadata_from_registry(
+        registry_data, "KP", source="service-provider-trapi"
+    )
+    assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
+    for service in service_metadata.values():
+        assert service["infores"] == "service-provider-trapi"
+        assert "https://bte.transltr.io/v1/team/Service%20Provider" in service["url"]
+        assert len(service["test_data_location"]) > 1
+        assert isinstance(service["test_data_location"], Dict)
+        for x_maturity, urls in service["test_data_location"].items():
+            if x_maturity == 'default':
+                assert len(urls) > 1
+                assert "https://raw.githubusercontent.com/NCATS-Tangerine/translator-api-registry/master/" + \
+                       "biothings_explorer/sri-test-service-provider.json" in urls
+
+
 def test_get_translator_ara_test_data_metadata():
     registry_data: Dict = get_the_registry_data()
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, "ARA")
+    service_metadata = extract_component_test_metadata_from_registry(registry_data=registry_data, component_type="ARA")
     assert len(service_metadata) > 0, \
         "No 'ARA' services found with a 'test_data_location' value in the Translator SmartAPI Registry?"
 
@@ -949,6 +1091,7 @@ def test_get_one_specific_target_x_maturity_in_a_target_ara():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
     for service in service_metadata.values():
         assert service["infores"] == "arax"
+        assert service["x_maturity"] == "testing"
         # the 'url' setting should be a list that includes urls from
         # the explicitly requested 'testing' x-maturity servers list
         assert "https://arax.test.transltr.io/api/arax/v1.3" in service["url"]

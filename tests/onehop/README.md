@@ -225,6 +225,14 @@ e.g.
 pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro
 ```
 
+## Translator X-Maturity Environments
+
+To constrain testing to one specific x-maturity environment (say, 'testing'), use the **`--x_maturity`** directive:
+
+```
+pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro --x_maturity=testing
+```
+
 ## Test CLI Help
 
 The full set of the currently available command line options may be viewed using the help function:
@@ -245,6 +253,9 @@ The above SRI Testing-specific parameters are described as PyTest custom options
   --kp_id=KP_ID         Knowledge Provider identifier ("KP") targeted for testing (Default: None).
  
   --ara_id=ARA_ID       Autonomous Relay Agent ("ARA") targeted for testing (Default: None).
+  
+  --x_maturity=X_MATURITY
+                        Target x_maturity server environment for testing (Default: None).
   
   --teststyle=TESTSTYLE Which Test to Run?
   

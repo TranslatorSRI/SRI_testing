@@ -384,14 +384,16 @@ def select_endpoint(
     'testing' and 'development' (this could change in the future, based on Translator community deliberations...).
     If the server_urls and test_data_location specifications don't overlap, then "None" is returned.
 
-    :param server_urls:
-    :param test_data_location:
-    :return:
+    :param server_urls: Dict, the indexed catalog of available Translator SmartAPI Registry entry 'servers' block urls
+    :param test_data_location: Optional[Union[str, List, Dict]], info.x-trapi.test_data_location specification
+    :return: Optional[Tuple[str, str]], selected URL endpoint and the associated name of the
+                                        'x-maturity' environment from which it originated
     """
     # Check the possible target testing environments
     # in an ad hoc hardcoded of the 'precedence/rank'
     # ordering of the DEPLOYMENT_TYPES list
     url: Optional[str] = None
+    x_maturity: Optional[str] = None
     for environment in DEPLOYMENT_TYPES:
         if environment in server_urls:
             # If available, filter environments against 'x-maturity'
@@ -400,9 +402,6 @@ def select_endpoint(
                 if environment in test_data_location:
                     # A 'test_data_location' specification is
                     # available for the given x-maturity key
-                    url = server_urls[environment]
-                elif 'default' in test_data_location:
-                    # first iteration: we can use the 'default' url for this environment
                     url = server_urls[environment]
                 else:
                     # nothing hit yet... and no default to fall back on, so we keep looking...
@@ -419,11 +418,26 @@ def select_endpoint(
                 url = server_urls[environment]
 
         if url:
-            # TODO: test the URL for access here?
+            x_maturity = environment
             break
 
-    # Selected endpoint, if successfully resolved
-    return url, environment
+    if not url and 'default' in test_data_location:
+        # The first time around, we couldn't align with an explicitly equivalent test data location.
+        # So we repeat the ordered search for an available x-maturity endpoint now assuming that
+        # suitable 'default' test data is available
+        for environment in DEPLOYMENT_TYPES:
+            if environment in server_urls:
+                url = server_urls[environment]
+                x_maturity = environment
+                break
+
+    # Selected endpoint(s), if successfully resolved
+    if not url:
+        return None
+    else:
+        # TODO: need to test multiple x-maturity URL(s) for http access here?
+        #       If code 200 success for one of them, then return it...
+        return url, x_maturity
 
 
 def validate_testable_resource(
@@ -531,10 +545,14 @@ def validate_testable_resource(
     # available 'x_maturity' environments from which to select for testing.
 
     # Now, we try to select one of the endpoints for testing
-    url: Optional[str] = select_endpoint(server_urls, test_data_location)
+    endpoint: Optional = select_endpoint(server_urls, test_data_location)
 
-    if url:
+    if endpoint:
+        url: str
+        x_maturity: str
+        url, x_maturity = endpoint
         resource_metadata['url'] = url
+        resource_metadata['x_maturity'] = x_maturity
     else:
         # not likely, but another sanity check!
         logger.warning(f"Service {str(index)} lacks a suitable SRI Testing endpoint... Skipped?")
