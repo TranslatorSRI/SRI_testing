@@ -935,3 +935,20 @@ def test_get_one_specific_target_ara():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
     for service in service_metadata.values():
         assert service["infores"] == "arax"
+        # the 'url' setting should be a list that includes urls from
+        # the default 'production' x-maturity servers list
+        assert "https://arax.transltr.io/api/arax/v1.3" in service["url"]
+
+
+def test_get_one_specific_target_x_maturity_in_a_target_ara():
+    registry_data: Dict = get_the_registry_data()
+    # we filter on the 'arax' since it is used both in the mock and real registry?
+    service_metadata = extract_component_test_metadata_from_registry(
+        registry_data, "ARA", source="arax", x_maturity="testing"
+    )
+    assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
+    for service in service_metadata.values():
+        assert service["infores"] == "arax"
+        # the 'url' setting should be a list that includes urls from
+        # the explicitly requested 'testing' x-maturity servers list
+        assert "https://arax.test.transltr.io/api/arax/v1.3" in service["url"]

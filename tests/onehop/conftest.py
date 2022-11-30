@@ -559,7 +559,7 @@ def get_test_data_sources(
 
     :param source: Optional[str], ara_id or kp_id source of test configuration data in the registry.
                                   Take 'all' of the given component type if the source is None
-                                  
+
     :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
     :param component_type: str, component type 'KP' or 'ARA'
     :param trapi_version: SemVer caller override of TRAPI release target for validation (Default: None)
@@ -570,7 +570,7 @@ def get_test_data_sources(
     # Access service metadata from the Translator SmartAPI Registry,
     # indexed using the "test_data_location" field as the unique key
     registry_data: Dict = get_the_registry_data()
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, component_type, source)
+    service_metadata = extract_component_test_metadata_from_registry(registry_data, component_type, source, x_maturity)
 
     # Possible CLI override of the metadata value of
     # TRAPI and/or Biolink Model releases used for data validation
