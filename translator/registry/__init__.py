@@ -371,9 +371,43 @@ _ignored_resources: Set[str] = {
 }
 
 
+def live_trapi_endpoint(url: str) -> bool:
+    """
+    Checks if TRAPI endpoint is accessible.
+    Current implementation performs a GET on the
+    TRAPI /meta_knowledge_graph endpoint,
+    to verify that a resource is 'alive'
+
+    :param url: str, URL of TRAPI endpoint to be checked
+    :return: bool, True if endpoint is 'alive'; False otherwise
+    """
+    if not url:
+        return False
+
+    # We test TRAPI endpoints by a simple 'GET'
+    # to its '/meta_knowledge_graph' endpoint
+    mkg_test_url: str = f"{url}/meta_knowledge_graph"
+    try:
+        request = requests.get(mkg_test_url)
+        if request.status_code == 200:
+            # Success! return the successfully accessed
+            # (possibly rewritten) test_data_location URL
+            return True
+        else:
+            logger.error(
+                f"live_trapi_endpoint(): TRAPI endpoint '{url}' is inaccessible? " +
+                f"Returned http status code: {request.status_code}?"
+            )
+    except RequestException as re:
+        logger.error(f"live_trapi_endpoint(): requests.get() exception {str(re)}?")
+
+    return False
+
+
 def select_endpoint(
         server_urls: Dict[str, List[str]],
-        test_data_location: Optional[Union[str, List, Dict]]
+        test_data_location: Optional[Union[str, List, Dict]],
+        check_access: bool = True
 ) -> Optional[Tuple[str, str, Union[str, List[str]]]]:
     """
     Select one test URL based on available server_urls and test_data_location specification. Usually, by the time
@@ -386,6 +420,8 @@ def select_endpoint(
 
     :param server_urls: Dict, the indexed catalog of available Translator SmartAPI Registry entry 'servers' block urls
     :param test_data_location: Optional[Union[str, List, Dict]], info.x-trapi.test_data_location specification
+    :param check_access: bool, verify TRAPI access of endpoints before returning (Default: True)
+
     :return: Optional[Tuple[str, str, Union[str, List]]], selected URL endpoint, 'x-maturity' tag and
                                                           associated test data reference: single URL or list of URLs
     """
@@ -435,11 +471,11 @@ def select_endpoint(
     url: Optional[str] = None
     if urls:
         for endpoint in urls:
-            # TODO: here, we need to test http access of the available x-maturity endpoints.
-            #       Since they are deemed 'functionally equivalent' by the Translator team,
-            #       the first endpoint with a http 200 success code is selected.
-            #       Current STUB implementation: just take first endpoint (untested)
-            url = endpoint
+            if not check_access or live_trapi_endpoint(endpoint):
+                # Since they are all deemed 'functionally equivalent' by the Translator team, the first
+                # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
+                url = endpoint
+                break
 
     if url:
         # Selected endpoint, if successfully resolved

@@ -15,7 +15,9 @@ from translator.registry import (
     extract_component_test_metadata_from_registry,
     get_testable_resource_ids_from_registry,
     source_of_interest,
-    validate_testable_resource, select_endpoint
+    validate_testable_resource,
+    live_trapi_endpoint,
+    select_endpoint
 )
 
 logger = logging.getLogger(__name__)
@@ -87,6 +89,21 @@ logger = logging.getLogger(__name__)
 def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
     # get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Optional[str]
     assert get_default_url(query[0]) == query[1]
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        ("", False),
+        ("https://foobar.com", False),
+
+        # This particular endpoint is valid and online as of 1 December 2022
+        # but may need to be revised in the future, as Translator resources evolve?
+        ("https://automat.renci.org/sri-reference-kg/1.3", True)
+    ]
+)
+def test_live_trapi_endpoint(query: Tuple[str, bool]):
+    assert live_trapi_endpoint(query[0]) == query[1]
 
 
 # def select_endpoint(
@@ -267,6 +284,29 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
     ]
 )
 def test_select_endpoint(query: Tuple):
+    assert select_endpoint(query[0], query[1], check_access=False) == query[2]
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        (   # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
+            # 1 December 2022, but may need to be revised in the future, as Translator resources evolve?
+            {
+                'development': ["https://automat.renci.org/sri-reference-kg/1.3"],
+            },
+            {
+                'default': "https://automat.renci.org/sri-reference-kg/1.3/sri_testing_data"
+            },
+            (
+                "https://automat.renci.org/sri-reference-kg/1.3",
+                "development",
+                "https://automat.renci.org/sri-reference-kg/1.3/sri_testing_data"
+            )
+        )
+    ]
+)
+def test_select_endpoint_with_checking(query: Tuple):
     assert select_endpoint(query[0], query[1]) == query[2]
 
 
@@ -625,7 +665,7 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                             'contact': {
                                 'email': 'edeutsch@systemsbiology.org'
                             },
-                            'description': 'TRAPI 1.3 endpoint for the NCATS Biomedical Translator Reasoner called ARAX',
+                            'description': 'ARAX TRAPI 1.3 endpoint for the NCATS Biomedical Translator Reasoner',
                             'license': {
                                 'name': 'Apache 2.0',
                                 'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
@@ -942,10 +982,6 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                             "default": {
                                 'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
                                        'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json'
-                            },
-                            "development": {
-                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
                             }
                         }
                     }
@@ -1064,7 +1100,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
 )
 def test_validate_testable_resource(query: Tuple):
     resource_metadata: Optional[Dict[str, Union[str, List, Dict]]] = \
-        validate_testable_resource("test_testable_resource", query[0], "ARA")
+        validate_testable_resource(1, query[0], "ARA")
     if query[1]:
         assert 'url' in resource_metadata
         assert query[2] in resource_metadata['url']
@@ -1100,6 +1136,7 @@ def test_get_one_specific_target_kp():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
+        assert "https://molepro-trapi.transltr.io/molepro/trapi/v1.3" in service["url"]
 
 
 def test_get_one_specific_multi_url_target_kp():
