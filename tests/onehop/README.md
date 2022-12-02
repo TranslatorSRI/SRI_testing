@@ -7,7 +7,7 @@ This suite tests the ability to retrieve given triples, which we know exist, fro
     - [KP Test Data Format](#kp-test-data-format)
       - [General Recommendations for Edge Test Data](#general-recommendations-for-edge-test-data)
       - [Excluding Tests](#excluding-tests)
-      - [Biolink 3.0 Revisions](#biolink-3-0-revisions)
+      - [Biolink 3.0 Revisions](#biolink-30-revisions)
     - [ARA Test Configuration File](#ara-test-configuration-file)
 - [Running the Tests](#running-the-tests)
     - [Running only the KP tests](#running-only-the-kp-tests)
