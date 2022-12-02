@@ -743,6 +743,7 @@ def get_kp_metadata(
     x_maturity: Optional[str] = metafunc.config.getoption('x_maturity')
 
     if x_maturity and x_maturity.lower() not in ["production", "staging", "testing", "development"]:
+        # Sanity check....
         x_maturity = None
 
     # Note: the KP's trapi_version and biolink_version may be overridden here
@@ -760,11 +761,11 @@ def get_kp_metadata(
         # attention to KPs indicated by test configuration as called by that ARA?
         # Since we don't want to pop the metadata from its dictionary but
         # don't know the ara_id, we need to use a for loop to access it
-        for ara_source, ara_metadata in ara_metadata.items():
+        for ara_source, metadata in ara_metadata.items():
 
             # TODO: with x-maturity environments and the possibility of a list
             #       of test data files, the arajson may not soon be what it seems!
-            arajson: Dict = load_test_data_source(ara_metadata)
+            arajson: Dict = load_test_data_source(metadata)
 
             kps: Set[str] = {kp_id for kp_id in arajson['KPs']}
 
@@ -793,7 +794,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
         # TODO: with x-maturity environments and the possibility of a list
         #       of test data files, the kpjson may not soon be what it seems!
-        kpjson = load_test_data_source(metadata)
+        kpjson: Dict = load_test_data_source(metadata)
 
         if not kpjson:
             # valid test data file not found?
@@ -940,7 +941,7 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
 
         # TODO: with x-maturity environments and the possibility of a list
         #       of test data files, the arajson may not soon be what it seems!
-        arajson = load_test_data_source(metadata)
+        arajson: Dict = load_test_data_source(metadata)
 
         if not arajson:
             # valid test data file not found?
