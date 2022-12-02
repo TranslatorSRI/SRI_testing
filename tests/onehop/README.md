@@ -151,7 +151,14 @@ The KP test edge format is [being extended to specify Biolink 3.0 qualifier cons
 
 ```json
 {
-... <other necessary test data file fields>...
+    #
+    # Should be set to 3.0. Once Biolink 3.0 testing becomes mainstream,
+    # then version 3.0 will be deemed 'latest' and thus, assumed.
+    "version": "3.0"
+    
+    "source_type": "primary",
+    "infores": "molepro",
+    "exclude_tests": ["RPBS"],
     "edges": [
        {
             "subject_category": "biolink:SmallMolecule",  
