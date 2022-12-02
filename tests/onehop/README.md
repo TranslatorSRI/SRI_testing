@@ -149,11 +149,17 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 
 The KP test edge format is [being extended to specify Biolink 3.0 qualifier constraints](https://github.com/TranslatorSRI/SRI_testing/issues/60) in the following manner:
 
+- **`version`**: set to 3.0
+- **`association`**: (Optional) add edge category - value set to the id of any child class of **`biolink:Association`** - to assert associated semantic constraints in validating edge data from the specified test edge.
+- **`subject_id`** and **`object_id`**: to replace version 2.0 **`subject`** and **`object`** tags, now deprecated. Same meaning as old tags just disambiguates the meaning of those tags (the older tags will still be recognized if used but disappear in future format releases).
+- **`qualifiers`**: new tag to specify Biolink Model 3.#.# **`qualifier`** constraints on testing, with JSON object composed of **`qualifier_type_id`** and **`qualifier_value`** values (as per the example below).
+
 ```json
 {
     #
     # Should be set to 3.0. Once Biolink 3.0 testing becomes mainstream,
     # then version 3.0 will be deemed 'latest' and thus, assumed.
+    #
     "version": "3.0"
     
     "source_type": "primary",
@@ -172,10 +178,10 @@ The KP test edge format is [being extended to specify Biolink 3.0 qualifier cons
                       "qualifier_type_id": "biolink:causal_mechanism_qualifier"
                       "qualifier_value": "inhibition"
                  },
-                 ...other qualifier constraint type_id/value pairs?
+                 # ...other qualifier constraint type_id/value pairs?
              ]
         },
-        ...other test edges
+        # ...other test edges
    ]
 }
 ```
