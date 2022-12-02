@@ -35,9 +35,18 @@ The default operation of SRI Testing now relies on the interrogation of the Tran
 For each KP, we need a file with one triple of each type that the KP can provide. Here is an example:
 
 ```
-{
+{   
     #
-    # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
+    # Optional KP test data format version. Generally assume 'latest' if not given. 
+    # This particular version is deemed version 2.0 which implies major support focused
+    # on Biolink major version 2 (i.e. 2.#.# releases)
+    "version": "2.0"
+    
+    #
+    # Deprecated: the 'url' field is deprecated and ignored in Version 2.0
+    # Rather, the target endpoint for testing now comes from the 
+    # Translator SmartAPI Registry entry for the specified KP or ARA resource
+    # (see the Translator SmartAPI Registry Configuration comments above)
     #
     # "url": "https://automat.renci.org/ontological-hierarchy/1.3",
     
@@ -140,6 +149,13 @@ For each ARA, we want to ensure that it is able to extract information correctly
 
 ```
 {
+   
+    #
+    # Optional KP test data format version. Generally assume 'latest' if not given. 
+    # This particular version is deemed version 2.0 which implies major support focused
+    # on Biolink major version 2 (i.e. 2.#.# releases)
+    "version": "2.0"
+    
     #
     # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
     #
