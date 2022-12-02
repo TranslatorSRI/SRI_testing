@@ -1099,7 +1099,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
     ]
 )
 def test_validate_testable_resource(query: Tuple):
-    resource_metadata: Optional[Dict[str, Union[str, List, Dict]]] = \
+    resource_metadata: Optional[Dict[str, Union[str, List]]] = \
         validate_testable_resource(1, query[0], "ARA")
     if query[1]:
         assert 'url' in resource_metadata
@@ -1139,25 +1139,6 @@ def test_get_one_specific_target_kp():
         assert "https://molepro-trapi.transltr.io/molepro/trapi/v1.3" in service["url"]
 
 
-def test_get_one_specific_multi_url_target_kp():
-    registry_data: Dict = get_the_registry_data()
-    # we filter on the 'sri-reference-kg' since it is used both in the mock and real registry?
-    service_metadata = extract_component_test_metadata_from_registry(
-        registry_data, "KP", source="service-provider-trapi"
-    )
-    assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
-    for service in service_metadata.values():
-        assert service["infores"] == "service-provider-trapi"
-        assert "https://bte.transltr.io/v1/team/Service%20Provider" in service["url"]
-        assert len(service["test_data_location"]) > 1
-        assert isinstance(service["test_data_location"], Dict)
-        for x_maturity, urls in service["test_data_location"].items():
-            if x_maturity == 'default':
-                assert len(urls) > 1
-                assert "https://raw.githubusercontent.com/NCATS-Tangerine/translator-api-registry/master/" + \
-                       "biothings_explorer/sri-test-service-provider.json" in urls
-
-
 def test_get_translator_ara_test_data_metadata():
     registry_data: Dict = get_the_registry_data()
     service_metadata = extract_component_test_metadata_from_registry(registry_data=registry_data, component_type="ARA")
@@ -1175,6 +1156,7 @@ def test_get_one_specific_target_ara():
         # the 'url' setting should be a list that includes urls from
         # the default 'production' x-maturity servers list
         assert "https://arax.transltr.io/api/arax/v1.3" in service["url"]
+        assert service["x_maturity"] == "production"
 
 
 def test_get_one_specific_target_x_maturity_in_a_target_ara():

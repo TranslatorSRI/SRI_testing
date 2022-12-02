@@ -489,7 +489,7 @@ def validate_testable_resource(
         service: Dict,
         component: str,
         x_maturity: Optional[str] = None
-) -> Optional[Dict[str, Union[str, List, Dict]]]:
+) -> Optional[Dict[str, Union[str, List]]]:
     """
 
     :param index: int, internal sequence number (i.e. hit number in the Translator SmartAPI Registry)
@@ -599,7 +599,10 @@ def validate_testable_resource(
         url, x_maturity, test_data = testable_system
         resource_metadata['url'] = url
         resource_metadata['x_maturity'] = x_maturity
-        resource_metadata['test_data_location'] = test_data
+        if isinstance(test_data, List):
+            resource_metadata['test_data_location'] = test_data
+        else:
+            resource_metadata['test_data_location'] = [test_data]
     else:
         # not likely, but another sanity check!
         logger.warning(f"Service {str(index)} has incomplete testable system parameters... Skipped?")
@@ -734,8 +737,10 @@ def extract_component_test_metadata_from_registry(
         service_title: str = resource_metadata['service_title']
         infores: str = resource_metadata['infores']
 
-        # this 'url' is the service endpoint
+        # this 'url' is the service endpoint in the
+        # specified 'x_maturity' environment
         url: str = resource_metadata['url']
+        x_maturity: str = resource_metadata['x_maturity']
 
         # The 'test_data_location' also has url's but these are now expressed
         # in a polymorphic manner: Optional[Dict[str, Union[str, List, Dict]]].
@@ -787,11 +792,12 @@ def extract_component_test_metadata_from_registry(
         _service_catalog[service_id].append(entry_id)
 
         capture_tag_value(service_metadata, service_id, "url", url)
+        capture_tag_value(service_metadata, service_id, "x_maturity", x_maturity)
         capture_tag_value(service_metadata, service_id, "service_title", service_title)
         capture_tag_value(service_metadata, service_id, "service_version", service_version)
         capture_tag_value(service_metadata, service_id, "component", component_type)
         capture_tag_value(service_metadata, service_id, "infores", infores)
-        capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)  # may be complex!
+        capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)
         capture_tag_value(service_metadata, service_id, "biolink_version", biolink_version)
         capture_tag_value(service_metadata, service_id, "trapi_version", trapi_version)
 
