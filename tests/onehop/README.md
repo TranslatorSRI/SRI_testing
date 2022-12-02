@@ -7,6 +7,7 @@ This suite tests the ability to retrieve given triples, which we know exist, fro
     - [KP Test Data Format](#kp-test-data-format)
       - [General Recommendations for Edge Test Data](#general-recommendations-for-edge-test-data)
       - [Excluding Tests](#excluding-tests)
+      - [Biolink 3.0 Revisions](#biolink-3-0-revisions)
     - [ARA Test Configuration File](#ara-test-configuration-file)
 - [Running the Tests](#running-the-tests)
     - [Running only the KP tests](#running-only-the-kp-tests)
@@ -142,6 +143,35 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 | raise subject entity       |    RSE    |
 | raise object by subject    |   ROBS    |
 | raise predicate by subject |   RPBS    |
+
+
+#### Biolink 3.0 Revisions
+
+The KP test edge format is being extended to specify Biolink 3.0 qualifier constraints.
+
+```json
+{
+... <other necessary test data file fields>...
+    "edges": [
+       {
+            "subject_category": "biolink:SmallMolecule",  
+            "object_category": "biolink:Disease",
+            "predicate": "biolink:treats",
+            "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
+            "object_id": "MESH:D001249"     # asthma
+            "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
+            "qualifiers": [
+                 {
+                      "qualifier_type_id": "biolink:causal_mechanism_qualifier"
+                      "qualifier_value": "inhibition"
+                 },
+                 ...other qualifier constraint type_id/value pairs?
+             ]
+        },
+        ...other test edges
+   ]
+}
+```
 
 ### ARA Test Configuration File
 
