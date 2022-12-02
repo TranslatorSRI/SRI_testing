@@ -147,7 +147,7 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 
 #### Biolink 3.0 Revisions
 
-The KP test edge format is being extended to specify Biolink 3.0 qualifier constraints.
+The KP test edge format is [being extended to specify Biolink 3.0 qualifier constraints](https://github.com/TranslatorSRI/SRI_testing/issues/60) in the following manner:
 
 ```json
 {
