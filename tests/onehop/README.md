@@ -7,6 +7,7 @@ This suite tests the ability to retrieve given triples, which we know exist, fro
     - [KP Test Data Format](#kp-test-data-format)
       - [General Recommendations for Edge Test Data](#general-recommendations-for-edge-test-data)
       - [Excluding Tests](#excluding-tests)
+      - [Biolink 3.0 Revisions](#biolink-30-revisions)
     - [ARA Test Configuration File](#ara-test-configuration-file)
 - [Running the Tests](#running-the-tests)
     - [Running only the KP tests](#running-only-the-kp-tests)
@@ -35,9 +36,18 @@ The default operation of SRI Testing now relies on the interrogation of the Tran
 For each KP, we need a file with one triple of each type that the KP can provide. Here is an example:
 
 ```
-{
+{   
     #
-    # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
+    # Optional KP test data format version. Generally assume 'latest' if not given. 
+    # This particular version is deemed version 2.0 which implies major support focused
+    # on Biolink major version 2 (i.e. 2.#.# releases)
+    "version": "2.0"
+    
+    #
+    # Deprecated: the 'url' field is deprecated and ignored in Version 2.0
+    # Rather, the target endpoint for testing now comes from the 
+    # Translator SmartAPI Registry entry for the specified KP or ARA resource
+    # (see the Translator SmartAPI Registry Configuration comments above)
     #
     # "url": "https://automat.renci.org/ontological-hierarchy/1.3",
     
@@ -134,12 +144,61 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 | raise object by subject    |   ROBS    |
 | raise predicate by subject |   RPBS    |
 
+
+#### Biolink 3.0 Revisions
+
+The KP test edge format is [being extended to specify Biolink 3.0 qualifier constraints](https://github.com/TranslatorSRI/SRI_testing/issues/60) in the following manner:
+
+- **`version`**: set to 3.0
+- **`association`**: (Optional) add edge category - value set to the id of any child class of **`biolink:Association`** - to assert associated semantic constraints in validating edge data from the specified test edge.
+- **`subject_id`** and **`object_id`**: to replace version 2.0 **`subject`** and **`object`** tags, now deprecated. Same meaning as old tags just disambiguates the meaning of those tags (the older tags will still be recognized if used but disappear in future format releases).
+- **`qualifiers`**: (Optional) new tag to specify Biolink Model 3.#.# **`qualifier`** constraints on testing, with JSON object composed of **`qualifier_type_id`** and **`qualifier_value`** values (as per the example below).
+
+```json
+{
+    #
+    # Should be set to 3.0. Once Biolink 3.0 testing becomes mainstream,
+    # then version 3.0 will be deemed 'latest' and thus, assumed.
+    #
+    "version": "3.0"
+    
+    "source_type": "primary",
+    "infores": "molepro",
+    "exclude_tests": ["RPBS"],
+    "edges": [
+       {
+            "subject_category": "biolink:SmallMolecule",  
+            "object_category": "biolink:Disease",
+            "predicate": "biolink:treats",
+            "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
+            "object_id": "MESH:D001249"     # asthma
+            "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
+            "qualifiers": [
+                 {
+                      "qualifier_type_id": "biolink:causal_mechanism_qualifier"
+                      "qualifier_value": "inhibition"
+                 },
+                 # ...other qualifier constraint type_id/value pairs?
+             ]
+        },
+        # ...other test edges
+   ]
+}
+```
+
 ### ARA Test Configuration File
 
 For each ARA, we want to ensure that it is able to extract information correctly from the KPs.  To do this, we need to know which KPs each ARA interacts with.  Here is an example:
 
 ```
 {
+   
+    #
+    # Optional KP test data format version. Generally assume 'latest' if not given. 
+    # This particular version is deemed version 2.0 which implies major support focused
+    # on Biolink major version 2 (i.e. 2.#.# releases)
+    "version": "2.0"
+    
     #
     # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
     #
