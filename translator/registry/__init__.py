@@ -219,7 +219,7 @@ def validate_url(url: str) -> Optional[str]:
             if request.status_code == 200:
                 # Success! return the successfully accessed
                 # (possibly rewritten) test_data_location URL
-                return url
+                return test_data_location
             else:
                 logger.error(
                     f"validate_test_data_location(): '{test_data_location}' access " +
@@ -491,6 +491,7 @@ def validate_testable_resource(
         x_maturity: Optional[str] = None
 ) -> Optional[Dict[str, Union[str, List]]]:
     """
+    Validates a service as testable and resolves then returns parameters for testing.
 
     :param index: int, internal sequence number (i.e. hit number in the Translator SmartAPI Registry)
     :param service: Dict, indexed metadata about a component service (from the Registry)
@@ -636,7 +637,8 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
         if not (component and component in ["KP", "ARA"]):
             continue
 
-        resource_metadata: Optional[Dict[str, Any]] = validate_testable_resource(index, service, component)
+        resource_metadata: Optional[Dict[str, Any]] = \
+            validate_testable_resource(index, service, component)
         if not resource_metadata:
             continue
 
@@ -728,7 +730,8 @@ def extract_component_test_metadata_from_registry(
         if not (component and component == component_type):
             continue
 
-        resource_metadata: Optional[Dict[str, Any]] = validate_testable_resource(index, service, component, x_maturity)
+        resource_metadata: Optional[Dict[str, Any]] = \
+            validate_testable_resource(index, service, component, x_maturity)
         if not resource_metadata:
             continue
 

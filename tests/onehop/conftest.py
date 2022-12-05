@@ -1,7 +1,7 @@
 """
 Configure one hop tests
 """
-from typing import Optional, Union, List, Set, Dict, Any
+from typing import Optional, Union, List, Set, Dict, Any, Tuple
 from os import path, walk, sep
 from collections import defaultdict
 
@@ -14,7 +14,6 @@ from reasoner_validator.biolink import check_biolink_model_compliance_of_input_e
 from reasoner_validator.versioning import latest
 
 from translator.registry import (
-    get_default_url,
     get_remote_test_data_file,
     get_the_registry_data,
     extract_component_test_metadata_from_registry
@@ -274,7 +273,7 @@ def pytest_sessionfinish(session):
             if ara_id not in test_run_summary[component]:
                 test_run_summary[component][ara_id] = dict()
                 test_run_summary[component][ara_id]['url'] = url
-                test_run_summary[component][ara_id]['test_data_location'] = test_case['ara_test_data_location']
+                test_run_summary[component][ara_id]['test_data_location'] = test_case['ara_test_config_location']
                 test_run_summary[component][ara_id]['kps'] = dict()
 
                 resource_summaries[component][ara_id] = dict()
@@ -305,7 +304,7 @@ def pytest_sessionfinish(session):
                     biolink_version=biolink_version
                 )
                 test_run_summary[component][kp_id]['url'] = url
-                test_run_summary[component][kp_id]['test_data_location'] = test_case['kp_test_data_location']
+                test_run_summary[component][kp_id]['test_data_location'] = test_case['ks_test_data_location']
 
                 resource_summaries[component][kp_id] = _new_kp_resource_summary(
                     trapi_version=trapi_version,
@@ -585,127 +584,62 @@ def get_test_data_sources(
     return service_metadata
 
 
-def load_test_data_source(registry_metadata: Dict[str, Optional[Union[str, Dict]]]) -> Optional[Dict]:
+def load_test_data_sources(
+        registry_metadata: Dict[str, Any],
+        source_id: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
     """
     Load JSON metadata file(s) from a specified component test data source. Note that with the latest
     Translator SmartAPI Registry data model for info.x-trapi.test_data_location properties, that the
     actual data loaded may relate to several distinct x-maturity environments that may have more than
     one JSON test file sources.
 
-    :param registry_metadata: Dict[str, Optional[Union[str, Dict]]], metadata associated with source
-    :return: Optional[Dict], annotated KP test edges or ARA configuration parameters metadata; 'None' if unavailable
+    :param registry_metadata: Dict[str, Any], metadata associated with source
+    :param source_id: str, reference id of the infores CURIE of the source component owning the registry metadata
+    :return: Optional[Dict[str, Any], annotated KP test edges or ARA configuration metadata; 'None' if unavailable
     """
     # sanity check
     assert registry_metadata is not None
+    if 'sources' not in registry_metadata:
+        registry_metadata['sources'] = dict()
 
-    # TODO: the test_data_location value in the registry_metadata is now complex ...
-    #       We will patch this up later.. for now, we just infer a default REST Url
-    test_data_location: Optional[str] = get_default_url(registry_metadata['test_data_location'])
-    if not test_data_location:
-        return None
+    test_data_locations: List[str] = registry_metadata['test_data_location']
+    for test_data_url in test_data_locations:
 
-    # TODO: handle (x-maturity indexed?) lists of test_data_locations
-    #       URLs - hence, multiple files - here later?
-    test_data = get_remote_test_data_file(test_data_location)
-    if not test_data:
-        return None
+        test_data = get_remote_test_data_file(test_data_url)
 
-    if 'url' in registry_metadata and 'url' in test_data:
-        # Registry metadata 'url' value may now
-        # override the corresponding test_data value
-        test_data.pop('url')
+        if not test_data:
+            continue
 
-    # append/override test data to metadata
-    registry_metadata.update(test_data)
+        if 'infores' not in test_data:
+            if source_id:
+                test_data['infores'] = source_id  # default infores is from component being tested
+            else:
+                logger.warning(f"Test data missing infores: {str(test_data)[0:20]}...Skipping!")
+                continue
 
-    registry_metadata['location'] = test_data_location
+        # Registry metadata resource endpoint 'url' values now
+        # override any corresponding legacy test_data file value
+        if 'url' in registry_metadata and 'url' in test_data:
+            test_data.pop('url')
 
-    # the api_name extracted from a URL path
-    api_name: str = test_data_location.split('/')[-1]
+        infores = test_data.pop('infores')
+        if infores not in registry_metadata['sources']:
+            registry_metadata['sources'][infores] = dict()
 
-    # remove any trailing file extension
-    registry_metadata['api_name'] = api_name.replace(".json", "")
+        source = registry_metadata['sources'][infores]
+        source.update(test_data)
+        source['location'] = test_data_url
 
-    # TODO: should the metadata files returned here eventually be a
-    #       x-maturity indexed possibly with an array of values (?!?)
     return registry_metadata
 
 
-# Key is a resource identifier a.k.a. 'api_name'
+# Key is a resource identifier a.k.a. 'kp_id' or 'ara_id'
 # Value is associated Translator SmartAPI Registry metadata dictionary
 component_catalog: Dict[str, Dict[str, Any]] = dict()
 
 
-@deprecated
-def cache_resource_metadata(metadata: Dict[str, Any]):
-    component = metadata['component']
-    assert component in ["KP", "ARA"]
-    resource_id: str = metadata['api_name']
-    component_catalog[resource_id] = metadata
-
-
-@deprecated
-def get_metadata_by_resource(resource_id: str) -> Optional[Dict[str, Any]]:
-    if resource_id in component_catalog:
-        metadata: Dict = component_catalog[resource_id]
-        return metadata
-    else:
-        return None
-
-
-@deprecated
-def get_component_by_resource(resource_id: str) -> Optional[str]:
-    metadata: Dict = get_metadata_by_resource(resource_id)
-    if metadata and "component" in metadata:
-        return metadata['component']
-    else:
-        return None
-
-
 kp_edges_catalog: Dict[str, Dict[str,  Union[int, str]]] = dict()
-
-
-@deprecated
-def add_kp_edge(resource_id: str, edge_idx: int, edge: Dict[str, Any]):
-    metadata: Dict = get_metadata_by_resource(resource_id)
-    assert metadata
-    if "edges" not in metadata:
-        metadata['edges'] = list()
-    while len(metadata['edges']) <= edge_idx:
-        metadata['edges'].append(None)
-    metadata['edges'][edge_idx] = edge
-
-
-@deprecated
-def get_kp_edge(resource_id: str, edge_idx: int) -> Optional[Dict[str, Any]]:
-    metadata: Dict = get_metadata_by_resource(resource_id)
-    if metadata:
-        edges = metadata['edges']
-        if 0 <= edge_idx < len(edges):
-            return edges[edge_idx]
-        logger.warning(f"get_kp_edge(resource_id: {resource_id}, edge_idx: {edge_idx}) out-of-bounds 'edge_idx'?")
-    else:
-        logger.warning(f"get_kp_edge(resource_id: {resource_id}, edge_idx: {edge_idx}) 'metadata' unavailable?")
-    return None
-
-
-def get_resource_identifier(config: Dict, source: str) -> Optional[str]:
-    if 'infores' in config:
-        infores_id = config['infores']
-    else:
-        logger.warning(
-            f"get_resource_identifier(): test configuration file from '{source}' " +
-            "is missing its 'infores' field value? Infer one from the API name?"
-        )
-        # create a pseudo-infores from a lower cased and hyphenated API name
-        api_name: str = config['api_name']
-        if not api_name:
-            logger.warning("get_resource_identifier(): API Name is missing? Skipping entry...")
-            return None
-
-        infores_id = api_name.lower().replace("_", "-")
-
-    return infores_id
 
 
 def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
@@ -729,6 +663,15 @@ def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict
             component_type="ARA"
     )
 
+
+def id_parts(identifier: str) -> Optional[Tuple[str, str, str]]:
+    id_part = identifier.split(',')
+    if len(id_part) != 3:
+        logger.error(f"Source id '{identifier}' is invalid?")
+        return None
+
+    ara_id, trapi_version, biolink_version = id_part
+    return ara_id, trapi_version, biolink_version
 
 def get_kp_metadata(
         metafunc,
@@ -761,20 +704,21 @@ def get_kp_metadata(
         # attention to KPs indicated by test configuration as called by that ARA?
         # Since we don't want to pop the metadata from its dictionary but
         # don't know the ara_id, we need to use a for loop to access it
-        for ara_source, metadata in ara_metadata.items():
+        for ara_release, metadata in ara_metadata.items():
 
-            # TODO: with x-maturity environments and the possibility of a list
-            #       of test data files, the arajson may not soon be what it seems!
-            arajson: Dict = load_test_data_source(metadata)
+            ara_id, trapi_version, biolink_version = id_parts(ara_release)
+
+            arajson: Dict = load_test_data_sources(metadata, source_id=ara_id)
 
             kps: Set[str] = {kp_id for kp_id in arajson['KPs']}
 
-            # Blight assumption here is that our kp_metadata
+            # Blissful assumption here is that our kp_metadata
             # entries all have infores CURIE references
             kept: Dict = dict()
             for kp_source, kp_metadata in kp_metadata.items():
                 if 'infores' in kp_metadata and f"infores:{kp_metadata['infores']}" in kps:
                     kept[kp_source] = kp_metadata
+
             kp_metadata = kept
 
     return kp_metadata
@@ -790,109 +734,103 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
     edges: List = []
     idlist: List = []
 
-    for source, metadata in kp_metadata.items():
+    for kp_release, metadata in kp_metadata.items():
 
-        # TODO: with x-maturity environments and the possibility of a list
-        #       of test data files, the kpjson may not soon be what it seems!
-        kpjson: Dict = load_test_data_source(metadata)
+        kp_id: Optional[str]
+
+        kp_id, trapi_version, biolink_version = id_parts(kp_release)
+
+        kpjson: Dict = load_test_data_sources(metadata, source_id=kp_id)
 
         if not kpjson:
             # valid test data file not found?
             logger.error(
-                f"generate_trapi_kp_tests():  JSON file at test data location '{source}' is missing or invalid"
+                f"generate_trapi_kp_tests():  JSON file at test data location '{kp_release}' is missing or invalid"
             )
             continue
-
-        kp_id: Optional[str] = get_resource_identifier(kpjson, source)
-        if not kp_id:
-            # can't identify the Infores source of the data?
-            continue
-
-        # No point in caching for latest implementation of reporting
-        # cache_resource_metadata(kpjson)
-
-        dataset_level_test_exclusions: Set = set()
-        if "exclude_tests" in kpjson:
-            dataset_level_test_exclusions.update(
-                [test for test in kpjson["exclude_tests"] if test in get_unit_test_codes()]
-            )
 
         if not ('url' in kpjson and kpjson['url'].startswith("http")):
-            err_msg = f"generate_trapi_kp_tests(): source '{source}' url "
+            err_msg = f"generate_trapi_kp_tests(): source '{kp_release}' url "
             err_msg += f"{str(kpjson['url'])} is invalid" if 'url' in kpjson else "field is missing or is not a URI"
             err_msg += "... Skipping test data source?"
             logger.error(err_msg)
             continue
 
         # TODO: see below about echoing the edge input data to the Pytest stdout
-        print(f"### Start of Test Input Edges for KP '{kpjson['api_name']}' ###")
+        print(f"### Start of Test Input Edges for KP '{kp_id}' ###")
 
-        for edge_i, edge in enumerate(kpjson['edges']):
+        sources: Dict = kpjson['sources']
+        for infores, test_data in sources.items():
 
-            # We tag each edge internally with its
-            # sequence number, for later convenience
-            edge['idx'] = edge_i
-
-            # We can already do some basic Biolink Model validation here of the
-            # S-P-O contents of the edge being input from the current triples file?
-            biolink_validator: BiolinkValidator = \
-                check_biolink_model_compliance_of_input_edge(
-                    edge,
-                    biolink_version=kpjson['biolink_version']
+            dataset_level_test_exclusions: Set = set()
+            if "exclude_tests" in test_data:
+                dataset_level_test_exclusions.update(
+                    [test for test in test_data["exclude_tests"] if test in get_unit_test_codes()]
                 )
-            if biolink_validator.has_messages():
-                # defer reporting of errors to higher level of test harness
-                edge['pre-validation'] = biolink_validator.get_messages()
 
-            edge['kp_test_data_location'] = kpjson['location']
+            if 'edges' not in test_data:
+                logger.warning(f"Test Data for from '{infores}' has now edges? Weird... skipping!")
+                continue
 
-            edge['url'] = kpjson['url']
+            for edge_i, edge in enumerate(test_data['edges']):
 
-            edge['kp_api_name'] = kpjson['api_name']
+                # We tag each edge internally with its
+                # sequence number, for later convenience
+                edge['idx'] = edge_i
+                edge['kp_id'] = f"infores:{kp_id}"
 
-            edge['trapi_version'] = kpjson['trapi_version']
-            edge['biolink_version'] = kpjson['biolink_version']
+                # We can already do some basic Biolink Model validation here of the
+                # S-P-O contents of the edge being input from the current triples file?
+                biolink_validator: BiolinkValidator = \
+                    check_biolink_model_compliance_of_input_edge(
+                        edge,
+                        biolink_version=kpjson['biolink_version']
+                    )
+                if biolink_validator.has_messages():
+                    # defer reporting of errors to higher level of test harness
+                    edge['pre-validation'] = biolink_validator.get_messages()
 
-            edge['kp_source'] = f"infores:{kp_id}"
+                edge['ks_test_data_location'] = test_data['location']
 
-            if 'source_type' in kpjson:
-                edge['kp_source_type'] = kpjson['source_type']
-            else:
-                # If not specified, we assume that the KP is a "primary_knowledge_source"
-                edge['kp_source_type'] = "primary"
+                edge['url'] = kpjson['url']
 
-            if dataset_level_test_exclusions:
-                if 'exclude_tests' not in edge:
-                    edge['exclude_tests']: Set = dataset_level_test_exclusions
+                edge['trapi_version'] = kpjson['trapi_version']
+                edge['biolink_version'] = kpjson['biolink_version']
+
+                edge['kp_source'] = f"infores:{infores}"
+
+                if 'source_type' in test_data:
+                    edge['kp_source_type'] = test_data['source_type']
                 else:
-                    # converting List internally to a set
-                    edge['exclude_tests'] = set(edge['exclude_tests'])
-                    edge['exclude_tests'].update(dataset_level_test_exclusions)
+                    # If not specified, we assume that the test data target
+                    # Knowledge Source is a "primary_knowledge_source"
+                    edge['kp_source_type'] = "primary"
 
-            # convert back to List for JSON serialization safety later
-            if 'exclude_tests' in edge:
-                edge['exclude_tests'] = list(edge['exclude_tests'])
+                if dataset_level_test_exclusions:
+                    if 'exclude_tests' not in edge:
+                        edge['exclude_tests']: Set = dataset_level_test_exclusions
+                    else:
+                        # converting List internally to a set
+                        edge['exclude_tests'] = set(edge['exclude_tests'])
+                        edge['exclude_tests'].update(dataset_level_test_exclusions)
 
-            edges.append(edge)
-            #
-            # TODO: caching the edge here doesn't help parsing of the results into a report since
-            #       the cache is not shared with the parent process. Instead, we will try to echo
-            #       the edge directly to stdout, for later parsing for the report.
-            #
-            # add_kp_edge(resource_id, edge_i, edge)
-            # json.dump(edge, stdout)
+                # convert back to List for JSON serialization safety later
+                if 'exclude_tests' in edge:
+                    edge['exclude_tests'] = list(edge['exclude_tests'])
 
-            edge_id = generate_edge_id(kp_id, edge_i)
-            idlist.append(edge_id)
+                edges.append(edge)
 
-            if metafunc.config.getoption('one', default=False):
-                break
+                edge_id = generate_edge_id(kp_id, edge_i)
+                idlist.append(edge_id)
 
-            # Circuit breaker for overly large edge test data sets
-            if edge_i > REASONABLE_NUMBER_OF_TEST_EDGES:
-                break
+                if metafunc.config.getoption('one', default=False):
+                    break
 
-        print(f"### End of Test Input Edges for KP '{kpjson['api_name']}' ###")
+                # Circuit breaker for overly large edge test data sets
+                if edge_i > REASONABLE_NUMBER_OF_TEST_EDGES:
+                    break
+
+        print(f"### End of Test Input Edges for KP '{kp_id}' ###")
 
     if "kp_trapi_case" in metafunc.fixturenames:
 
@@ -937,77 +875,79 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
     ara_edges = []
     idlist = []
 
-    for source, metadata in ara_metadata.items():
+    for ara_release, metadata in ara_metadata.items():
 
-        # TODO: with x-maturity environments and the possibility of a list
-        #       of test data files, the arajson may not soon be what it seems!
-        arajson: Dict = load_test_data_source(metadata)
+        ara_id: Optional[str]
+
+        ara_id, trapi_version, biolink_version = id_parts(ara_release)
+
+        arajson: Dict = load_test_data_sources(metadata, source_id=ara_id)
 
         if not arajson:
             # valid test data file not found?
-            logger.error(f"generate_trapi_ara_tests(): '{source}' has no valid test_data_location information?")
+            logger.error(f"generate_trapi_ara_tests(): '{ara_release}' has no valid test_data_location information?")
             continue
 
-        for kp in arajson['KPs']:
+        # Although in principle, ARA's can have multiple test configuration files, this will
+        # likely be rare,  but nonetheless, we need to iterate as if it is the case
+        sources = arajson['sources']
+        for infores, test_config in sources.items():
 
-            if kp not in kp_dict:
-                logger.warning(
-                    f"generate_trapi_ara_tests(): '{kp}' test edges not (yet) available for ARA {source}. Skipping..."
-                )
-                continue
+            for kp in test_config['KPs']:
 
-            for edge_i, kp_edge in enumerate(kp_dict[kp]):
-
-                edge: dict = kp_edge.copy()
-
-                edge['url'] = arajson['url']
-                edge['ara_test_data_location'] = arajson['location']
-
-                edge['ara_api_name'] = arajson['api_name']
-
-                # We override the KP TRAPI and Biolink Model versions with the ARA values here!
-
-                edge['trapi_version'] = arajson['trapi_version']
-                edge['biolink_version'] = arajson['biolink_version']
-
-                # Resetting the Biolink Model version here may have the peculiar side effect of some
-                # KP edge test data now becoming non-compliant with the 'new' ARA Biolink Model version?
-                biolink_validator: BiolinkValidator = \
-                    check_biolink_model_compliance_of_input_edge(
-                        edge,
-                        biolink_version=arajson['biolink_version']
+                if kp not in kp_dict:
+                    logger.warning(
+                        f"generate_trapi_ara_tests(): '{kp}' test edges not (yet)" +
+                        f" available for this source '{infores}' in ARA {ara_release}. Skipping..."
                     )
-                if biolink_validator.has_messages():
-                    # defer reporting of errors to higher level of test harness
-                    edge['pre-validation'] = biolink_validator.get_messages()
-
-                ara_id: Optional[str] = get_resource_identifier(arajson, source)
-                if not ara_id:
-                    # can't identify the Infores source of the data?
                     continue
 
-                edge['ara_source'] = f"infores:{ara_id}"
+                for edge_i, kp_edge in enumerate(kp_dict[kp]):
 
-                if 'kp_source' in kp_edge:
-                    edge['kp_source'] = kp_edge['kp_source']
-                else:
-                    logger.warning(
-                        f"generate_trapi_ara_tests(): KP '{kp}' edge is missing its 'kp_source' infores." +
-                        "Inferred from KP name, but KP provenance may not be properly tested?"
-                    )
-                    edge['kp_source'] = f"infores:{kp}"
-                edge['kp_source_type'] = kp_edge['kp_source_type']
+                    edge: dict = kp_edge.copy()
 
-                # Start using the object_id of the Infores CURIEs of the
-                # ARA's and KP's, instead of their api_names...
-                # resource_id = f"{edge['ara_api_name']}|{edge['kp_api_name']}"
-                kp_id = edge['kp_source'].replace("infores:", "")
-                resource_id = f"{ara_id}|{kp_id}"
+                    edge['ara_id'] = f"infores:{ara_id}"
 
-                edge_id = generate_edge_id(resource_id, edge_i)
-                idlist.append(edge_id)
+                    edge['url'] = arajson['url']
+                    edge['ara_test_config_location'] = test_config['location']
 
-                ara_edges.append(edge)
+                    # We override the KP TRAPI and Biolink Model versions with the ARA values here!
+
+                    edge['trapi_version'] = arajson['trapi_version']
+                    edge['biolink_version'] = arajson['biolink_version']
+
+                    # Resetting the Biolink Model version here may have the peculiar side effect of some
+                    # KP edge test data now becoming non-compliant with the 'new' ARA Biolink Model version?
+                    biolink_validator: BiolinkValidator = \
+                        check_biolink_model_compliance_of_input_edge(
+                            edge,
+                            biolink_version=arajson['biolink_version']
+                        )
+                    if biolink_validator.has_messages():
+                        # defer reporting of errors to higher level of test harness
+                        edge['pre-validation'] = biolink_validator.get_messages()
+
+                    edge['ara_source'] = f"infores:{infores}"
+
+                    if 'kp_source' in kp_edge:
+                        edge['kp_source'] = kp_edge['kp_source']
+                    else:
+                        logger.warning(
+                            f"generate_trapi_ara_tests(): KP '{kp}' edge is missing its 'kp_source' infores." +
+                            "Inferred from KP name, but KP provenance may not be properly tested?"
+                        )
+                        edge['kp_source'] = kp
+
+                    edge['kp_source_type'] = kp_edge['kp_source_type']
+
+                    kp_id = edge['kp_source'].replace("infores:", "")
+
+                    resource_id = f"{ara_id}|{kp_id}"
+
+                    edge_id = generate_edge_id(resource_id, edge_i)
+                    idlist.append(edge_id)
+
+                    ara_edges.append(edge)
 
     metafunc.parametrize('ara_trapi_case', ara_edges, ids=idlist)
 
