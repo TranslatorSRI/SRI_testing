@@ -233,7 +233,8 @@ def pytest_sessionfinish(session):
         # sanity check: clean up MS Windoze EOL characters, when present in results_bag keys
         rb = {key.strip("\r\n"): value for key, value in rb.items()}
 
-        # Sanity check? Missing 'case' would seem like an SRI Testing logical bug?
+        # Sanity check? Missing 'case' would
+        # seem like an SRI Testing logical bug?
         assert 'case' in rb
         test_case = rb['case']
 
@@ -242,9 +243,12 @@ def pytest_sessionfinish(session):
             unit_test_key=unit_test_key
         )
 
-        # Sanity check: missing 'url' is likely a logical bug in SRI Testing?
+        # Sanity check: missing 'url' or 'x_maturity is likely a logical bug in SRI Testing?
         assert 'url' in test_case
         url: str = test_case['url']
+
+        assert 'x_maturity' in test_case
+        x_maturity: str = test_case['x_maturity']
 
         # Sanity check: missing TRAPI version is likely a logical bug in SRI Testing?
         assert 'trapi_version' in test_case
@@ -271,6 +275,7 @@ def pytest_sessionfinish(session):
             if ara_id not in test_run_summary[component]:
                 test_run_summary[component][ara_id] = dict()
                 test_run_summary[component][ara_id]['url'] = url
+                test_run_summary[component][ara_id]['x_maturity'] = x_maturity
                 test_run_summary[component][ara_id]['test_data_location'] = test_case['ara_test_config_location']
                 test_run_summary[component][ara_id]['kps'] = dict()
 
@@ -302,6 +307,7 @@ def pytest_sessionfinish(session):
                     biolink_version=biolink_version
                 )
                 test_run_summary[component][kp_id]['url'] = url
+                test_run_summary[component][kp_id]['x_maturity'] = x_maturity
                 test_run_summary[component][kp_id]['test_data_location'] = test_case['ks_test_data_location']
 
                 resource_summaries[component][kp_id] = _new_kp_resource_summary(
@@ -369,8 +375,8 @@ def pytest_sessionfinish(session):
         # for each unit test, here in the detailed report
         test_details['outcome'] = details['status']
 
-        # Capture more request/response details for test failures
-        if details['status'] == 'failed':
+        # Capture more request details for tests that are run (not skipped)
+        if details['status'] != 'skipped':
 
             if 'request' in rb:
                 # TODO: maybe the 'request' document could be persisted
@@ -379,9 +385,12 @@ def pytest_sessionfinish(session):
             else:
                 test_details['request'] = "No 'request' generated for this unit test?"
 
+        # Capture more response details for test failures
+        if details['status'] == 'failed':
             if 'response' in rb:
                 case_response: Dict = dict()
                 case_response['url'] = test_case['url'] if 'url' in test_case else "Unknown?!"
+                case_response['x_maturity'] = test_case['x_maturity'] if 'x_maturity' in test_case else "Unknown?!"
                 case_response['unit_test_key'] = unit_test_key
                 case_response['http_status_code'] = rb["response"]["status_code"]
                 case_response['response'] = rb['response']['response_json']
@@ -803,6 +812,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 edge['ks_test_data_location'] = test_data['location']
 
                 edge['url'] = kpjson['url']
+                edge['x_maturity'] = kpjson['x_maturity']
 
                 edge['trapi_version'] = kpjson['trapi_version']
                 edge['biolink_version'] = kpjson['biolink_version']
@@ -916,6 +926,7 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
                     edge['ara_id'] = f"infores:{ara_id}"
 
                     edge['url'] = arajson['url']
+                    edge['x_maturity'] = arajson['x_maturity']
                     edge['ara_test_config_location'] = test_config['location']
 
                     # We override the KP TRAPI and Biolink Model versions with the ARA values here!
