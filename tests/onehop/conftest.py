@@ -2,12 +2,10 @@
 Configure one hop tests
 """
 from typing import Optional, Union, List, Set, Dict, Any, Tuple
-from os import path, walk, sep
 from collections import defaultdict
 
 import logging
 
-from deprecation import deprecated
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
@@ -673,6 +671,7 @@ def id_parts(identifier: str) -> Optional[Tuple[str, str, str]]:
     ara_id, trapi_version, biolink_version = id_part
     return ara_id, trapi_version, biolink_version
 
+
 def get_kp_metadata(
         metafunc,
         ara_metadata: Dict,
@@ -700,24 +699,35 @@ def get_kp_metadata(
         )
 
     if len(ara_metadata) == 1:
-        # if we have exactly one ARA, then perhaps we should only pay
-        # attention to KPs indicated by test configuration as called by that ARA?
+        # if we have exactly one ARA, then  we should only pay attention
+        # to KPs indicated by test configuration as called by that ARA.
         # Since we don't want to pop the metadata from its dictionary but
         # don't know the ara_id, we need to use a for loop to access it
         for ara_release, metadata in ara_metadata.items():
 
+            ara_id: Optional[str]
             ara_id, trapi_version, biolink_version = id_parts(ara_release)
-
             arajson: Dict = load_test_data_sources(metadata, source_id=ara_id)
-
-            kps: Set[str] = {kp_id for kp_id in arajson['KPs']}
+            if not arajson:
+                # valid test data file not found?
+                logger.error(
+                    f"get_kp_metadata(): '{ara_release}' has no valid test_data_location information?")
+                continue
 
             # Blissful assumption here is that our kp_metadata
-            # entries all have infores CURIE references
+            # entries will all have infores CURIE references
             kept: Dict = dict()
-            for kp_source, kp_metadata in kp_metadata.items():
-                if 'infores' in kp_metadata and f"infores:{kp_metadata['infores']}" in kps:
-                    kept[kp_source] = kp_metadata
+
+            # Although in principle, ARA's can have multiple test configuration files, this will
+            # likely be rare,  but nonetheless, we need to iterate as if it is the case
+            sources = arajson['sources']
+            for infores, test_config in sources.items():
+
+                kps: Set[str] = {kp_id for kp_id in test_config['KPs']}
+
+                for kp_source, kp_metadata in kp_metadata.items():
+                    if 'infores' in kp_metadata and f"infores:{kp_metadata['infores']}" in kps:
+                        kept[kp_source] = kp_metadata
 
             kp_metadata = kept
 
@@ -878,11 +888,8 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
     for ara_release, metadata in ara_metadata.items():
 
         ara_id: Optional[str]
-
         ara_id, trapi_version, biolink_version = id_parts(ara_release)
-
         arajson: Dict = load_test_data_sources(metadata, source_id=ara_id)
-
         if not arajson:
             # valid test data file not found?
             logger.error(f"generate_trapi_ara_tests(): '{ara_release}' has no valid test_data_location information?")

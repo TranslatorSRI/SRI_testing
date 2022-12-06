@@ -38,8 +38,10 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                 "x-trapi": {
                     "version": "1.3.0",
                     "test_data_location": {
-                        "testing": "https://raw.githubusercontent.com/monarch-initiative/" +
+                        "testing": {
+                            "url": "https://raw.githubusercontent.com/monarch-initiative/" +
                                    "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
+                        }
                     }
                 }
             },
@@ -73,8 +75,10 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                 },
                 'x-trapi': {
                      'test_data_location': {
-                         'testing': 'https://github.com/broadinstitute/molecular-data-provider/' +
+                         'testing': {
+                             'url': 'https://github.com/broadinstitute/molecular-data-provider/' +
                                     'blob/master/test/data/MolePro-test-data.json'
+                         }
                      },
                      'version': '1.3.0'
                  }
@@ -129,8 +133,10 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                     # 'test_data_location': 'https://raw.githubusercontent.com/RTXteam/RTX/' +
                     #                       'master/code/ARAX/Documentation/arax_kps.json',
                     'test_data_location': {
-                        'testing': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                        'testing': {
+                            'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
                                    'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                        }
                     },
                     'version': '1.3.0'
                 }
