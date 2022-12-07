@@ -53,33 +53,51 @@ def _new_kp_test_case_summary(trapi_version: str, biolink_version: str) -> Dict[
     return new_test_case_summary
 
 
-def _new_kp_resource_summary(trapi_version: str, biolink_version: str) -> Dict[str, Union[str, Dict]]:
+def _new_kp_resource_summary(
+        url: str,
+        x_maturity: str,
+        trapi_version: str,
+        biolink_version: str
+) -> Dict[str, Union[str, Dict]]:
     """
     Initialize a dictionary to capture statistics for a single KP test case summary.
 
+    :param url: str, KP or ARA component endpoint being tested
+    :param x_maturity: str, x-maturity environment within which the tested url is hosted
     :param trapi_version: str, TRAPI version associated with the test case (SemVer)
     :param biolink_version:  str, Biolink Model version associated with the test case (SemVer)
 
     :return: Dict[str, Union[int, str, Dict]], initialized
     """
-    new_test_case_summary: Dict[str, Union[str, Dict]] = {
+    kp_resource_summary: Dict[str, Union[str, Dict]] = {
+        'url': url,
+        'x_maturity': x_maturity,
         'trapi_version': trapi_version,
         'biolink_version': biolink_version,
         'test_edges': dict()
     }
-    return new_test_case_summary
+    return kp_resource_summary
 
 
-def _new_kp_recommendation_summary(trapi_version: str, biolink_version: str) -> Dict[str, Union[str, Dict]]:
+def _new_kp_recommendation_summary(
+        url: str,
+        x_maturity: str,
+        trapi_version: str,
+        biolink_version: str
+) -> Dict[str, Union[str, Dict]]:
     """
     Initialize a dictionary to capture recommendations for a single KP test case summary.
 
+    :param url: str, KP or ARA component endpoint being tested
+    :param x_maturity: str, x-maturity environment within which the tested url is hosted
     :param trapi_version: str, TRAPI version associated with the test case (SemVer)
     :param biolink_version:  str, Biolink Model version associated with the test case (SemVer)
 
     :return: Dict[str, Union[int, str, Dict]], initialized
     """
     new_recommendations: Dict[str, Union[str, Dict]] = {
+        'url': url,
+        'x_maturity': x_maturity,
         'trapi_version': trapi_version,
         'biolink_version': biolink_version,
         'errors': dict(),
@@ -288,10 +306,14 @@ def pytest_sessionfinish(session):
                     biolink_version=biolink_version
                 )
                 resource_summaries[component][ara_id][kp_id] = _new_kp_resource_summary(
+                    url=url,
+                    x_maturity=x_maturity,
                     trapi_version=trapi_version,
                     biolink_version=biolink_version
                 )
                 recommendation_summaries[component][ara_id][kp_id] = _new_kp_recommendation_summary(
+                    url=url,
+                    x_maturity=x_maturity,
                     trapi_version=trapi_version,
                     biolink_version=biolink_version
                 )
@@ -311,10 +333,14 @@ def pytest_sessionfinish(session):
                 test_run_summary[component][kp_id]['test_data_location'] = test_case['ks_test_data_location']
 
                 resource_summaries[component][kp_id] = _new_kp_resource_summary(
+                    url=url,
+                    x_maturity=x_maturity,
                     trapi_version=trapi_version,
                     biolink_version=biolink_version
                 )
                 recommendation_summaries[component][kp_id] = _new_kp_recommendation_summary(
+                    url=url,
+                    x_maturity=x_maturity,
                     trapi_version=trapi_version,
                     biolink_version=biolink_version
                 )
