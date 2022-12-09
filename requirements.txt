@@ -13,5 +13,4 @@ pymongo
 kgx
 linkml
 bmt>=0.8.12
-reasoner-validator>=3.2.2
-
+reasoner-validator>=3.2.3
