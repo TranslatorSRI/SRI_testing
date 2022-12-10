@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements-service.txt
 COPY translator /code/translator
 COPY tests /code/tests
 COPY api /code/api
+COPY *.env /code
 # allow non root user write access to tests dir
 RUN chown nru:nru /code/tests
 # use non root user
