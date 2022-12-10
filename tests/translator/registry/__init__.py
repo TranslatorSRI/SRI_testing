@@ -78,6 +78,10 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                          'testing': {
                              'url': 'https://github.com/broadinstitute/molecular-data-provider/' +
                                     'blob/master/test/data/MolePro-test-data.json'
+                         },
+                         'staging': {
+                             'url': 'https://github.com/broadinstitute/molecular-data-provider/' +
+                                    'blob/master/test/data/MolePro-test-data.json'
                          }
                      },
                      'version': '1.3.0'
@@ -134,6 +138,10 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                     #                       'master/code/ARAX/Documentation/arax_kps.json',
                     'test_data_location': {
                         'testing': {
+                            'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                   'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                        },
+                        'staging': {
                             'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
                                    'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
                         }
