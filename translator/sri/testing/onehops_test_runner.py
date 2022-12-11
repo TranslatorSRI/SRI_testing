@@ -5,7 +5,7 @@ from typing import Optional, Dict, Tuple, List, Generator
 from datetime import datetime
 import re
 
-from translator.registry import get_the_registry_data, get_testable_resource_ids_from_registry
+from translator.registry import get_the_registry_data, get_testable_resources_from_registry
 from translator.sri.testing.processor import CMD_DELIMITER, WorkerTask
 
 from tests.onehop import ONEHOP_TEST_DIRECTORY
@@ -210,6 +210,7 @@ class OneHopTestHarness:
             self,
             ara_id: Optional[str] = None,
             kp_id: Optional[str] = None,
+            x_maturity: Optional[str] = None,
             trapi_version: Optional[str] = None,
             biolink_version: Optional[str] = None,
             one: bool = False,
@@ -225,6 +226,7 @@ class OneHopTestHarness:
             - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
             - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
 
+        :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)
         :param one: bool, Only use first edge from each KP file (default: False if omitted).
@@ -253,6 +255,7 @@ class OneHopTestHarness:
         self._command_line += f" --biolink_version={biolink_version}" if biolink_version else ""
         self._command_line += f" --kp_id=\"{kp_id}\"" if kp_id else ""
         self._command_line += f" --ara_id=\"{ara_id}\"" if ara_id else ""
+        self._command_line += f" --x_maturity=\"{x_maturity}\"" if x_maturity else ""
         self._command_line += " --one" if one else ""
 
         logger.debug(f"OneHopTestHarness.run() command line: {self._command_line}")
@@ -599,10 +602,22 @@ class OneHopTestHarness:
         return resource_summary
 
     @classmethod
-    def get_resources_from_registry(cls) -> Optional[Tuple[List[str], List[str]]]:
+    def testable_resources_catalog_from_registry(cls) -> Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]]:
+        """
+        Retrieve inventory of testable resources from the Tranlator SmartAPI Registry.
+
+        :return: Optional 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available
+                 KPs and ARAs,  with keys from reference ('object') id's of InfoRes CURIES and values that
+                 are lists of testable x-maturity environment tags. Return None if Registry is inaccessible.
+        """
+
         registry_data: Optional[Dict] = get_the_registry_data()
+
         if not registry_data:
             # Oops! Couldn't get any data out of the Registry?
             return None
-        resources: Tuple[List[str], List[str]] = get_testable_resource_ids_from_registry(registry_data)
+
+        resources: Tuple[Dict[str, List[str]], Dict[str, List[str]]] = \
+            get_testable_resources_from_registry(registry_data)
+
         return resources

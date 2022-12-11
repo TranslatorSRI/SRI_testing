@@ -26,10 +26,10 @@ The default operation of SRI Testing now relies on the interrogation of the Tran
 
 - **info.x-translator.biolink-version:** _must_ be set to the actual Biolink Model release to which the given KP or ARA is asserting compliance. Validation to the 'wrong' Biolink Model version will generate unnecessary validation errors!
 - **info.x-trapi.version:** _must_ be set to the TRAPI version to which the given KP or ARA is asserting compliance.
-- **info.x-trapi.test_data_location:** see the full specification of the [info.x-trapi.test_data_location](https://github.com/NCATSTranslator/translator_extensions#x-trapi) for the range of formats now available for specifying SRI Testing harness test or configuration data files. URL's registered in whatever fashion within the **info.x-trapi.test_data_location:** values can typically (although not necessarily) be a URL to a Github public repository hosted file (note: this can be 'rawdata' URL or a regular Github URL - the latter is automatically rewritten to a 'rawdata' access for file retrieval). If a non-Github URL is given, it should be visible on the internet without authentication.
-- **servers block:** the SRI Testing harness now sets the TRAPI server endpoint used for testing of KP and ARA resources by selecting a **`url`** specified in the Registry `servers` block. Lack of standardization of testing targets means that the system is currently agnostic about **`x-maturity`** but simply takes the first **`servers`** block entry with a '**`url`**' property set. If there is more than one server entry in the **`servers`** block, then the wrong testing endpoint may be used. Note that future iterations of the system may follow a different heuristic using the **`x-maturity`** property.
+- **info.x-trapi.test_data_location:** see the full specification of the [info.x-trapi.test_data_location](https://github.com/NCATSTranslator/translator_extensions#x-trapi) for the range of formats now available for specifying SRI Testing harness test or configuration data files. URL's registered in whatever fashion within the **info.x-trapi.test_data_location:** values can typically (although not necessarily) be a URL to a Github public repository hosted file (note: this can be 'rawdata' URL or a regular Github URL - the latter is automatically rewritten to a 'rawdata' access for file retrieval). If a non-Github URL is given, it should be visible on the internet without authentication.  Lists of test data files (urls) are all functionally merged into a single set of test edges (annotated by test data knowledge source) for a given KP or ARA/KP component test suite.
+- **servers block:** the SRI Testing harness now sets the TRAPI server endpoint used for testing of KP and ARA resources by selecting a **`url`** specified in the Registry `servers` block. 
 
-**Note:** the **info.x-trapi.test_data_location** may change in the near future to accommodate the need for differential testing across various `x-maturity` deployments of KPs and ARAs.
+Every test run only tests **_one_** endpoint within **_one_** **`x-maturity`** environment. The target **`x-maturity`** environment may now be explicitly specified as a **`/test_run`** API parameter. If omitted, then the **`x-maturity`** is selected based on available `servers` entries in the precedence ordering of '`production`', '`staging`', '`testing`' and '`development`'.  Since the Translator community has deemed all endpoints specified as equivalent when belonging to a specified **`x-maturity`**, the system simply selects the first live ('online') endpoint (ascertained by querying its TRAPI **`/meta_knowledge_graph`** API) within the given **`x-maturity`** list of endpoints. Note that future iterations of the system may revise the above selection heuristics based on Translator community policy decisions.
 
 ### KP Test Data Format
 
@@ -196,8 +196,10 @@ For each ARA, we want to ensure that it is able to extract information correctly
     #
     # Optional KP test data format version. Generally assume 'latest' if not given. 
     # This particular version is deemed version 2.0 which implies major support focused
-    # on Biolink major version 2 (i.e. 2.#.# releases)
-    "version": "2.0"
+    # on Biolink major version 2 (i.e. 2.#.# releases). At this point in time, however,
+    # ARA support of Biolink 3.0 does not dictate any ARA test configuration file changes,
+    # This, a "version" tag for the file is optional here.
+    # "version": "2.0"
     
     #
     # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
@@ -284,6 +286,14 @@ e.g.
 pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro
 ```
 
+## Translator X-Maturity Environments
+
+To constrain testing to one specific x-maturity environment (say, 'testing'), use the **`--x_maturity`** directive:
+
+```
+pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro --x_maturity=testing
+```
+
 ## Test CLI Help
 
 The full set of the currently available command line options may be viewed using the help function:
@@ -304,6 +314,9 @@ The above SRI Testing-specific parameters are described as PyTest custom options
   --kp_id=KP_ID         Knowledge Provider identifier ("KP") targeted for testing (Default: None).
  
   --ara_id=ARA_ID       Autonomous Relay Agent ("ARA") targeted for testing (Default: None).
+  
+  --x_maturity=X_MATURITY
+                        Target x_maturity server environment for testing (Default: None).
   
   --teststyle=TESTSTYLE Which Test to Run?
   

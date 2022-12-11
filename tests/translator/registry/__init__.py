@@ -37,8 +37,12 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                 },
                 "x-trapi": {
                     "version": "1.3.0",
-                    "test_data_location": "https://raw.githubusercontent.com/monarch-initiative/" +
-                                          "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
+                    "test_data_location": {
+                        "testing": {
+                            "url": "https://raw.githubusercontent.com/monarch-initiative/" +
+                                   "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
+                        }
+                    }
                 }
             },
             "servers": [
@@ -70,7 +74,16 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                     'team': ['Molecular Data Provider']
                 },
                 'x-trapi': {
-                     'test_data_location': 'https://github.com/broadinstitute/molecular-data-provider/blob/master/test/data/MolePro-test-data.json',
+                     'test_data_location': {
+                         'testing': {
+                             'url': 'https://github.com/broadinstitute/molecular-data-provider/' +
+                                    'blob/master/test/data/MolePro-test-data.json'
+                         },
+                         'staging': {
+                             'url': 'https://github.com/broadinstitute/molecular-data-provider/' +
+                                    'blob/master/test/data/MolePro-test-data.json'
+                         }
+                     },
                      'version': '1.3.0'
                  }
             },
@@ -123,8 +136,16 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                     # We substitute a pared down version of the ARAX ARA test_data_location JSON here in this repo
                     # 'test_data_location': 'https://raw.githubusercontent.com/RTXteam/RTX/' +
                     #                       'master/code/ARAX/Documentation/arax_kps.json',
-                    'test_data_location': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                          'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                    'test_data_location': {
+                        'testing': {
+                            'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                   'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                        },
+                        'production': {
+                            'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+                                   'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                        }
+                    },
                     'version': '1.3.0'
                 }
             },

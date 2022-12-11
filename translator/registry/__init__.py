@@ -198,7 +198,7 @@ def validate_url(url: str) -> Optional[str]:
     # Simple URL string to validate
     if not url.startswith('http'):
         logger.error(
-            f"validate_test_data_location(): Simple string test_data_location " + \
+            f"validate_test_data_locations(): Simple string test_data_location " + \
             f"'{url}' is not a valid URL?"
         )
     #
@@ -206,7 +206,7 @@ def validate_url(url: str) -> Optional[str]:
     # extensions to their test data, so we relax this constraint on test data files.
     #
     # elif not url.endswith('json'):
-    #     logger.error(f"validate_test_data_location(): JSON Resource " +
+    #     logger.error(f"validate_test_data_locations(): JSON Resource " +
     #                  f"'{url}' expected to have a 'json' file extension?")
     else:
         # Sanity check: rewrite 'regular' Github page endpoints to
@@ -219,14 +219,14 @@ def validate_url(url: str) -> Optional[str]:
             if request.status_code == 200:
                 # Success! return the successfully accessed
                 # (possibly rewritten) test_data_location URL
-                return url
+                return test_data_location
             else:
                 logger.error(
-                    f"validate_test_data_location(): '{test_data_location}' access " +
+                    f"validate_test_data_locations(): '{test_data_location}' access " +
                     f"returned http status code: {request.status_code}?"
                 )
         except RequestException as re:
-            logger.error(f"validate_test_data_location(): exception {str(re)}?")
+            logger.error(f"validate_test_data_locations(): exception {str(re)}?")
 
     return None
 
@@ -298,7 +298,7 @@ def parse_test_environment_urls(test_environments: Dict) -> Optional[Dict]:
     (option 2 format discussed in https://github.com/TranslatorSRI/SRI_testing/issues/59#issuecomment-1275136793).
 
     :param test_environments: Dict, complex specification of test_data_location (see schema)
-    :return: Optional[Dict], an x-maturity indexed URL catalog
+    :return: Optional[Dict], an x-maturity indexed URL catalog (including 'default' values)
     """
     valid_urls: Dict = dict()
     for x_maturity in test_environments.keys():
@@ -317,7 +317,7 @@ def parse_test_environment_urls(test_environments: Dict) -> Optional[Dict]:
     return valid_urls
 
 
-def validate_test_data_location(
+def validate_test_data_locations(
         test_data_location: Optional[Union[str, List, Dict]]
 ) -> Optional[Union[str, List, Dict]]:
     """
@@ -328,7 +328,8 @@ def validate_test_data_location(
     """
     try:
         if not test_data_location:
-            logger.error(f"validate_test_data_location(): empty URL?")
+            logger.error(f"validate_test_data_locations(): empty URL?")
+            return None
 
         elif isinstance(test_data_location, Dict):
             # Parse in an instance of the new extended JSON object data model for info.x-trapi.test_data_location.
@@ -371,55 +372,137 @@ _ignored_resources: Set[str] = {
 }
 
 
-def validate_testable_resource(index: str, service: Dict, component: str) -> Optional[Dict[str, Union[str, List, Dict]]]:
-    #
-    # This 'overloaded' function actually checks a number of parameters that need to be present for testable resources.
-    # If the validation of all parameters succeeds, it returns a dictionary of those values; otherwise, returns 'None'
-    #
-    resource_metadata: Dict = dict()
+def live_trapi_endpoint(url: str) -> bool:
+    """
+    Checks if TRAPI endpoint is accessible.
+    Current implementation performs a GET on the
+    TRAPI /meta_knowledge_graph endpoint,
+    to verify that a resource is 'alive'
 
-    service_title = tag_value(service, "info.title")
-    if service_title:
-        resource_metadata['service_title'] = service_title
+    :param url: str, URL of TRAPI endpoint to be checked
+    :return: bool, True if endpoint is 'alive'; False otherwise
+    """
+    if not url:
+        return False
+
+    # We test TRAPI endpoints by a simple 'GET'
+    # to its '/meta_knowledge_graph' endpoint
+    mkg_test_url: str = f"{url}/meta_knowledge_graph"
+    try:
+        request = requests.get(mkg_test_url)
+        if request.status_code == 200:
+            # Success! return the successfully accessed
+            # (possibly rewritten) test_data_location URL
+            return True
+        else:
+            logger.error(
+                f"live_trapi_endpoint(): TRAPI endpoint '{url}' is inaccessible? " +
+                f"Returned http status code: {request.status_code}?"
+            )
+    except RequestException as re:
+        logger.error(f"live_trapi_endpoint(): requests.get() exception {str(re)}?")
+
+    return False
+
+
+def select_endpoint(
+        server_urls: Dict[str, List[str]],
+        test_data_location: Optional[Union[str, List, Dict]],
+        check_access: bool = True
+) -> Optional[Tuple[str, str, Union[str, List[str]]]]:
+    """
+    Select one test URL based on available server_urls and test_data_location specification. Usually, by the time
+    this method is called, any 'x_maturity' preference has constrained the server_urls. The expectation at this point
+    is that the chosen 'x_maturity' also has test data available, either in specific to the 'x_maturity' or 'default'.
+    Failing that, if the server_urls have several x_maturity environments, the highest precedence x_maturity which has
+    test data available (possibly 'default' in origin) is taken. The precedence is in order of: 'production', 'staging',
+    'testing' and 'development' (this could change in the future, based on Translator community deliberations...).
+    If the server_urls and test_data_location specifications don't overlap, then "None" is returned.
+
+    :param server_urls: Dict, the indexed catalog of available Translator SmartAPI Registry entry 'servers' block urls
+    :param test_data_location: Optional[Union[str, List, Dict]], info.x-trapi.test_data_location specification
+    :param check_access: bool, verify TRAPI access of endpoints before returning (Default: True)
+
+    :return: Optional[Tuple[str, str, Union[str, List]]], selected URL endpoint, 'x-maturity' tag and
+                                                          associated test data reference: single URL or list of URLs
+    """
+    # Check the possible target testing environments
+    # in an ad hoc hardcoded of the 'precedence/rank'
+    # ordering of the DEPLOYMENT_TYPES list
+    urls: Optional[List[str]] = None
+    x_maturity: Optional[str] = None
+    test_data: Optional[Union[str, List[str]]] = None
+    for environment in DEPLOYMENT_TYPES:
+        if environment in server_urls:
+            # If available, filter environments against 'x-maturity'
+            # tagged 'test_data_location' values targeted for testing
+            if isinstance(test_data_location, Dict):
+                if environment not in test_data_location:
+                    continue
+
+                # Otherwise,  'test_data_location' specification is
+                # available for the given x-maturity key and
+                # successfully matched one of the selected 'x-maturity',
+                # one of the DEPLOYMENT_TYPES or the 'default' url?
+                test_data = test_data_location[environment]
+            else:
+                # Otherwise, the test_data_location is a simple string or list of strings thus
+                # no discrimination in the test_data_location(s) concerning target
+                # 'x-maturity' thus, we just return the 'highest ranked'
+                # x-maturity server endpoint found in the servers block
+                test_data = test_data_location
+
+            urls = server_urls[environment]
+            x_maturity = environment
+            break
+
+    if not urls and isinstance(test_data_location, Dict) and 'default' in test_data_location:
+        # The first time around, we couldn't align with an *explicitly*
+        # equivalent x-maturity object-model specified test data location.
+        # So we repeat the ordered search for available x-maturity endpoints,
+        # now using any suitable 'default' test data set which is available
+        for environment in DEPLOYMENT_TYPES:
+            if environment in server_urls:
+                urls = server_urls[environment]
+                x_maturity = environment
+                test_data = test_data_location['default']
+                break
+
+    # ... Now, resolve one of the available endpoints
+    url: Optional[str] = None
+    if urls:
+        for endpoint in urls:
+            if not check_access or live_trapi_endpoint(endpoint):
+                # Since they are all deemed 'functionally equivalent' by the Translator team, the first
+                # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
+                url = endpoint
+                break
+
+    if url:
+        # Selected endpoint, if successfully resolved
+        return url, x_maturity, test_data
     else:
-        logger.warning(f"Registry {component} entry '{index}' lacks a 'service_title'... Skipped?")
         return None
 
-    if not ('servers' in service and service['servers']):
-        logger.warning(f"Registry {component} entry '{service_title}' lacks a 'servers' block... Skipped?")
-        return None
 
-    infores = tag_value(service, "info.x-translator.infores")
-    # Internally, within SRI Testing, we only track the object_id of the infores CURIE
-    infores = infores.replace("infores:", "") if infores else None
+def validate_servers(
+        infores: str,
+        service: Dict,
+        x_maturity: Optional[str] = None
+) -> Optional[Dict[str, List[str]]]:
+    """
+    Validate the servers block, returning it or None if unavailable.
 
-    if infores:
-        resource_metadata['infores'] = infores
-    else:
-        logger.warning(f"Registry {component} entry '{service_title}' has no 'infores' identifier. Skipping?")
-        return None
-
-    if infores in _ignored_resources:
-        logger.warning(
-            f"Registry {component} entry '{service_title}' with InfoRes '{infores}' is tagged to be ignored. Skipping?"
-        )
-        return None
-
-    raw_test_data_location: Optional[Union[str, Dict]] = tag_value(service, "info.x-trapi.test_data_location")
-
-    # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
-    test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_location(raw_test_data_location)
-    if test_data_location:
-        # Optional[Union[str, List, Dict]], may be a single URL string, an array of URL string's,
-        # or an x-maturity indexed catalog of URLs (single or List of URL string(s))
-        resource_metadata['test_data_location'] = test_data_location
-    else:
-        logger.warning(
-            f"Empty, invalid or inaccessible info.x-trapi.test_data_location '{str(raw_test_data_location)}' " +
-            f"for Registry {component} entry '{service_title}' ... Service entry skipped?")
-        return None
-
+    :param infores: str, InfoRes reference id of the service
+    :param service: Dict, service metadata (from Registry)
+    :param x_maturity: Optional[str], target x-maturity (if set; may be None if not unconstrained)
+    :return: Dict, catalog of x-maturity environment servers; None if unavailable.
+    """
     servers: Optional[List[Dict]] = service['servers']
+
+    if not servers:
+        logger.warning(f"Registry entry '{infores}' missing a 'servers' block? Skipping...")
+        return None
 
     server_urls: Dict = dict()
     for server in servers:
@@ -430,60 +513,242 @@ def validate_testable_resource(index: str, service: Dict, component: str) -> Opt
         ):
             # sanity check!
             continue
+
         environment = server['x-maturity']
+
+        # Design decisions emerging out of 29 November 2022 Translator Architecture meeting:
+
+        # 1. Check here for explicitly specified 'x_maturity'; otherwise, iterate to select...
+        if x_maturity and environment != x_maturity.lower():
+            continue
+
+        # 2. Discussions confirmed that if multiple x-maturity urls are present, then they are all
+        #    'functionally identical'; however, they may not all be operational.  We will thus now  keep a list of
+        #    such endpoints around then iterate through then when issuing TRAPI calls, in case that some are offline?
         env_endpoint = server['url']
         if environment not in server_urls:
             # first url seen for a given for a given x-maturity
-            logger.info(
-                f"Registry {component} entry '{service_title}' server endpoint "
-                f"for environment '{environment}' set to url '{env_endpoint}'."
-            )
-            server_urls[environment] = env_endpoint
-        else:
-            logger.warning(
-                f"Registry {component} entry '{service_title}' has duplicate server " +
-                f"'{env_endpoint}' for x-maturity value '{environment}'? "
-                f"Still using '{server_urls[environment]}', the first server endpoint parsed..."
-            )
+            server_urls[environment] = list()
 
-    # Check the possible target testing environments
-    # in an ad hoc hardcoded 'precedence/rank' order
-    url: Optional[str] = None
-    for environment in DEPLOYMENT_TYPES:
-        if environment in server_urls:
-            # If available, filter environments against x-maturity
-            # tagged test_data_location values targeted for testing
-            if isinstance(test_data_location, Dict):
-                if environment in test_data_location:
-                    url = server_urls[environment]
-                elif 'default' in test_data_location:
-                    # first iteration: we can use the 'default' url for this environment
-                    url = server_urls[environment]
-                else:
-                    # nothing hit yet... and no default to fall back on, so we keep looking...
-                    continue
+        logger.info(
+            f"Registry entry '{infores}' x-maturity '{environment}' includes  url '{env_endpoint}'."
+        )
+        server_urls[environment].append(env_endpoint)
 
-                # we are currently only looking to match one 'x-maturity'
-                # or 'default' url in this iteration of the system
-                break
-            else:
-                # The test_data_location is a simple string or list of strings thus
-                # no discrimination in the test_data_location(s) concerning target
-                # x-maturity so just return the 'highest ranked' server endpoint
-                url = server_urls[environment]
-                break
+    return server_urls
 
-    if url:
-        resource_metadata['url'] = url
+
+def get_testable_resource(
+        index: int,
+        service: Dict
+) -> Optional[Tuple[str, List[str]]]:
+    """
+    Validates a service as testable and resolves then returns parameters for testing.
+
+    :param index: int, internal sequence number (i.e. hit number in the Translator SmartAPI Registry)
+    :param service: Dict, indexed metadata about a component service (from the Registry)
+    :return: Optional[Tuple[str, List[str]]], composed of the infores reference id and
+             List of associated 'testable' x_maturities; None if unavailable
+    """
+    infores = tag_value(service, "info.x-translator.infores")
+    if not infores:
+        logger.warning(f"Registry entry '{index}' has no 'infores' identifier. Skipping?")
+        return None
     else:
-        # not likely, but another sanity check!
-        logger.warning(f"Service {index} lacks a suitable SRI Testing endpoint... Skipped?")
+        # Internally, within SRI Testing, we only track the object_id of the infores CURIE
+        infores = infores.replace("infores:", "")
+
+    if not ('servers' in service and service['servers']):
+        logger.warning(f"Registry '{index}' entry '{infores}' lacks a 'servers' block... Skipped?")
         return None
 
+    raw_test_data_location: Optional[Union[str, Dict]] = tag_value(service, "info.x-trapi.test_data_location")
+
+    # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
+    test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_locations(raw_test_data_location)
+    if not test_data_location:
+        logger.warning(
+            f"Empty, invalid or inaccessible 'info.x-trapi.test_data_location' specification "
+            f"'{str(raw_test_data_location)}' for Registry '{index}' entry  '{infores}'! Untestable service skipped?")
+        return None
+
+    is_default: bool = False
+    if isinstance(test_data_location, str) or isinstance(test_data_location, List):
+        is_default = True
+    else:
+        if 'default' in test_data_location:
+            is_default = True
+
+    servers: List[Dict] = service['servers']
+    server_urls: Dict = validate_servers(infores=infores, service=service)
+
+    # By the time we are here, we either have a one selected
+    # x_maturity environments or None (if a specific x_maturity was set) or,
+    # if no such x_maturity preference, a catalog of (possibly one selected)
+    # available 'x_maturity' environments from which to select for testing.
+    # We filter out the latter situation first...
+    if not server_urls:
+        return None
+
+    x_maturities: List[str] = list()
+
+    if is_default:
+        # if there is a default, then all servers are deemed
+        # testable even if they may have specific test data
+        x_maturities = list(server_urls.keys())
+    else:
+        # Otherwise, find intersection set between server_urls and test_data_location x-maturities
+        for x_maturity in server_urls.keys():
+            if x_maturity in test_data_location:
+                x_maturities.append(x_maturity)
+
+    if x_maturities:
+        return infores, x_maturities
+    else:
+        # no intersecting set of servers and
+        # test_data_location x_maturities?
+        return None
+
+
+def validate_testable_resource(
+        index: int,
+        service: Dict,
+        component: str,
+        x_maturity: Optional[str] = None
+) -> Optional[Dict[str, Union[str, List]]]:
+    """
+    Validates a service as testable and resolves then returns parameters for testing.
+
+    :param index: int, internal sequence number (i.e. hit number in the Translator SmartAPI Registry)
+    :param service: Dict, indexed metadata about a component service (from the Registry)
+    :param component: str, type of component, one of 'KP' or 'ARA'
+    :param x_maturity: Optional[str], 'x_maturity' environment target for test run (system chooses if not specified)
+    :return: augmented resource metadata for a given KP or ARA service confirmed to be 'testable'
+             for one selected x-maturity environment; None if unavailable
+    """
+    #
+    # This 'overloaded' function actually checks a number of parameters that need to be present for testable resources.
+    # If the validation of all parameters succeeds, it returns a dictionary of those values; otherwise, returns 'None'
+    #
+    resource_metadata: Dict = dict()
+
+    service_title = tag_value(service, "info.title")
+    if service_title:
+        resource_metadata['service_title'] = service_title
+    else:
+        logger.warning(f"Registry {component} entry '{str(index)}' lacks a 'service_title'... Skipped?")
+        return None
+
+    if not ('servers' in service and service['servers']):
+        logger.warning(f"Registry {component} entry '{service_title}' lacks a 'servers' block... Skipped?")
+        return None
+
+    infores = tag_value(service, "info.x-translator.infores")
+
+    # Internally, within SRI Testing, we only track the object_id of the infores CURIE
+    infores = infores.replace("infores:", "") if infores else None
+
+    if infores:
+        resource_metadata['infores'] = infores
+    else:
+        logger.warning(f"Registry entry '{infores}' has no 'infores' identifier. Skipping?")
+        return None
+
+    if infores in _ignored_resources:
+        logger.warning(
+            f"Registry entry '{infores}' is tagged to be ignored. Skipping?"
+        )
+        return None
+
+    raw_test_data_location: Optional[Union[str, Dict]] = tag_value(service, "info.x-trapi.test_data_location")
+
+    # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
+    test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_locations(raw_test_data_location)
+    if test_data_location:
+        # Optional[Union[str, List, Dict]], may be a single URL string, an array of URL string's,
+        # or an x-maturity indexed catalog of URLs (single or List of URL string(s))
+        resource_metadata['test_data_location'] = test_data_location
+    else:
+        logger.warning(
+            f"Empty, invalid or inaccessible 'info.x-trapi.test_data_location' specification "
+            f"'{str(raw_test_data_location)}' for Registry entry '{infores}'! Service entry skipped?")
+        return None
+
+    servers: Optional[List[Dict]] = service['servers']
+
+    if not servers:
+        logger.warning(f"Registry entry '{infores}' missing a 'servers' block? Skipping...")
+        return None
+
+    server_urls: Dict = validate_servers(infores=infores, service=service, x_maturity=x_maturity)
+
+    # By the time we are here, we either have a one selected
+    # x_maturity environments or None (if a specific x_maturity was set) or,
+    # if no such x_maturity preference, a catalog of (possibly one selected)
+    # available 'x_maturity' environments from which to select for testing.
+
+    # We filter out the latter situation first...
+    if not server_urls:
+        return None
+
+    # Now, we try to select one of the endpoints for testing
+    testable_system: Optional[Tuple[str, str, Union[str, List[str]]]] = \
+        select_endpoint(server_urls, test_data_location)
+
+    if testable_system:
+        url: str
+        x_maturity: str
+        test_data: Union[str, List]
+        url, x_maturity, test_data = testable_system
+        resource_metadata['url'] = url
+        resource_metadata['x_maturity'] = x_maturity
+        if isinstance(test_data, List):
+            resource_metadata['test_data_location'] = test_data
+        else:
+            resource_metadata['test_data_location'] = [test_data]
+    else:
+        # not likely, but another sanity check!
+        logger.warning(f"Service {str(index)} has incomplete testable system parameters... Skipped?")
+        return None
+
+    # Resource Metadata returned with 'testable' endpoint, tagged
+    # with by x-maturity and associated with suitable test data
+    # (single or list of test data file url strings)
     return resource_metadata
 
 
-def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[str], List[str]]:
+def get_testable_x_maturity_environments(metadata: Dict) -> List[str]:
+    test_data_location: Optional[Union[str, List, Dict]] = metadata['test_data_location']
+    return list()
+
+
+def get_resource_inventory():
+    raw_test_data_location: Optional[Union[str, Dict]] = tag_value(service, "info.x-trapi.test_data_location")
+
+    # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
+    test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_locations(raw_test_data_location)
+    if test_data_location:
+        # Optional[Union[str, List, Dict]], may be a single URL string, an array of URL string's,
+        # or an x-maturity indexed catalog of URLs (single or List of URL string(s))
+        resource_metadata['test_data_location'] = test_data_location
+    else:
+        logger.warning(
+            f"Empty, invalid or inaccessible 'info.x-trapi.test_data_location' specification "
+            f"'{str(raw_test_data_location)}' for Registry entry '{infores}'! Service entry skipped?")
+        return None
+
+    servers: Optional[List[Dict]] = service['servers']
+
+    if not servers:
+        logger.warning(f"Registry entry '{infores}' missing a 'servers' block? Skipping...")
+        return None
+
+    server_urls: Dict = validate_servers(infores=infores, service=service, x_maturity=x_maturity)
+
+
+def get_testable_resources_from_registry(
+        registry_data: Dict
+) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
     """
     Simpler version of the extract_component_test_metadata_from_registry() method,
     that only returns the InfoRes reference identifiers of all testable resources.
@@ -492,11 +757,13 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
         Dict, Translator SmartAPI Registry dataset
         from which specific component_type metadata will be extracted.
 
-    :return: 2-Tuple(List[kp_id*], List[ara_id*]) of the reference id's of InfoRes CURIES of available KPs and ARAs.
+    :return: 2-Tuple(Dict[str, List[str]], Dict[str, List[str]]) dictionaries with keys
+             of the reference id's of InfoRes CURIES of available KPs and ARAs, with
+            value list of associated x-maturity environments available for testing.
     """
 
-    kp_ids: Set[str] = set()
-    ara_ids: Set[str] = set()
+    kp_ids: Dict[str, List[str]] = dict()
+    ara_ids: Dict[str, List[str]] = dict()
 
     for index, service in enumerate(registry_data['hits']):
 
@@ -505,45 +772,72 @@ def get_testable_resource_ids_from_registry(registry_data: Dict) -> Tuple[List[s
         if not (component and component in ["KP", "ARA"]):
             continue
 
-        resource_metadata: Optional[Dict[str, Any]] = validate_testable_resource(index, service, component)
-        if not resource_metadata:
+        resource: Optional[Tuple[str, List[str]]] = get_testable_resource(index, service)
+
+        if not resource:
             continue
 
+        infores: str = resource[0]
+
         if component == "KP":
-            kp_ids.add(resource_metadata['infores'])
+
+            if infores not in kp_ids:
+                kp_ids[infores] = list()
+
+            kp_ids[infores].extend(resource[1])
+
         elif component == "ARA":
-            ara_ids.add(resource_metadata['infores'])
 
-    return list(kp_ids), list(ara_ids)
+            if infores not in ara_ids:
+                ara_ids[infores] = list()
+
+            ara_ids[infores].extend(resource[1])
+
+    return kp_ids, ara_ids
 
 
-def source_of_interest(source: str, target_sources: Set[str]) -> bool:
+def source_of_interest(service: Dict, target_sources: Set[str]) -> Optional[str]:
     """
     Source filtering function, checking a source identifier against a set of identifiers.
     The target_source strings may also be wildcard patterns with a single asterix (only)
     with possible prefix only, suffix only or prefix-<body>-suffix matches.
-    :param source:
-    :param target_sources:
-    :return: bool, True if matched
+
+    :param service: Dict, Translator SmartAPI Registry entry for one service 'hit' containing an 'infores' property
+    :param target_sources: Set[str], set of target infores of interest
+    :return: Optional[str], infores if matched; None otherwise.
     """
-    assert source, "registry.source_of_interest() method call: unexpected empty infores?!?"
+    assert service, "registry.source_of_interest() method call: unexpected empty service?!?"
+
+    infores = tag_value(service, "info.x-translator.infores")
+
+    # Internally, within SRI Testing, we only track the object_id of the infores CURIE
+    infores = infores.replace("infores:", "") if infores else None
+
+    if not infores:
+        service_title = tag_value(service, "info.title")
+        logger.warning(f"Registry entry for '{str(service_title)}' has no 'infores' identifier. Skipping?")
+        return None
+
     if target_sources:
         found: bool = False
         for entry in target_sources:
+
             if entry.find("*") >= 0:
                 part = entry.split(sep="*", maxsplit=1)  # part should be a 2-tuple
-                if not part[0] or source.startswith(part[0]):
-                    if not part[1] or source.endswith(part[1]):
+                if not part[0] or infores.startswith(part[0]):
+                    if not part[1] or infores.endswith(part[1]):
                         found = True
                         break
-            elif source == entry:  # exact match?
+
+            elif infores == entry:  # exact match?
                 found = True
                 break
+
         if not found:
-            return False
+            return None
 
     # default if no target_sources or matching
-    return True
+    return infores
 
 
 # TODO: this is an ordered list giving 'production' testing priority
@@ -556,7 +850,8 @@ DEPLOYMENT_TYPES: List[str] = ['production', 'staging', 'testing', 'development'
 def extract_component_test_metadata_from_registry(
         registry_data: Dict,
         component_type: str,
-        source: Optional[str] = None
+        source: Optional[str] = None,
+        x_maturity: Optional[str] = None
 ) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
@@ -572,6 +867,7 @@ def extract_component_test_metadata_from_registry(
                                   as a wildcard match to the infores name being filtered.
                                   Note that all identifiers here should be the reference (object) id's
                                   of the Infores CURIE of the target resource.
+    :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
 
     :return: Dict[str, Dict[str,  Optional[str]]] of metadata, indexed by 'test_data_location'
     """
@@ -595,29 +891,32 @@ def extract_component_test_metadata_from_registry(
         if not (component and component == component_type):
             continue
 
-        resource_metadata: Optional[Dict[str, Any]] = validate_testable_resource(index, service, component)
+        # Filter on target sources of interest
+        infores: Optional[str] = source_of_interest(service=service, target_sources=target_sources)
+        if not infores:
+            # silently ignore any resource whose InfoRes CURIE
+            # reference identifier is missing or doesn't have a partial
+            # of exact match to a specified non-empty target source
+            continue
+
+        resource_metadata: Optional[Dict[str, Any]] = \
+            validate_testable_resource(index, service, component, x_maturity)
         if not resource_metadata:
             continue
 
         # Once past the 'testable resources' metadata gauntlet,
         # the following parameters are assumed valid and non-empty
         service_title: str = resource_metadata['service_title']
-        infores: str = resource_metadata['infores']
 
-        # this 'url' is the service endpoing
+        # this 'url' is the service endpoint in the
+        # specified 'x_maturity' environment
         url: str = resource_metadata['url']
+        x_maturity: str = resource_metadata['x_maturity']
 
         # The 'test_data_location' also has url's but these are now expressed
         # in a polymorphic manner: Optional[Dict[str, Union[str, List, Dict]]].
-        # See validate_test_data_location above for details
+        # See validate_test_data_locations above for details
         test_data_location = resource_metadata['test_data_location']
-
-        # Filter on target sources of interest
-        if not source_of_interest(source=infores, target_sources=target_sources):
-            # silently ignore any resource whose InfoRes CURIE
-            # reference identifier that doesn't have a partial or
-            # exact match to a specified non-empty target source
-            continue
 
         # Now, we start to collect the remaining Registry metadata
 
@@ -657,11 +956,12 @@ def extract_component_test_metadata_from_registry(
         _service_catalog[service_id].append(entry_id)
 
         capture_tag_value(service_metadata, service_id, "url", url)
+        capture_tag_value(service_metadata, service_id, "x_maturity", x_maturity)
         capture_tag_value(service_metadata, service_id, "service_title", service_title)
         capture_tag_value(service_metadata, service_id, "service_version", service_version)
         capture_tag_value(service_metadata, service_id, "component", component_type)
         capture_tag_value(service_metadata, service_id, "infores", infores)
-        capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)  # may be complex!
+        capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)
         capture_tag_value(service_metadata, service_id, "biolink_version", biolink_version)
         capture_tag_value(service_metadata, service_id, "trapi_version", trapi_version)
 

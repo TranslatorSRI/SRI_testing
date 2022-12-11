@@ -67,8 +67,8 @@ async def favicon():
 
 class ResourceRegistry(BaseModel):
     message: str = ""
-    KPs: List[str]
-    ARAs: List[str]
+    KPs: Dict[str, List[str]]
+    ARAs: Dict[str, List[str]]
 
 
 @app.get(
@@ -82,16 +82,20 @@ async def get_resources_from_registry() -> ResourceRegistry:
     Returns a list of ARA and KP available for testing from the Translator SmartAPI Registry.
     Note that only Translator resources with their **info.x-trapi.test_data_location** properties set are reported.
 
-    - 2-Tuple(List[ara_id*], List[kp_id*]) of the reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    - 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available KPs and ARAs,vkeyed with the
+      reference ('object') id's of InfoRes CURIES and values are lists of testable x-maturity environments
     \f
-    :return: ResourceRegistry, Lists of Reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    :return: ResourceRegistry, inventory of available KPs and ARAs with the testable x-maturity environment types.
     """
-    resources: Optional[Tuple[List[str], List[str]]] = OneHopTestHarness.get_resources_from_registry()
+    resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
+        OneHopTestHarness.testable_resources_catalog_from_registry()
+
     message: str
     if resources:
         message = "Translator resources found!"
     else:
         message = "Translator SmartAPI Registry currently offline?"
+
     return ResourceRegistry(message=message, KPs=resources[0], ARAs=resources[1])
 
 
@@ -127,6 +131,12 @@ class TestRunParameters(BaseModel):
     # (Optional) reference (object) identifier of the ARA InfoRes CURIE
     # designating a KP which is the target of validation in the new test run.
     kp_id: Optional[str] = None
+
+    # (Optional) x_maturity environment target for test run. We assume here that any and both ARA and KP
+    # specified above have servers block endpoints specified under the corresponding 'x-maturity' tag in
+    # their respective Translator SmartAPI Registry entry 'servers' block.
+    # If unspecified, then SRI Testing makes an educated guess of which 'x-maturity' endpoint to test.
+    x_maturity: Optional[str] = None
 
     # (Optional) TRAPI version override against which
     # SRI Testing will be applied to Translator KPs and ARA's.
@@ -208,6 +218,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     infores identifier being filtered. Note that all identifiers here should be the reference (object)
     identifiers of the Infores CURIE of the target resource(s).
 
+    - **x_maturity**: Optional[str], **x_maturity** environment target for test run (system chooses if not specified)
     - **trapi_version**: Optional[str], possible TRAPI version overriding Translator SmartAPI 'Registry' specification.
     - **biolink_version**: Optional[str], possible Biolink Model version overriding Registry specification.
     - **timeout**: Optional[int], query timeout
@@ -219,6 +230,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
     ara_id: Optional[str] = None
     kp_id: Optional[str] = None
+    x_maturity: Optional[str] = None
     trapi_version: Optional[str] = None
     biolink_version: Optional[str] = None
     log: Optional[str] = None
@@ -232,6 +244,9 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
         if test_parameters.kp_id:
             kp_id = test_parameters.kp_id
+
+        if test_parameters.x_maturity:
+            x_maturity = test_parameters.x_maturity
 
         if test_parameters.trapi_version:
             trapi_version = test_parameters.trapi_version
@@ -264,6 +279,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     test_harness.run(
         ara_id=ara_id,
         kp_id=kp_id,
+        x_maturity=x_maturity,
         trapi_version=trapi_version,
         biolink_version=biolink_version,
         log=log,
