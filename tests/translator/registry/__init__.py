@@ -141,7 +141,7 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                             'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
                                    'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
                         },
-                        'staging': {
+                        'production': {
                             'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
                                    'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
                         }

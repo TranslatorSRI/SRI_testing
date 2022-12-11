@@ -67,8 +67,8 @@ async def favicon():
 
 class ResourceRegistry(BaseModel):
     message: str = ""
-    KPs: List[str]
-    ARAs: List[str]
+    KPs: Dict[str, List[str]]
+    ARAs: Dict[str, List[str]]
 
 
 @app.get(
@@ -82,16 +82,20 @@ async def get_resources_from_registry() -> ResourceRegistry:
     Returns a list of ARA and KP available for testing from the Translator SmartAPI Registry.
     Note that only Translator resources with their **info.x-trapi.test_data_location** properties set are reported.
 
-    - 2-Tuple(List[ara_id*], List[kp_id*]) of the reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    - 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available KPs and ARAs,vkeyed with the
+      reference ('object') id's of InfoRes CURIES and values are lists of testable x-maturity environments
     \f
-    :return: ResourceRegistry, Lists of Reference ('object') id's of InfoRes CURIES of available KPs and ARAs.
+    :return: ResourceRegistry, inventory of available KPs and ARAs with the testable x-maturity environment types.
     """
-    resources: Optional[Tuple[List[str], List[str]]] = OneHopTestHarness.get_resources_from_registry()
+    resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
+        OneHopTestHarness.testable_resources_catalog_from_registry()
+
     message: str
     if resources:
         message = "Translator resources found!"
     else:
         message = "Translator SmartAPI Registry currently offline?"
+
     return ResourceRegistry(message=message, KPs=resources[0], ARAs=resources[1])
 
 

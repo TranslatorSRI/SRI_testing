@@ -5,7 +5,7 @@ from typing import Optional, Dict, Tuple, List, Generator
 from datetime import datetime
 import re
 
-from translator.registry import get_the_registry_data, get_testable_resource_ids_from_registry
+from translator.registry import get_the_registry_data, get_testable_resources_from_registry
 from translator.sri.testing.processor import CMD_DELIMITER, WorkerTask
 
 from tests.onehop import ONEHOP_TEST_DIRECTORY
@@ -602,10 +602,22 @@ class OneHopTestHarness:
         return resource_summary
 
     @classmethod
-    def get_resources_from_registry(cls) -> Optional[Tuple[List[str], List[str]]]:
+    def testable_resources_catalog_from_registry(cls) -> Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]]:
+        """
+        Retrieve inventory of testable resources from the Tranlator SmartAPI Registry.
+
+        :return: Optional 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available
+                 KPs and ARAs,  with keys from reference ('object') id's of InfoRes CURIES and values that
+                 are lists of testable x-maturity environment tags. Return None if Registry is inaccessible.
+        """
+
         registry_data: Optional[Dict] = get_the_registry_data()
+
         if not registry_data:
             # Oops! Couldn't get any data out of the Registry?
             return None
-        resources: Tuple[List[str], List[str]] = get_testable_resource_ids_from_registry(registry_data)
+
+        resources: Tuple[Dict[str, List[str]], Dict[str, List[str]]] = \
+            get_testable_resources_from_registry(registry_data)
+
         return resources
