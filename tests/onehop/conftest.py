@@ -582,14 +582,7 @@ def get_test_data_sources(
     """
     Retrieves a dictionary of metadata of 'component_type', indexed by 'source' identifier.
 
-    If the 'source' is specified to be the string 'REGISTRY', then
-    this dictionary is populated from the Translator SmartAPI Registry,
-    using published 'test_data_location' values as keys.
-
-    Otherwise, a local file source of the metadata is assumed,
-    using the local data file name as a key (these should be unique).
-
-    :param source: Optional[str], ara_id or kp_id source of test configuration data in the registry.
+    :param source: Optional[str], 'ara_id' or 'kp_id' source of test configuration data in the registry.
                                   Take 'all' of the given component type if the source is None
 
     :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
