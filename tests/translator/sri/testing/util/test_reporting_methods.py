@@ -23,7 +23,6 @@ from translator.sri.testing.util.legacy_test_report import (
     LOGGER_PATTERN,
 )
 from tests import TEST_DATA_DIR, TEST_RESULT_DIR
-from tests.onehop.conftest import cache_resource_metadata, add_kp_edge
 from tests.translator.registry import MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA
 
 

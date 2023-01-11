@@ -1,6 +1,7 @@
 """
 Translator SmartAPI Registry access module.
 """
+from functools import lru_cache
 from typing import Optional, Union, List, Dict, NamedTuple, Set, Tuple, Any
 from datetime import datetime
 
@@ -194,11 +195,12 @@ def rewrite_github_url(url: str) -> str:
     return url
 
 
+@lru_cache(maxsize=1024)
 def validate_url(url: str) -> Optional[str]:
     # Simple URL string to validate
     if not url.startswith('http'):
         logger.error(
-            f"validate_test_data_locations(): Simple string test_data_location " + \
+            f"validate_url(): Simple string test_data_location " +
             f"'{url}' is not a valid URL?"
         )
     #
@@ -206,7 +208,7 @@ def validate_url(url: str) -> Optional[str]:
     # extensions to their test data, so we relax this constraint on test data files.
     #
     # elif not url.endswith('json'):
-    #     logger.error(f"validate_test_data_locations(): JSON Resource " +
+    #     logger.error(f"validate_url(): JSON Resource " +
     #                  f"'{url}' expected to have a 'json' file extension?")
     else:
         # Sanity check: rewrite 'regular' Github page endpoints to
@@ -222,11 +224,11 @@ def validate_url(url: str) -> Optional[str]:
                 return test_data_location
             else:
                 logger.error(
-                    f"validate_test_data_locations(): '{test_data_location}' access " +
+                    f"validate_url(): '{test_data_location}' access " +
                     f"returned http status code: {request.status_code}?"
                 )
         except RequestException as re:
-            logger.error(f"validate_test_data_locations(): exception {str(re)}?")
+            logger.error(f"validate_url(): exception {str(re)}?")
 
     return None
 
@@ -372,6 +374,7 @@ _ignored_resources: Set[str] = {
 }
 
 
+@lru_cache(maxsize=1024)
 def live_trapi_endpoint(url: str) -> bool:
     """
     Checks if TRAPI endpoint is accessible.
@@ -391,8 +394,7 @@ def live_trapi_endpoint(url: str) -> bool:
     try:
         request = requests.get(mkg_test_url)
         if request.status_code == 200:
-            # Success! return the successfully accessed
-            # (possibly rewritten) test_data_location URL
+            # Success! given url is deemed a 'live' TRAPI endpoint
             return True
         else:
             logger.error(
@@ -579,7 +581,6 @@ def get_testable_resource(
         if 'default' in test_data_location:
             is_default = True
 
-    servers: List[Dict] = service['servers']
     server_urls: Dict = validate_servers(infores=infores, service=service)
 
     # By the time we are here, we either have a one selected
@@ -715,35 +716,6 @@ def validate_testable_resource(
     # with by x-maturity and associated with suitable test data
     # (single or list of test data file url strings)
     return resource_metadata
-
-
-def get_testable_x_maturity_environments(metadata: Dict) -> List[str]:
-    test_data_location: Optional[Union[str, List, Dict]] = metadata['test_data_location']
-    return list()
-
-
-def get_resource_inventory():
-    raw_test_data_location: Optional[Union[str, Dict]] = tag_value(service, "info.x-trapi.test_data_location")
-
-    # ... and only interested in resources with a non-empty, valid, accessible test_data_location specified
-    test_data_location: Optional[Union[str, List, Dict]] = validate_test_data_locations(raw_test_data_location)
-    if test_data_location:
-        # Optional[Union[str, List, Dict]], may be a single URL string, an array of URL string's,
-        # or an x-maturity indexed catalog of URLs (single or List of URL string(s))
-        resource_metadata['test_data_location'] = test_data_location
-    else:
-        logger.warning(
-            f"Empty, invalid or inaccessible 'info.x-trapi.test_data_location' specification "
-            f"'{str(raw_test_data_location)}' for Registry entry '{infores}'! Service entry skipped?")
-        return None
-
-    servers: Optional[List[Dict]] = service['servers']
-
-    if not servers:
-        logger.warning(f"Registry entry '{infores}' missing a 'servers' block? Skipping...")
-        return None
-
-    server_urls: Dict = validate_servers(infores=infores, service=service, x_maturity=x_maturity)
 
 
 def get_testable_resources_from_registry(

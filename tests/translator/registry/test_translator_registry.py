@@ -24,21 +24,6 @@ from translator.registry import (
 logger = logging.getLogger(__name__)
 
 
-def test_get_testable_resources_from_registry():
-    registry_data: Optional[Dict] = get_the_registry_data()
-
-    assert registry_data, "Registry inaccessible?"
-
-    resources: Tuple[Dict[str, List[str]], Dict[str, List[str]]] = \
-        get_testable_resources_from_registry(registry_data)
-
-    assert len(resources) > 0, "No testable resources in the Registry?"
-    assert len(resources[0]) > 0, "No testable resources in the Registry?"
-    assert "sri-reference-kg" in resources[0]
-    assert len(resources[1]) > 0, "No testable resources in the Registry?"
-    assert "arax" in resources[1]
-
-
 @pytest.mark.parametrize(
     "query",
     [
@@ -1504,7 +1489,7 @@ def test_get_testable_resource(query: Tuple):
         assert resource is None
 
 
-def test_get_testable_resource_ids_from_registry():
+def test_get_testable_resources_from_registry():
 
     registry_data: Dict = get_the_registry_data()
 
@@ -1543,7 +1528,7 @@ def test_get_one_specific_target_kp():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
-        assert "https://molepro-trapi.transltr.io/molepro/trapi/v1.3" in service["url"]
+        assert "https://molepro-trapi.ci.transltr.io/molepro/trapi/v1.3" in service["url"]
 
 
 def test_get_translator_ara_test_data_metadata():

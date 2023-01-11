@@ -604,13 +604,12 @@ class OneHopTestHarness:
     @classmethod
     def testable_resources_catalog_from_registry(cls) -> Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]]:
         """
-        Retrieve inventory of testable resources from the Tranlator SmartAPI Registry.
+        Retrieve inventory of testable resources from the Translator SmartAPI Registry.
 
         :return: Optional 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available
                  KPs and ARAs,  with keys from reference ('object') id's of InfoRes CURIES and values that
                  are lists of testable x-maturity environment tags. Return None if Registry is inaccessible.
         """
-
         registry_data: Optional[Dict] = get_the_registry_data()
 
         if not registry_data:

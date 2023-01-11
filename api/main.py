@@ -71,32 +71,38 @@ class ResourceRegistry(BaseModel):
     ARAs: Dict[str, List[str]]
 
 
+# Treat the registry catalog as an initialized singleton, to enhance application performance
+the_resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
+        OneHopTestHarness.testable_resources_catalog_from_registry()
+
+
 @app.get(
     "/registry",
     tags=['report'],
-    response_model=ResourceRegistry,
+    response_model=Union[ResourceRegistry, str],
     summary="Retrieve the list of testable resources (KPs and ARAs) published in the Translator SmartAPI Registry."
 )
-async def get_resources_from_registry() -> ResourceRegistry:
+async def get_resources_from_registry(refresh: bool = False) -> Union[ResourceRegistry, str]:
     """
     Returns a list of ARA and KP available for testing from the Translator SmartAPI Registry.
     Note that only Translator resources with their **info.x-trapi.test_data_location** properties set are reported.
 
-    - 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available KPs and ARAs,vkeyed with the
-      reference ('object') id's of InfoRes CURIES and values are lists of testable x-maturity environments
+    - 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available KPs and ARAs, keyed with the
+      reference ('object') id's of InfoRes CURIES and where values are lists of testable x-maturity environments
     \f
     :return: ResourceRegistry, inventory of available KPs and ARAs with the testable x-maturity environment types.
     """
-    resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
-        OneHopTestHarness.testable_resources_catalog_from_registry()
+    global the_resources
+    if refresh:
+        the_resources = OneHopTestHarness.testable_resources_catalog_from_registry()
 
     message: str
-    if resources:
+    if the_resources is not None:
         message = "Translator resources found!"
+        return ResourceRegistry(message=message, KPs=the_resources[0], ARAs=the_resources[1])
     else:
         message = "Translator SmartAPI Registry currently offline?"
-
-    return ResourceRegistry(message=message, KPs=resources[0], ARAs=resources[1])
+        return message
 
 
 ###########################################################
