@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # to account for the evolution of testing. The 'legacy' 2nd generation version
 # will be assumed for a short while, until the Translator community starts to
 # heavily use the new Biolink 3.0 standard?
-DEFAULT_TEST_FORMAT_VERSION = "2.0"
+DEFAULT_TEST_FORMAT_VERSION = 2.0
 
 # TODO: temporary circuit breaker for huge edge test data sets
 REASONABLE_NUMBER_OF_TEST_EDGES: int = 100
@@ -815,9 +815,16 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 logger.warning(f"Test Data for from '{infores}' has now edges? Weird... skipping!")
                 continue
 
-            # Check for 'new' (circa Dec 2022 specified)
-            # test data format 'version' field
-            test_data_format_version = test_data['version'] if 'version' in test_data else DEFAULT_TEST_FORMAT_VERSION
+            # Check for 'new' (circa Dec 2022 specified) test data format 'version' field
+            try:
+                test_data_format_version = float(test_data['version']) \
+                    if 'version' in test_data else DEFAULT_TEST_FORMAT_VERSION
+            except ValueError:
+                logger.error(
+                    f"test edge format version {str(test_data['version'])} is unrecognized? " +
+                    f"Using default value: {DEFAULT_TEST_FORMAT_VERSION}")
+                test_data_format_version = DEFAULT_TEST_FORMAT_VERSION
+
             for edge_i, edge in enumerate(test_data['edges']):
 
                 # We tag each edge internally with its

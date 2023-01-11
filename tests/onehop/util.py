@@ -16,6 +16,22 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
     #       the core message structure evolved between various TRAPI versions,
     #       e.g. category string => categories list; predicate string => predicates list
     #
+    # TODO: add compliance to Biolink test data format 3.0, which looks something like this:
+    #  {
+    #     "subject_category": "biolink:SmallMolecule",
+    #     "object_category": "biolink:Disease",
+    #     "predicate": "biolink:treats",
+    #     "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
+    #     "object_id": "MESH:D001249"     # asthma
+    #     "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
+    #     "qualifiers": [
+    #          {
+    #               "qualifier_type_id": "biolink:causal_mechanism_qualifier"
+    #               "qualifier_value": "inhibition"
+    #          },
+    #          # ...other qualifier constraint type_id/value pairs?
+    #      ]
+    #  }
     query_graph: Dict = {
         "nodes": {
             'a': {
@@ -34,8 +50,10 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
         }
     }
     if look_up_subject:
+        object_id = edge['object_id'] if edge['version'] >= 3.0 else edge['object']
         query_graph['nodes']['b']['ids'] = [edge['object']]
     else:
+        subject_id = edge['subject_id'] if edge['version'] >= 3.0 else edge['subject']
         query_graph['nodes']['a']['ids'] = [edge['subject']]
     message: Dict = {
         "message": {
@@ -46,6 +64,11 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
             'results': []
         }
     }
+
+    if edge['version'] >= 3.0:
+        # TODO: how do we capture format 3.0 'association' and 'qualifiers' here, in a TRAPI query?
+        pass
+
     return message
 
 
@@ -181,8 +204,9 @@ def inverse_by_new_subject(request):
         "subject_category": request['object_category'],
         "object_category": request['subject_category'],
         "predicate": transformed_predicate,
-        "subject": request['object'],
-        "object": request['subject']
+        "subject": request['object_id'] if request['version'] >= 3.0 else request['object'],
+        "object": request['subject_id'] if request['version'] >= 3.0 else request['subject']
+        # TODO: copy/swap test data format 3.0 association and qualifiers constraints here too?
     })
     message = create_one_hop_message(transformed_request)
     # We inverted the predicate, and will be querying by the new subject, so the output will be in node b
@@ -232,7 +256,7 @@ def raise_subject_entity(request):
      bound to some kind of hierarchical class of instances (i.e. ontological structure)
     """
     subject_cat = request['subject_category']
-    subject = request['subject']
+    subject = request['subject_id'] if request['version'] >= 3.0 else request['subject']
     parent_subject = ontology_kp.get_parent(subject, subject_cat, biolink_version=request['biolink_version'])
     if parent_subject is None:
         return no_parent_error(
