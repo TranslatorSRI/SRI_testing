@@ -1,7 +1,0 @@
-{
-    "url": "https://arax.ncats.io/api/arax/v1.3",
-    "infores": "arax",
-    "KPs": [
-        "infores:molepro"
-    ]
-}

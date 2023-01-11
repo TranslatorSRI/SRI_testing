@@ -547,11 +547,11 @@ def pytest_addoption(parser):
              '(Default: latest public release or ).'
     )
     parser.addoption(
-        "--kp_id", action="store", default=None,  # 'test_triples/KP',
+        "--kp_id", action="store", default=None,
         help='Knowledge Provider identifier ("KP") targeted for testing (Default: None).'
     )
     parser.addoption(
-        "--ara_id", action="store", default=None,  # 'test_triples/ARA',
+        "--ara_id", action="store", default=None,
         help='Autonomous Relay Agent ("ARA") targeted for testing (Default: None).'
     )
     parser.addoption(
@@ -639,9 +639,9 @@ def load_test_data_sources(
 
         if 'infores' not in test_data:
             if source_id:
-                test_data['infores'] = source_id  # default infores is from component being tested
+                test_data['infores'] = source_id  # default 'infores' is from component being tested
             else:
-                logger.warning(f"Test data missing infores: {str(test_data)[0:20]}...Skipping!")
+                logger.warning(f"Test data missing 'infores': {str(test_data)[0:20]}...Skipping!")
                 continue
 
         # Registry metadata resource endpoint 'url' values now

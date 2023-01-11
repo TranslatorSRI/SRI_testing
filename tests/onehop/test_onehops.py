@@ -60,12 +60,12 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
 
 @pytest.mark.asyncio
 async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
-    """Generic Test for TRAPI KPs. The kp_trapi_case fixture is created in conftest.py by looking at the test_triples
-    These get successively fed to test_TRAPI.  This function is further parameterized by trapi_creator, which knows
-    how to take an input edge and create some kind of TRAPI query from it.  For instance, by_subject removes the object,
-    while raise_object_by_subject removes the object and replaces the object category with its biolink parent.
-    This approach will need modification if there turn out to be particular elements we want to test for different
-    creators.
+    """Generic Test for TRAPI KPs. The kp_trapi_case fixture is created in conftest.py by looking at KP test triples
+    These get successively fed into test_trapi_kps.  This function is further parameterized by trapi_creator, which
+    knows how to take an input edge and create some kind of TRAPI query from it.  For instance, by_subject removes
+    the object, while raise_object_by_subject removes the object and replaces the object category with its
+    biolink parent. This approach will need modification if there turn out to be particular elements we want
+    to test for different creators.
     """
     results_bag.location = kp_trapi_case['ks_test_data_location']
     results_bag.case = kp_trapi_case
@@ -118,9 +118,9 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
     ]
 )
 async def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
-    """Generic Test for ARA TRAPI.  It does the same thing as the KP TRAPI, calling an ARA that should be pulling
-    data from the KP.
-    Then it performs a check on the result to make sure that the provenance is correct.
+    """Generic Test for ARA TRAPI.  It does the same thing as the test_trapi_kps, calling an ARA
+    that should be pulling data from various KPs. Then it also performs a check on the result to make sure
+    that the provenance is correct.
     """
     results_bag.location = ara_trapi_case['ara_test_config_location']
     results_bag.case = ara_trapi_case
