@@ -261,16 +261,16 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
             if status_code != 200:
                 test_report.report("error.trapi.response.unexpected_http_code", status_code=status_code)
             else:
-                ##########################################
-                # Looks good so far, so now validate     #
-                # the "Semantic" quality of the response #
-                ##########################################
-                response_message: Optional[Dict] = trapi_response['response_json']['message']
+                #########################################################
+                # Looks good so far, so now validate the TRAPI schemata #
+                # and the Biolink "Semantic" cmopliance of the response #
+                #########################################################
+                response: Optional[Dict] = trapi_response['response_json']
 
-                if response_message:
+                if response:
                     validator: TRAPIResponseValidator = TRAPIResponseValidator(
                         trapi_version=trapi_version,
                         biolink_version=biolink_version
                     )
-                    validator.check_compliance_of_trapi_response(message=response_message)
+                    validator.check_compliance_of_trapi_response(response=response)
                     test_report.merge(validator)
