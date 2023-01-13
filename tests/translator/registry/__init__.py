@@ -139,11 +139,11 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                     'test_data_location': {
                         'testing': {
                             'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                   'main/tests/translator/registry/ARAX/ARAX_Lite.json'
+                                   'main/tests/translator/registry/ARAX_Lite.json'
                         },
                         'production': {
                             'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                   'main/tests/translator/registry/ARAX/ARAX_Lite.json'
+                                   'main/tests/translator/registry/ARAX_Lite.json'
                         }
                     },
                     'version': '1.3.0'
