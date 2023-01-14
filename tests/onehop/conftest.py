@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # to account for the evolution of testing. The 'legacy' 2nd generation version
 # will be assumed for a short while, until the Translator community starts to
 # heavily use the new Biolink 3.0 standard?
-DEFAULT_TEST_FORMAT_VERSION = 2.0
+DEFAULT_TEST_FORMAT_VERSION: float = 2.0
 
 # TODO: temporary circuit breaker for huge edge test data sets
 REASONABLE_NUMBER_OF_TEST_EDGES: int = 100
@@ -817,7 +817,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
             # Check for 'new' (circa Dec 2022 specified) test data format 'version' field
             try:
-                test_data_format_version = float(test_data['version']) \
+                test_data_format_version: float = float(test_data['version']) \
                     if 'version' in test_data else DEFAULT_TEST_FORMAT_VERSION
             except ValueError:
                 logger.error(
@@ -855,7 +855,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 #          # ...other qualifier constraint type_id/value pairs?
                 #      ]
                 # }
-                edge['format'] = test_data_format_version
+                edge['test_format'] = test_data_format_version
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?

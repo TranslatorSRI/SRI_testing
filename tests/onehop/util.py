@@ -50,11 +50,11 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
         }
     }
     if look_up_subject:
-        object_id = edge['object_id'] if edge['version'] >= 3.0 else edge['object']
-        query_graph['nodes']['b']['ids'] = [edge['object']]
+        object_id = edge['object_id'] if edge['test_format'] >= 3.0 else edge['object']
+        query_graph['nodes']['b']['ids'] = [object_id]
     else:
-        subject_id = edge['subject_id'] if edge['version'] >= 3.0 else edge['subject']
-        query_graph['nodes']['a']['ids'] = [edge['subject']]
+        subject_id = edge['subject_id'] if edge['test_format'] >= 3.0 else edge['subject']
+        query_graph['nodes']['a']['ids'] = [subject_id]
     message: Dict = {
         "message": {
             "query_graph": query_graph,
@@ -65,7 +65,7 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
         }
     }
 
-    if edge['version'] >= 3.0:
+    if edge['test_format'] >= 3.0:
         # TODO: how do we capture format 3.0 'association' and 'qualifiers' here, in a TRAPI query?
         pass
 
@@ -204,8 +204,8 @@ def inverse_by_new_subject(request):
         "subject_category": request['object_category'],
         "object_category": request['subject_category'],
         "predicate": transformed_predicate,
-        "subject": request['object_id'] if request['version'] >= 3.0 else request['object'],
-        "object": request['subject_id'] if request['version'] >= 3.0 else request['subject']
+        "subject": request['object_id'] if request['test_format'] >= 3.0 else request['object'],
+        "object": request['subject_id'] if request['test_format'] >= 3.0 else request['subject']
         # TODO: copy/swap test data format 3.0 association and qualifiers constraints here too?
     })
     message = create_one_hop_message(transformed_request)
@@ -225,9 +225,9 @@ def by_object(request):
     return message, 'subject', 'a'
 
 
-def no_parent_error(unit_test_name: str, element: Dict, suffix: Optional[str] = None) -> Tuple[None, str, str]:
+def no_parent_error(unit_test_name: str, element_type: str, element: Dict, suffix: Optional[str] = None) -> Tuple[None, str, str]:
     # Signal that this element may be a mixin without any parent?
-    context: str = f"{unit_test_name}() test predicate {element['name']}"
+    context: str = f"{unit_test_name}() test {element_type} {element['name']}"
     reason: str = "has no 'is_a' parent"
     if 'mixin' in element and element['mixin']:
         reason += " and is a mixin"
@@ -256,11 +256,11 @@ def raise_subject_entity(request):
      bound to some kind of hierarchical class of instances (i.e. ontological structure)
     """
     subject_cat = request['subject_category']
-    subject = request['subject_id'] if request['version'] >= 3.0 else request['subject']
+    subject = request['subject_id'] if request['test_format'] >= 3.0 else request['subject']
     parent_subject = ontology_kp.get_parent(subject, subject_cat, biolink_version=request['biolink_version'])
     if parent_subject is None:
         return no_parent_error(
-            "raise_subject_entity",
+            "raise_subject_entity", "subject category",
             {'name': f"{subject}[{subject_cat}]"},
             suffix=" since it is either not an ontology term or does not map onto a parent ontology term."
         )
@@ -291,7 +291,11 @@ def raise_object_by_subject(request):
         original_object_element['is_a'] = None
     if original_object_element['is_a'] is None:
         # This element may be a mixin or abstract, without any parent?
-        return no_parent_error("raise_object_by_subject", original_object_element)
+        return no_parent_error(
+            "raise_object_by_subject",
+            "object category",
+            original_object_element
+        )
     transformed_request = request.copy()  # there's no depth to request, so it's ok
     parent = tk.get_element(original_object_element['is_a'])
     transformed_request['object_category'] = parent['class_uri']
@@ -322,7 +326,11 @@ def raise_predicate_by_subject(request):
             original_predicate_element['is_a'] = None
         if original_predicate_element['is_a'] is None:
             # This element may be a mixin or abstract, without any parent?
-            return no_parent_error("raise_predicate_by_subject", original_predicate_element)
+            return no_parent_error(
+                "raise_predicate_by_subject",
+                "predicate",
+                original_predicate_element
+            )
         parent = tk.get_element(original_predicate_element['is_a'])
         transformed_request['predicate'] = parent['slot_uri']
     message = create_one_hop_message(transformed_request)

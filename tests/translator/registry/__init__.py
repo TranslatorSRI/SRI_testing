@@ -23,37 +23,38 @@ def mock_registry(status: bool):
 # This 'mock' registry entry relies a bit on ARAGORN (Ranking Agent)
 # and the RENCI Automat KP's, which may sometimes be offline?
 MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
-    "total": 3,
+    "total": 1,  # 3,
     "hits": [
-        {
-            "info": {
-                "title": "SRI Reference Knowledge Graph API (trapi v-1.3.0)",
-                "version": "1.3.0-1",
-                "x-translator": {
-                    "component": "KP",
-                    "infores": "infores:sri-reference-kg",
-                    "team": ["SRI"],
-                    "biolink-version": "2.4.7"
-                },
-                "x-trapi": {
-                    "version": "1.3.0",
-                    "test_data_location": {
-                        "testing": {
-                            "url": "https://raw.githubusercontent.com/monarch-initiative/" +
-                                   "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
-                        }
-                    }
-                }
-            },
-            "servers": [
-                {
-                    "description": "Default server",
-                    "url": "https://automat.renci.org/sri-reference-kg/1.3",
-                    "x-location": "ITRB",
-                    "x-maturity": "testing"
-                 }
-            ]
-        },
+        # SRI-reference-kd also not used for MOCK testing at this time
+        # {
+        #     "info": {
+        #         "title": "SRI Reference Knowledge Graph API (trapi v-1.3.0)",
+        #         "version": "1.3.0-1",
+        #         "x-translator": {
+        #             "component": "KP",
+        #             "infores": "infores:sri-reference-kg",
+        #             "team": ["SRI"],
+        #             "biolink-version": "2.4.7"
+        #         },
+        #         "x-trapi": {
+        #             "version": "1.3.0",
+        #             "test_data_location": {
+        #                 "testing": {
+        #                     "url": "https://raw.githubusercontent.com/monarch-initiative/" +
+        #                            "monarch-plater-docker/main/test_data/sri_reference_kg_test_data.json"
+        #                 }
+        #             }
+        #         }
+        #     },
+        #     "servers": [
+        #         {
+        #             "description": "Default server",
+        #             "url": "https://automat.renci.org/sri-reference-kg/1.3",
+        #             "x-location": "ITRB",
+        #             "x-maturity": "testing"
+        #          }
+        #     ]
+        # },
         #
         # MolePro used as a part of MOCK Registry
         #
@@ -110,64 +111,65 @@ MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA = {
                 }
             ],
         },
-        #
-        # ARAX Endpoint as test ARA
-        #
-        {
-            'info': {
-                'contact': {
-                    'email': 'edeutsch@systemsbiology.org'
-                },
-                'description': 'TRAPI 1.3 endpoint for the NCATS Biomedical Translator Reasoner called ARAX',
-                'license': {
-                     'name': 'Apache 2.0',
-                     'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
-                },
-                'termsOfService': 'https://github.com/RTXteam/RTX/blob/master/LICENSE',
-                'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
-                'version': '1.3.0',
-                'x-translator': {
-                    'biolink-version': '2.2.11',
-                    'component': 'ARA',
-                    'infores': 'infores:arax',
-                    'team': ['Expander Agent']
-                },
-                'x-trapi': {
-                    # We substitute a pared down version of the ARAX ARA test_data_location JSON here in this repo
-                    # 'test_data_location': 'https://raw.githubusercontent.com/RTXteam/RTX/' +
-                    #                       'master/code/ARAX/Documentation/arax_kps.json',
-                    'test_data_location': {
-                        'testing': {
-                            'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                   'main/tests/translator/registry/ARAX_Lite.json'
-                        },
-                        'production': {
-                            'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                   'main/tests/translator/registry/ARAX_Lite.json'
-                        }
-                    },
-                    'version': '1.3.0'
-                }
-            },
-            'servers': [
-                {
-                    'description': 'ARAX TRAPI 1.3 endpoint - production',
-                    'url': 'https://arax.ncats.io/api/arax/v1.3',
-                    'x-maturity': 'production'
-                }, {
-                    'description': 'ARAX TRAPI 1.3 endpoint - testing',
-                    'url': 'https://arax.test.transltr.io/api/arax/v1.3',
-                    'x-maturity': 'testing'
-                }, {
-                    'description': 'ARAX TRAPI 1.3 endpoint - staging',
-                    'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
-                    'x-maturity': 'staging'
-                }, {
-                    'description': 'ARAX TRAPI 1.3 endpoint - development',
-                    'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
-                    'x-maturity': 'development'
-                }
-            ],
-        }
+        # Not using ARAX endpoint for now, to allow for quicker MOCK testing
+        # #
+        # # ARAX Endpoint as test ARA
+        # #
+        # {
+        #     'info': {
+        #         'contact': {
+        #             'email': 'edeutsch@systemsbiology.org'
+        #         },
+        #         'description': 'TRAPI 1.3 endpoint for the NCATS Biomedical Translator Reasoner called ARAX',
+        #         'license': {
+        #              'name': 'Apache 2.0',
+        #              'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
+        #         },
+        #         'termsOfService': 'https://github.com/RTXteam/RTX/blob/master/LICENSE',
+        #         'title': 'ARAX Translator Reasoner - TRAPI 1.3.0',
+        #         'version': '1.3.0',
+        #         'x-translator': {
+        #             'biolink-version': '2.2.11',
+        #             'component': 'ARA',
+        #             'infores': 'infores:arax',
+        #             'team': ['Expander Agent']
+        #         },
+        #         'x-trapi': {
+        #             # We substitute a pared down version of the ARAX ARA test_data_location JSON here in this repo
+        #             # 'test_data_location': 'https://raw.githubusercontent.com/RTXteam/RTX/' +
+        #             #                       'master/code/ARAX/Documentation/arax_kps.json',
+        #             'test_data_location': {
+        #                 'testing': {
+        #                     'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+        #                            'main/tests/translator/registry/ARAX_Lite.json'
+        #                 },
+        #                 'production': {
+        #                     'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
+        #                            'main/tests/translator/registry/ARAX_Lite.json'
+        #                 }
+        #             },
+        #             'version': '1.3.0'
+        #         }
+        #     },
+        #     'servers': [
+        #         {
+        #             'description': 'ARAX TRAPI 1.3 endpoint - production',
+        #             'url': 'https://arax.ncats.io/api/arax/v1.3',
+        #             'x-maturity': 'production'
+        #         }, {
+        #             'description': 'ARAX TRAPI 1.3 endpoint - testing',
+        #             'url': 'https://arax.test.transltr.io/api/arax/v1.3',
+        #             'x-maturity': 'testing'
+        #         }, {
+        #             'description': 'ARAX TRAPI 1.3 endpoint - staging',
+        #             'url': 'https://arax.ci.transltr.io/api/arax/v1.3',
+        #             'x-maturity': 'staging'
+        #         }, {
+        #             'description': 'ARAX TRAPI 1.3 endpoint - development',
+        #             'url': 'https://arax.ncats.io/beta/api/arax/v1.3',
+        #             'x-maturity': 'development'
+        #         }
+        #     ],
+        # }
     ]
 }
