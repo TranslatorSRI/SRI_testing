@@ -3,6 +3,7 @@ Configure one hop tests
 """
 from typing import Optional, Union, List, Set, Dict, Any, Tuple
 from collections import defaultdict
+from copy import deepcopy
 
 import logging
 
@@ -147,6 +148,12 @@ def _compile_recommendations(
         "subject": test_case["subject"],
         "object": test_case["object"]
     }
+
+    if test_case['test_format'] >= 3.0:
+        if 'qualifiers' in test_case:
+            test_data['qualifiers'] = deepcopy(test_case['qualifiers'])
+        if 'association' in test_case:
+            test_data['association'] = test_case["association"]
 
     # Validation messages are list of dictionary objects with
     # one 'code' key and optional (variable key) parameters

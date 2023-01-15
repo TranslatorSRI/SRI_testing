@@ -16,22 +16,22 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
     #       the core message structure evolved between various TRAPI versions,
     #       e.g. category string => categories list; predicate string => predicates list
     #
-    # TODO: add compliance to Biolink test data format 3.0, which looks something like this:
-    #  {
-    #     "subject_category": "biolink:SmallMolecule",
-    #     "object_category": "biolink:Disease",
-    #     "predicate": "biolink:treats",
-    #     "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
-    #     "object_id": "MESH:D001249"     # asthma
-    #     "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
-    #     "qualifiers": [
-    #          {
-    #               "qualifier_type_id": "biolink:causal_mechanism_qualifier"
-    #               "qualifier_value": "inhibition"
-    #          },
-    #          # ...other qualifier constraint type_id/value pairs?
-    #      ]
-    #  }
+    q_edge: Dict = {
+        "subject": "a",
+        "object": "b",
+        "predicates": [edge['predicate']]
+    }
+
+    # Build Biolink 3 compliant QEdge qualifier_constraints, if specified
+    if edge['test_format'] >= 3.0:
+        if 'qualifiers' in edge:
+            # We don't validate the edge['qualifiers'] here.. let the TRAPI query catch any faulty qualifiers
+            q_edge['qualifier_constraints'] = [{'qualifier_set': deepcopy(edge['qualifiers'])}]
+        if 'association' in edge:
+            # TODO: how do we leverage a format 3.0 'association' here
+            #  to validate query (qualifiers)? Ask Sierra for advice?
+            pass
+
     query_graph: Dict = {
         "nodes": {
             'a': {
@@ -42,11 +42,7 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
             }
         },
         "edges": {
-            'ab': {
-                "subject": "a",
-                "object": "b",
-                "predicates": [edge['predicate']]
-            }
+            'ab': q_edge
         }
     }
     if look_up_subject:
@@ -55,6 +51,7 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
     else:
         subject_id = edge['subject_id'] if edge['test_format'] >= 3.0 else edge['subject']
         query_graph['nodes']['a']['ids'] = [subject_id]
+
     message: Dict = {
         "message": {
             "query_graph": query_graph,
@@ -64,11 +61,6 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
             'results': []
         }
     }
-
-    if edge['test_format'] >= 3.0:
-        # TODO: how do we capture format 3.0 'association' and 'qualifiers' here, in a TRAPI query?
-        pass
-
     return message
 
 
@@ -167,6 +159,34 @@ def by_subject(request):
     return message, 'object', 'b'
 
 
+def swap_qualifiers(qualifiers: List):
+    """
+    This method attempts to swap subject and
+    object qualifiers through rewriting their keys?
+
+    :param qualifiers: List, of Qualifiers whose node associations may need swapping.
+    :return: qualifiers with keys rewritten to swap node qualifiers (subject <=> object)
+    """
+    swapped_qualifiers: List = list()
+    qualifier: Dict
+    for qualifier in qualifiers:
+        # stub implementation: just copy over the qualifier unmodified (wrong in several cases...)
+        swapped_qualifiers.append(qualifier.copy())
+    return swapped_qualifiers
+
+
+def invert_association(association: str):
+    """
+    Inverts subject and object of an association (as feasible)
+    :param association: str, biolink:Association to be inverted
+    :return: str, inverted association (biolink curie)
+    """
+    # TODO: how do we 'invert' a format 3.0 'association', for later
+    #       use in validating the swapped query (qualifiers)?
+    #       Ask Sierra/Chris M. for advice, if it not obvious how to do this...
+    return association  # stub - just return original association (probably wrong!)
+
+
 @TestCode(
     code="IBNS",
     unit_test_name="inverse_by_new_subject",
@@ -206,9 +226,16 @@ def inverse_by_new_subject(request):
         "predicate": transformed_predicate,
         "subject": request['object_id'] if request['test_format'] >= 3.0 else request['object'],
         "object": request['subject_id'] if request['test_format'] >= 3.0 else request['subject']
-        # TODO: copy/swap test data format 3.0 association and qualifiers constraints here too?
     })
+
+    if request['test_format'] >= 3.0:
+        if 'qualifiers' in request:
+            transformed_request['qualifiers'] = swap_qualifiers(request['qualifiers'])
+        if 'association' in request:
+            transformed_request['association'] = invert_association(request['association'])
+
     message = create_one_hop_message(transformed_request)
+
     # We inverted the predicate, and will be querying by the new subject, so the output will be in node b
     # but, the entity we are looking for (now the object) was originally the subject because of the inversion.
     return message, 'subject', 'b'
