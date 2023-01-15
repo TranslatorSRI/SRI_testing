@@ -46,10 +46,10 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
         }
     }
     if look_up_subject:
-        object_id = edge['object_id'] if edge['test_format'] >= 3.0 else edge['object']
+        object_id = edge['object_id'] if edge['test_format'] >= 3.0 and 'object_id' in edge else edge['object']
         query_graph['nodes']['b']['ids'] = [object_id]
     else:
-        subject_id = edge['subject_id'] if edge['test_format'] >= 3.0 else edge['subject']
+        subject_id = edge['subject_id'] if edge['test_format'] >= 3.0 and 'subject_id' in edge else edge['subject']
         query_graph['nodes']['a']['ids'] = [subject_id]
 
     message: Dict = {
@@ -224,8 +224,10 @@ def inverse_by_new_subject(request):
         "subject_category": request['object_category'],
         "object_category": request['subject_category'],
         "predicate": transformed_predicate,
-        "subject": request['object_id'] if request['test_format'] >= 3.0 else request['object'],
-        "object": request['subject_id'] if request['test_format'] >= 3.0 else request['subject']
+        "subject":
+            request['object_id'] if request['test_format'] >= 3.0 and 'object_id' in request else request['object'],
+        "object":
+            request['subject_id'] if request['test_format'] >= 3.0 and 'subject_id' in request else request['subject']
     })
 
     if request['test_format'] >= 3.0:
@@ -283,7 +285,8 @@ def raise_subject_entity(request):
      bound to some kind of hierarchical class of instances (i.e. ontological structure)
     """
     subject_cat = request['subject_category']
-    subject = request['subject_id'] if request['test_format'] >= 3.0 else request['subject']
+    subject = request['subject_id'] \
+        if request['test_format'] >= 3.0 and 'subject_id' in request else request['subject']
     parent_subject = ontology_kp.get_parent(subject, subject_cat, biolink_version=request['biolink_version'])
     if parent_subject is None:
         return no_parent_error(
