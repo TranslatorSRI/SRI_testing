@@ -3,19 +3,21 @@ from dataclasses import asdict
 from functools import wraps
 from typing import Set, Dict, List, Tuple, Optional
 
+from reasoner_validator.versioning import SemVer
 from reasoner_validator.biolink import get_biolink_model_toolkit
 from translator.sri.testing.util import ontology_kp
 
 
-def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
+def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optional[Dict], str]:
     """Given a complete edge, create a valid TRAPI message for "one hop" querying for the edge.
     If the look_up_subject is False (default) then the object id is not included, (lookup object
     by subject) and if the look_up_subject is True, then the subject id is not included (look up
     subject by object)"""
-    # TODO: This key method is actually very TRAPI version sensitive since
-    #       the core message structure evolved between various TRAPI versions,
-    #       e.g. category string => categories list; predicate string => predicates list
-    #
+
+    trapi_version_tested = SemVer.from_string(edge['trapi_version'])
+    if trapi_version_tested <= SemVer.from_string("1.1.0"):
+        return None, f"Legacy TRAPI version {edge['trapi_version']} unsupported by SRI Testing!"
+
     q_edge: Dict = {
         "subject": "a",
         "object": "b",
@@ -61,7 +63,7 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Dict:
             'results': []
         }
     }
-    return message
+    return message, ""
 
 
 #####################################################################################################
@@ -155,8 +157,11 @@ class TestCode:
 )
 def by_subject(request):
     """Given a known triple, create a TRAPI message that looks up the object by the subject"""
-    message = create_one_hop_message(request)
-    return message, 'object', 'b'
+    message, errmsg = create_one_hop_message(request)
+    if message:
+        return message, 'object', 'b'
+    else:
+        return None, "by_subject", errmsg
 
 
 def swap_qualifiers(qualifiers: List):
@@ -229,18 +234,19 @@ def inverse_by_new_subject(request):
         "object":
             request['subject_id'] if request['test_format'] >= 3.0 and 'subject_id' in request else request['subject']
     })
-
     if request['test_format'] >= 3.0:
         if 'qualifiers' in request:
             transformed_request['qualifiers'] = swap_qualifiers(request['qualifiers'])
         if 'association' in request:
             transformed_request['association'] = invert_association(request['association'])
 
-    message = create_one_hop_message(transformed_request)
-
+    message, errmsg = create_one_hop_message(transformed_request)
     # We inverted the predicate, and will be querying by the new subject, so the output will be in node b
     # but, the entity we are looking for (now the object) was originally the subject because of the inversion.
-    return message, 'subject', 'b'
+    if message:
+        return message, 'subject', 'b'
+    else:
+        return None, "inverse_by_new_subject", errmsg
 
 
 @TestCode(
@@ -250,12 +256,19 @@ def inverse_by_new_subject(request):
 )
 def by_object(request):
     """Given a known triple, create a TRAPI message that looks up the subject by the object"""
-    message = create_one_hop_message(request, look_up_subject=True)
-    return message, 'subject', 'a'
+    message, errmsg = create_one_hop_message(request, look_up_subject=True)
+    if message:
+        return message, 'subject', 'a'
+    else:
+        return None, "by_object", errmsg
 
 
-def no_parent_error(unit_test_name: str, element_type: str, element: Dict, suffix: Optional[str] = None) -> Tuple[None, str, str]:
-    # Signal that this element may be a mixin without any parent?
+def no_parent_error(
+        unit_test_name: str,
+        element_type: str,
+        element: Dict,
+        suffix: Optional[str] = None
+) -> Tuple[None, str, str]:
     context: str = f"{unit_test_name}() test {element_type} {element['name']}"
     reason: str = "has no 'is_a' parent"
     if 'mixin' in element and element['mixin']:
@@ -296,8 +309,11 @@ def raise_subject_entity(request):
         )
     mod_request = deepcopy(request)
     mod_request['subject'] = parent_subject
-    message = create_one_hop_message(mod_request)
-    return message, 'object', 'b'
+    message, errmsg = create_one_hop_message(mod_request)
+    if message:
+        return message, 'object', 'b'
+    else:
+        return None, "raise_subject_entity", errmsg
 
 
 @TestCode(
@@ -329,9 +345,11 @@ def raise_object_by_subject(request):
     transformed_request = request.copy()  # there's no depth to request, so it's ok
     parent = tk.get_element(original_object_element['is_a'])
     transformed_request['object_category'] = parent['class_uri']
-    message = create_one_hop_message(transformed_request)
-    return message, 'object', 'b'
-
+    message, errmsg = create_one_hop_message(transformed_request)
+    if message:
+        return message, 'object', 'b'
+    else:
+        return None, "raise_object_by_subject", errmsg
 
 @TestCode(
     code="RPBS",
@@ -363,5 +381,8 @@ def raise_predicate_by_subject(request):
             )
         parent = tk.get_element(original_predicate_element['is_a'])
         transformed_request['predicate'] = parent['slot_uri']
-    message = create_one_hop_message(transformed_request)
-    return message, 'object', 'b'
+    message, errmsg = create_one_hop_message(transformed_request)
+    if message:
+        return message, 'object', 'b'
+    else:
+        return None, "raise_predicate_by_subject", errmsg

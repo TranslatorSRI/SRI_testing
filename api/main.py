@@ -120,16 +120,6 @@ class TestRunParameters(BaseModel):
     # # Only use first edge from each KP file
     # one: bool = False
     #
-    # # 'REGISTRY', directory or file from which to retrieve triples.
-    # # (Default: 'REGISTRY', which triggers the use of metadata, in KP entries
-    # # from the Translator SmartAPI Registry, to configure the tests).
-    # triple_source: Optional[str] = 'REGISTRY'
-    #
-    # # 'REGISTRY', directory or file from which to retrieve ARA Config.
-    # # (Default: 'REGISTRY', which triggers the use of metadata, in ARA entries
-    # # from the Translator SmartAPI Registry, to configure the tests).
-    # ara_source: Optional[str] = 'REGISTRY'
-
     # (Optional) reference (object) identifier of the ARA InfoRes CURIE
     # designating an ARA which is the target of validation in the new test run.
     ara_id: Optional[str] = None
@@ -170,17 +160,6 @@ class TestRunParameters(BaseModel):
 class TestRunSession(BaseModel):
 
     test_run_id: str
-
-    # TODO: user specified TRAPI version...
-    #       we should somehow try to report the
-    #       actual version used by the system
-    # "trapi_version": trapi_version,
-
-    # TODO: user specified Biolink Model version...
-    #       we should somehow try to report the
-    #       actual version used by the system
-    # "biolink_version": biolink_version
-
     errors: Optional[List[str]] = None
 
 
