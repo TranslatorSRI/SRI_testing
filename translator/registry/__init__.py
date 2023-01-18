@@ -849,7 +849,8 @@ def extract_component_test_metadata_from_registry(
 
     target_sources: Set[str] = set()
     if source:
-        # if specified, 'source' may be a comma separated list of sources...
+        # if specified, 'source' may be a comma separated list of
+        # (possibly wild card pattern matching) source strings...
         for infores in source.split(","):
             infores = infores.strip()
             target_sources.add(infores)
