@@ -134,7 +134,8 @@ def _compile_recommendations(
     #       ],
     # ...
     #    }
-    # TODO: what if test_case lacks some of the keys?
+    # Hard missing key error exception will be thrown here if test_case dictionary lacks keys...
+    # This is probably OK since it likely represents a logical bug to be fixed in the code.
     test_data: Dict = {
         "subject_category": test_case["subject_category"],
         "object_category": test_case["object_category"],
@@ -352,8 +353,6 @@ def pytest_sessionfinish(session):
         # Tally up the number of test results of a given 'status' across 'test_id' unit test categories
         _tally_unit_test_result(case_summary, test_id, edge_num, details['status'])
 
-        # TODO: merge case details here into a Cartesian product table of edges
-        #       and unit test id's for a given resource indexed by ARA and KP
         idx: str = str(test_case['idx'])
 
         if idx not in resource_summary['test_edges']:
@@ -794,7 +793,6 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
             logger.error(err_msg)
             continue
 
-        # TODO: see below about echoing the edge input data to the Pytest stdout
         print(f"### Start of Test Input Edges for KP '{kp_id}' ###")
 
         sources: Dict = kpjson['sources']
