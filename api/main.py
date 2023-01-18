@@ -170,17 +170,6 @@ class TestRunParameters(BaseModel):
 class TestRunSession(BaseModel):
 
     test_run_id: str
-
-    # TODO: user specified TRAPI version...
-    #       we should somehow try to report the
-    #       actual version used by the system
-    # "trapi_version": trapi_version,
-
-    # TODO: user specified Biolink Model version...
-    #       we should somehow try to report the
-    #       actual version used by the system
-    # "biolink_version": biolink_version
-
     errors: Optional[List[str]] = None
 
 
