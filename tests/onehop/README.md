@@ -36,15 +36,9 @@ Every test run only tests **_one_** endpoint within **_one_** **`x-maturity`** e
 For each KP, we need a file with one triple of each type that the KP can provide. Here is an example:
 
 ```
-{   
+{ 
     #
-    # Optional KP test data format version. Generally assume 'latest' if not given. 
-    # This particular version is deemed version 2.0 which implies major support focused
-    # on Biolink major version 2 (i.e. 2.#.# releases)
-    "version": "2.0"
-    
-    #
-    # Deprecated: the 'url' field is deprecated and ignored in Version 2.0
+    # Deprecated: the original 'url' field is deprecated and now ignored.
     # Rather, the target endpoint for testing now comes from the 
     # Translator SmartAPI Registry entry for the specified KP or ARA resource
     # (see the Translator SmartAPI Registry Configuration comments above)
@@ -145,23 +139,16 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 | raise predicate by subject |   RPBS    |
 
 
-#### Biolink 3.0 Revisions
+#### Biolink 3 Revisions
 
-The KP test edge format is [being extended to specify Biolink 3.0 qualifier constraints](https://github.com/TranslatorSRI/SRI_testing/issues/60) in the following manner:
+The KP test edge format is [being extended to specify Biolink version 3 qualifier constraints](https://github.com/TranslatorSRI/SRI_testing/issues/60) in the following manner:
 
-- **`version`**: set to 3.0
 - **`association`**: (Optional) add edge category - value set to the id of any child class of **`biolink:Association`** - to assert associated semantic constraints in validating edge data from the specified test edge.
-- **`subject_id`** and **`object_id`**: to replace version 2.0 **`subject`** and **`object`** tags, now deprecated. Same meaning as old tags just disambiguates the meaning of those tags (the older tags will still be recognized if used but disappear in future format releases).
+- **`subject_id`** and **`object_id`**: to replace **`subject`** and **`object`** tags, now deprecated. Same meaning as old tags just disambiguates the meaning of those tags (the older tags will still be recognized if used but disappear in future format releases).
 - **`qualifiers`**: (Optional) new tag to specify Biolink Model 3.#.# **`qualifier`** constraints on testing, with JSON object composed of **`qualifier_type_id`** and **`qualifier_value`** values (as per the example below).
 
 ```json
 {
-    #
-    # Should be set to 3.0. Once Biolink 3.0 testing becomes mainstream,
-    # then version 3.0 will be deemed 'latest' and thus, assumed.
-    #
-    "version": "3.0"
-    
     "source_type": "primary",
     "infores": "molepro",
     "exclude_tests": ["RPBS"],
@@ -192,14 +179,6 @@ For each ARA, we want to ensure that it is able to extract information correctly
 
 ```
 {
-   
-    #
-    # Optional KP test data format version. Generally assume 'latest' if not given. 
-    # This particular version is deemed version 2.0 which implies major support focused
-    # on Biolink major version 2 (i.e. 2.#.# releases). At this point in time, however,
-    # ARA support of Biolink 3.0 does not dictate any ARA test configuration file changes,
-    # This, a "version" tag for the file is optional here.
-    # "version": "2.0"
     
     #
     # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
