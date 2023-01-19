@@ -263,7 +263,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
             else:
                 #########################################################
                 # Looks good so far, so now validate the TRAPI schemata #
-                # and the Biolink "Semantic" cmopliance of the response #
+                # and the Biolink "Semantic" compliance of the response #
                 #########################################################
                 response: Optional[Dict] = trapi_response['response_json']
 
