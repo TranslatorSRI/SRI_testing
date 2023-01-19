@@ -1,6 +1,7 @@
 """
 Unit tests for Translator SmartAPI Registry
 """
+from sys import stderr
 from typing import Optional, Union, Tuple, Dict, List
 import logging
 import pytest
@@ -1538,6 +1539,7 @@ def test_get_specific_set_of_target_kp():
         extract_component_test_metadata_from_registry(registry_data, "KP", source="automat-*", x_maturity="development")
     assert len(service_metadata) >= 1, "We're expecting at least one source KP here!"
     for service in service_metadata.values():
+        print(service["infores"], file=stderr)
         assert service["infores"].startswith("automat-")
         assert service["url"].startswith("https://automat.renci.org/")
 

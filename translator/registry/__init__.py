@@ -775,7 +775,7 @@ def source_of_interest(service: Dict, target_sources: Set[str]) -> Optional[str]
     with possible prefix only, suffix only or prefix-<body>-suffix matches.
 
     :param service: Dict, Translator SmartAPI Registry entry for one service 'hit' containing an 'infores' property
-    :param target_sources: Set[str], set of target infores of interest
+    :param target_sources: Set[str], of target identifiers or wildcard patterns of interest against which to filter service infores reference identifiers
     :return: Optional[str], infores if matched; None otherwise.
     """
     assert service, "registry.source_of_interest() method call: unexpected empty service?!?"
@@ -847,6 +847,9 @@ def extract_component_test_metadata_from_registry(
     # Sanity check...
     assert component_type in ["KP", "ARA"]
 
+    # TODO: is there a way to translate target_sources into a compiled
+    #       regex pattern, for more efficient screening of infores (below)?
+    #       Or pre-process the target_sources into a list of 2-tuple patterns to match?
     target_sources: Set[str] = set()
     if source:
         # if specified, 'source' may be a comma separated list of

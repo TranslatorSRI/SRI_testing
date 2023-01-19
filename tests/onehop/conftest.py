@@ -559,7 +559,7 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--kp_id", action="store", default=None,
-        help='Knowledge Provider identifier ("KP") targeted for testing (Default: None).'
+        help='(Possibly list of) Knowledge Provider identifier ("KP") sources targeted for testing (Default: None).'
     )
     parser.addoption(
         "--ara_id", action="store", default=None,
@@ -688,8 +688,12 @@ def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict
     if x_maturity and x_maturity.lower() not in ["production", "staging", "testing", "development"]:
         x_maturity = None
 
-    if ara_id == "SKIP":
-        return dict()  # no ARA's to validate
+    if ara_id:
+        if not isinstance(ara_id, str):
+            logger.error(f"get_ara_metadata(): the ARA identifier specifier '{ara_id}' is not a string?")
+            return dict()  # skip validation of the ARA
+        if ara_id.upper() == "SKIP":
+            return dict()  # no ARA's to validate
 
     # Note: the ARA's trapi_version and biolink_version may be overridden here
     return get_test_data_sources(
