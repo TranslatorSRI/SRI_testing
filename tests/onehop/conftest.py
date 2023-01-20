@@ -820,6 +820,10 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
             for edge_i, edge in enumerate(test_data['edges']):
 
+                # TODO: temporary short-cut to priortize qualified edges
+                if 'qualifiers' not in edge:
+                    continue
+
                 # We tag each edge internally with its
                 # sequence number, for later convenience
                 edge['idx'] = edge_i

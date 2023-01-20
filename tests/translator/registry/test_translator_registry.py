@@ -1534,7 +1534,6 @@ def test_get_one_specific_target_kp():
 
 def test_get_specific_subset_of_target_kps():
     registry_data: Dict = get_the_registry_data()
-    # Since we filter on the RENCI 'automat-*' since it is used both in the mock and real registry?
     service_metadata = \
         extract_component_test_metadata_from_registry(registry_data, "KP", source="automat-*", x_maturity="development")
     assert len(service_metadata) >= 1, "We're expecting at least one source KP here!"

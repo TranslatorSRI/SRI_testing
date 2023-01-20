@@ -27,7 +27,16 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
     # Build Biolink 3 compliant QEdge qualifier_constraints, if specified
     if 'qualifiers' in edge:
         # We don't validate the edge['qualifiers'] here.. let the TRAPI query catch any faulty qualifiers
-        q_edge['qualifier_constraints'] = [{'qualifier_set': deepcopy(edge['qualifiers'])}]
+        qualifier_set: List = list()
+        qualifier: Dict
+        for qualifier in edge['qualifiers']:
+            if 'qualifier_type_id' in qualifier and 'qualifier_value' in qualifier:
+                qualifier_set.append(qualifier.copy())
+            else:
+                return None, f"Malformed 'qualifiers' specification: '{str(edge['qualifiers'])}'!"
+
+        if qualifier_set:
+            q_edge['qualifier_constraints'] = [{'qualifier_set': qualifier_set}]
     if 'association' in edge:
         # TODO: how do we leverage an 'association' here
         #  to validate query (qualifiers)? Ask Sierra for advice?
@@ -174,8 +183,15 @@ def swap_qualifiers(qualifiers: List):
     swapped_qualifiers: List = list()
     qualifier: Dict
     for qualifier in qualifiers:
-        # stub implementation: just copy over the qualifier unmodified (wrong in several cases...)
-        swapped_qualifiers.append(qualifier.copy())
+        qualifier_type_id: str = qualifier['qualifier_type_id']
+        if qualifier_type_id.find("subject") > -1:
+            qualifier_type_id = qualifier_type_id.replace("subject", "object", 1)
+        elif qualifier_type_id.find("object") > -1:
+            qualifier_type_id = qualifier_type_id.replace("object", "subject", 1)
+        swapped_qualifiers.append({
+            'qualifier_type_id': qualifier_type_id,
+            'qualifier_value': qualifier['qualifier_value']
+        })
     return swapped_qualifiers
 
 
@@ -240,6 +256,7 @@ def inverse_by_new_subject(request):
         transformed_request['association'] = invert_association(request['association'])
 
     message, errmsg = create_one_hop_message(transformed_request)
+
     # We inverted the predicate, and will be querying by the new subject, so the output will be in node b
     # but, the entity we are looking for (now the object) was originally the subject because of the inversion.
     if message:
