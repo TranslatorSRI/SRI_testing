@@ -1532,7 +1532,7 @@ def test_get_one_specific_target_kp():
         assert "https://molepro-trapi.ci.transltr.io/molepro/trapi/v1.3" in service["url"]
 
 
-def test_get_specific_set_of_target_kp():
+def test_get_specific_subset_of_target_kps():
     registry_data: Dict = get_the_registry_data()
     # Since we filter on the RENCI 'automat-*' since it is used both in the mock and real registry?
     service_metadata = \
@@ -1540,6 +1540,7 @@ def test_get_specific_set_of_target_kp():
     assert len(service_metadata) >= 1, "We're expecting at least one source KP here!"
     for service in service_metadata.values():
         print(service["infores"], file=stderr)
+        assert service["x_maturity"] == "development"
         assert service["infores"].startswith("automat-")
         assert service["url"].startswith("https://automat.renci.org/")
 
