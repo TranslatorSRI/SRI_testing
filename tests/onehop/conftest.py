@@ -31,12 +31,6 @@ from translator.sri.testing.onehops_test_runner import (
 
 logger = logging.getLogger(__name__)
 
-# KP Test Data Location dereferenced SRI Test data JSON files are now versioned
-# to account for the evolution of testing. The 'legacy' 2nd generation version
-# will be assumed for a short while, until the Translator community starts to
-# heavily use the new Biolink 3.0 standard?
-DEFAULT_TEST_FORMAT_VERSION: float = 2.0
-
 # TODO: temporary circuit breaker for huge edge test data sets
 REASONABLE_NUMBER_OF_TEST_EDGES: int = 100
 
@@ -824,16 +818,6 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 logger.warning(f"Test Data for from '{infores}' has now edges? Weird... skipping!")
                 continue
 
-            # Check for 'new' (circa Dec 2022 specified) test data format 'version' field
-            try:
-                test_data_format_version: float = float(test_data['version']) \
-                    if 'version' in test_data else DEFAULT_TEST_FORMAT_VERSION
-            except ValueError:
-                logger.error(
-                    f"test edge format version {str(test_data['version'])} is unrecognized? " +
-                    f"Using default value: {DEFAULT_TEST_FORMAT_VERSION}")
-                test_data_format_version = DEFAULT_TEST_FORMAT_VERSION
-
             for edge_i, edge in enumerate(test_data['edges']):
 
                 # We tag each edge internally with its
@@ -845,8 +829,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 # knowledge source being targeted by the test data
                 edge['kp_id'] = f"infores:{kp_id}"
 
-                # If the 'edge' data seen is 'test_data_format_version' 3.0
-                # then it may specify Biolink 3 'qualifier' TRAPI query constraints,
+                # Test data may now have Biolink 3 'qualifier' TRAPI query constraints,
                 # i.e. something like the following:
                 #
                 # {
@@ -864,7 +847,6 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 #          # ...other qualifier constraint type_id/value pairs?
                 #      ]
                 # }
-                edge['test_format'] = test_data_format_version
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?

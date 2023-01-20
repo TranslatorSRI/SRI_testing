@@ -25,14 +25,13 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
     }
 
     # Build Biolink 3 compliant QEdge qualifier_constraints, if specified
-    if edge['test_format'] >= 3.0:
-        if 'qualifiers' in edge:
-            # We don't validate the edge['qualifiers'] here.. let the TRAPI query catch any faulty qualifiers
-            q_edge['qualifier_constraints'] = [{'qualifier_set': deepcopy(edge['qualifiers'])}]
-        if 'association' in edge:
-            # TODO: how do we leverage a format 3.0 'association' here
-            #  to validate query (qualifiers)? Ask Sierra for advice?
-            pass
+    if 'qualifiers' in edge:
+        # We don't validate the edge['qualifiers'] here.. let the TRAPI query catch any faulty qualifiers
+        q_edge['qualifier_constraints'] = [{'qualifier_set': deepcopy(edge['qualifiers'])}]
+    if 'association' in edge:
+        # TODO: how do we leverage an 'association' here
+        #  to validate query (qualifiers)? Ask Sierra for advice?
+        pass
 
     query_graph: Dict = {
         "nodes": {
@@ -48,10 +47,10 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
         }
     }
     if look_up_subject:
-        object_id = edge['object_id'] if edge['test_format'] >= 3.0 and 'object_id' in edge else edge['object']
+        object_id = edge['object_id'] if 'object_id' in edge else edge['object']
         query_graph['nodes']['b']['ids'] = [object_id]
     else:
-        subject_id = edge['subject_id'] if edge['test_format'] >= 3.0 and 'subject_id' in edge else edge['subject']
+        subject_id = edge['subject_id'] if 'subject_id' in edge else edge['subject']
         query_graph['nodes']['a']['ids'] = [subject_id]
 
     message: Dict = {
@@ -186,7 +185,7 @@ def invert_association(association: str):
     :param association: str, biolink:Association to be inverted
     :return: str, inverted association (biolink curie)
     """
-    # TODO: how do we 'invert' a format 3.0 'association', for later
+    # TODO: how do we 'invert' an 'association', for later
     #       use in validating the swapped query (qualifiers)?
     #       Ask Sierra/Chris M. for advice, if it not obvious how to do this...
     return association  # stub - just return original association (probably wrong!)
@@ -230,15 +229,15 @@ def inverse_by_new_subject(request):
         "object_category": request['subject_category'],
         "predicate": transformed_predicate,
         "subject":
-            request['object_id'] if request['test_format'] >= 3.0 and 'object_id' in request else request['object'],
+            request['object_id'] if 'object_id' in request else request['object'],
         "object":
-            request['subject_id'] if request['test_format'] >= 3.0 and 'subject_id' in request else request['subject']
+            request['subject_id'] if 'subject_id' in request else request['subject']
     })
-    if request['test_format'] >= 3.0:
-        if 'qualifiers' in request:
-            transformed_request['qualifiers'] = swap_qualifiers(request['qualifiers'])
-        if 'association' in request:
-            transformed_request['association'] = invert_association(request['association'])
+
+    if 'qualifiers' in request:
+        transformed_request['qualifiers'] = swap_qualifiers(request['qualifiers'])
+    if 'association' in request:
+        transformed_request['association'] = invert_association(request['association'])
 
     message, errmsg = create_one_hop_message(transformed_request)
     # We inverted the predicate, and will be querying by the new subject, so the output will be in node b
@@ -298,8 +297,7 @@ def raise_subject_entity(request):
      bound to some kind of hierarchical class of instances (i.e. ontological structure)
     """
     subject_cat = request['subject_category']
-    subject = request['subject_id'] \
-        if request['test_format'] >= 3.0 and 'subject_id' in request else request['subject']
+    subject = request['subject_id'] if 'subject_id' in request else request['subject']
     parent_subject = ontology_kp.get_parent(subject, subject_cat, biolink_version=request['biolink_version'])
     if parent_subject is None:
         return no_parent_error(
