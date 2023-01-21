@@ -144,11 +144,10 @@ def _compile_recommendations(
         "object": test_case["object"]
     }
 
-    if test_case['test_format'] >= 3.0:
-        if 'qualifiers' in test_case:
-            test_data['qualifiers'] = deepcopy(test_case['qualifiers'])
-        if 'association' in test_case:
-            test_data['association'] = test_case["association"]
+    if 'qualifiers' in test_case:
+        test_data['qualifiers'] = deepcopy(test_case['qualifiers'])
+    if 'association' in test_case:
+        test_data['association'] = test_case["association"]
 
     # Validation messages are list of dictionary objects with
     # one 'code' key and optional (variable key) parameters
@@ -820,7 +819,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
             for edge_i, edge in enumerate(test_data['edges']):
 
-                # TODO: temporary short-cut to priortize qualified edges
+                # TODO: temporary short-cut to prioritize qualified edges
                 if 'qualifiers' not in edge:
                     continue
 
