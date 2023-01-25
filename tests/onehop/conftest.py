@@ -535,7 +535,7 @@ def pytest_addoption(parser):
         "--trapi_version", action="store", default=None,
         help='TRAPI API version to use for validation, overriding' +
              ' Translator SmartAPI Registry property value ' +
-             '(Default: latest public release or ).'
+             '(Default: Translator SmartAPI Registry recorded release).'
     )
     # Override the Translator SmartAPI Registry published
     # 'x-translator' Biolink Model release property value of the target resources.
@@ -543,7 +543,7 @@ def pytest_addoption(parser):
         "--biolink_version", action="store", default=None,
         help='Biolink Model version to use for validation, overriding' +
              ' Translator SmartAPI Registry property value ' +
-             '(Default: latest public release or ).'
+             '(Default: Translator SmartAPI Registry recorded release).'
     )
     parser.addoption(
         "--kp_id", action="store", default=None,
