@@ -1535,7 +1535,11 @@ def test_get_one_specific_target_kp():
 def test_get_specific_subset_of_target_kps():
     registry_data: Dict = get_the_registry_data()
     service_metadata = \
-        extract_component_test_metadata_from_registry(registry_data, "KP", source="automat-*", x_maturity="development")
+        extract_component_test_metadata_from_registry(
+            registry_data, "KP",
+            source="automat-*",
+            x_maturity="development"
+        )
     assert len(service_metadata) >= 1, "We're expecting at least one source KP here!"
     for service in service_metadata.values():
         print(service["infores"], file=stderr)
