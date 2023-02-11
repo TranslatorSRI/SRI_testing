@@ -696,7 +696,7 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                             'x-trapi': {
                                 'test_data_location':
                                     'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                    'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                                    'main/tests/translator/registry/ARAX_Lite.json',
                                 'version': '1.3.0'
                             }
                         },
@@ -751,7 +751,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -775,7 +775,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -799,7 +799,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -823,7 +823,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 }
             },      # service
@@ -840,7 +840,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [],
@@ -858,7 +858,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         # 'test_data_location':
                         #     'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                        #     'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        #     'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -882,7 +882,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -922,7 +922,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -951,9 +951,9 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                     'x-trapi': {
                         'test_data_location': [
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                            'main/tests/translator/registry/ARAX_Lite.json'
                         ]
                     }
                 },
@@ -995,7 +995,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                         'test_data_location': {
                             "default": {
                                 'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json'
+                                       'main/tests/translator/registry/ARAX_Lite.json'
                             }
                         }
                     }
@@ -1039,7 +1039,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                         'test_data_location': {
                             "testing": {
                                 'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                                       'main/tests/translator/registry/ARAX_Lite.json'
                             }
                         }
                     }
@@ -1083,7 +1083,7 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                         'test_data_location': {
                             "testing": {
                                 'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                                       'main/tests/translator/registry/ARAX_Lite.json'
                             }
                         }
                     }
@@ -1145,7 +1145,7 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -1169,7 +1169,7 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -1193,7 +1193,7 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 }
             },
@@ -1210,7 +1210,7 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [],
@@ -1228,7 +1228,7 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         # 'test_data_location':
                         #     'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                        #     'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        #     'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -1252,7 +1252,7 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -1292,7 +1292,7 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         'test_data_location':
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                     }
                 },
                 'servers': [
@@ -1321,9 +1321,9 @@ def test_validate_testable_resource(query: Tuple):
                     'x-trapi': {
                         'test_data_location': [
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json',
+                            'main/tests/translator/registry/ARAX_Lite.json',
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                            'main/tests/translator/registry/ARAX_Lite.json'
                         ]
                     }
                 },
@@ -1365,7 +1365,7 @@ def test_validate_testable_resource(query: Tuple):
                         'test_data_location': {
                             "default": {
                                 'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json'
+                                       'main/tests/translator/registry/ARAX_Lite.json'
                             }
                         }
                     }
@@ -1408,7 +1408,7 @@ def test_validate_testable_resource(query: Tuple):
                         'test_data_location': {
                             "testing": {
                                 'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                                       'main/tests/translator/registry/ARAX_Lite.json'
                             }
                         }
                     }
@@ -1452,7 +1452,7 @@ def test_validate_testable_resource(query: Tuple):
                         'test_data_location': {
                             "testing": {
                                 'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                                       'main/tests/translator/registry/ARAX_Lite.json'
                             }
                         }
                     }
@@ -1530,7 +1530,7 @@ def test_get_one_specific_target_kp():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
-        assert "https://molepro-trapi.ci.transltr.io/molepro/trapi/v1.3" in service["url"]
+        assert "https://molepro-trapi.transltr.io/molepro/trapi/v1.3" in service["url"]
 
 
 def test_get_specific_set_of_target_kp():
