@@ -16,7 +16,7 @@ from typing import List, Dict
 import pytest
 
 from tests.onehop.util import in_excluded_tests
-from translator.trapi import execute_trapi_lookup, UnitTestReport
+from sri_testing.translator.trapi import execute_trapi_lookup, UnitTestReport
 from tests.onehop import util as oh_util
 
 import logging

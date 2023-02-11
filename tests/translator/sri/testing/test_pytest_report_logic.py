@@ -14,14 +14,14 @@ import logging
 # MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA and a
 # FileTestDatabase, which will be initialized
 # during the module import of the OneHopTestHarness below
-from translator.sri.testing.report_db import get_test_report_database, TestReport
+from sri_testing.translator.sri.testing.report_db import get_test_report_database, TestReport
 from tests.translator.registry import mock_registry
 mock_registry(True)
 get_test_report_database(True)
 
 
 # This import comes after the above code... ordering is important here!
-from translator.sri.testing.onehops_test_runner import OneHopTestHarness
+from sri_testing.translator.sri.testing.onehops_test_runner import OneHopTestHarness
 
 
 logger = logging.getLogger()

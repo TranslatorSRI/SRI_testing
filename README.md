@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-This repository contains a compendium of semantics-driven tests for assessing Translator Knowledge Providers (KPs) and Autonomous Relay Agents (ARAs) within the [Biomedical Data Translator](https://ncats.nih.gov/translator). The application may be accessed directly programmatically, via a [web services API](./api) or using an available [web dashboard](./dashboard).
+This repository contains a compendium of semantics-driven tests for assessing Translator Knowledge Providers (KPs) and Autonomous Relay Agents (ARAs) within the [Biomedical Data Translator](https://ncats.nih.gov/translator). The application may be accessed directly programmatically, via a [web services API](api) or using an available [web dashboard](./dashboard).
 
 Further details about the application is available in the project's [GitPages repository](https://ncatstranslator.github.io/SRI_Testing/) and also [Translator Developer Documentation](https://translator-developer-documentation.readthedocs.io/en/latest/guide-for-developers/sri_testing/).
 
@@ -10,7 +10,7 @@ Further details about the application is available in the project's [GitPages re
 
 The project has two top level folders:
 
-- Modules under [translator](translator) package, containing code shared between all categories of tests, including some generic TRAPI and Translator Status Dashboard scripts.
+- Modules under [translator](sri_testing/translator) package, containing code shared between all categories of tests, including some generic TRAPI and Translator Status Dashboard scripts.
 - Modules of the actual (Py)test harness under [tests](tests). At the moment, only one category of Translator of testing is implemented, that is, [One Hop Tests](tests/onehop/README.md).  Note that to run these tests, [KPs and ARAs need to configure web visible test data](tests/onehop/README.md#configuring-the-tests).
 
 # Getting Started

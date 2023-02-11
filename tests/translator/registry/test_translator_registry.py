@@ -6,7 +6,7 @@ from typing import Optional, Union, Tuple, Dict, List
 import logging
 import pytest
 
-from translator.registry import (
+from sri_testing.translator.registry import (
     get_default_url,
     rewrite_github_url,
     query_smart_api,
@@ -1116,8 +1116,9 @@ def test_validate_testable_resource(query: Tuple):
     resource_metadata: Optional[Dict[str, Union[str, List]]] = \
         validate_testable_resource(1, query[0], "ARA")
     if query[1]:
-        assert 'url' in resource_metadata
-        assert query[2] in resource_metadata['url']
+        assert resource_metadata is not None, "resource_metadata is not supposed to be None!"
+        assert 'url' in resource_metadata, "resource_metadata should have a 'url' key!"
+        assert query[2] in resource_metadata['url'], "expected URL not found in the resource_metadata!"
     else:
         assert not resource_metadata
 

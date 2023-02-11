@@ -5,12 +5,12 @@ from typing import Optional, Dict, Tuple, List, Generator
 from datetime import datetime
 import re
 
-from translator.registry import get_the_registry_data, get_testable_resources_from_registry
-from translator.sri.testing.processor import CMD_DELIMITER, WorkerTask
+from sri_testing.translator.registry import get_the_registry_data, get_testable_resources_from_registry
+from sri_testing.translator.sri.testing.processor import CMD_DELIMITER, WorkerTask
 
 from tests.onehop import ONEHOP_TEST_DIRECTORY
 
-from translator.sri.testing.report_db import (
+from sri_testing.translator.sri.testing.report_db import (
     TestReport,
     TestReportDatabase,
     get_test_report_database

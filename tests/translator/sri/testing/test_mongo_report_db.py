@@ -8,7 +8,7 @@ from os.path import sep
 from datetime import datetime
 
 from tests.onehop import get_test_results_dir
-from translator.sri.testing.report_db import (
+from sri_testing.translator.sri.testing.report_db import (
     TestReportDatabaseException,
     TestReport,
     MongoReportDatabase

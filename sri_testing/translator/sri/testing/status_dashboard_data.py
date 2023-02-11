@@ -2,7 +2,7 @@ import requests
 # import pandas as pd
 import json
 
-from translator.registry import SMARTAPI_URL, query_smart_api, iterate_services_from_registry
+from sri_testing.translator.registry import SMARTAPI_URL, query_smart_api, iterate_services_from_registry
 
 
 def get_meta_kg(server_url, meta_path):

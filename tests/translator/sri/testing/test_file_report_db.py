@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 from tests.onehop import get_test_results_dir
-from translator.sri.testing.report_db import FileReportDatabase, TestReport
+from sri_testing.translator.sri.testing.report_db import FileReportDatabase, TestReport
 from . import (
     DEBUG,
     SAMPLE_DOCUMENT_KEY,

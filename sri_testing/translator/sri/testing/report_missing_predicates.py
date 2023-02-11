@@ -15,7 +15,7 @@ from biothings_explorer.smartapi_kg.dataload import load_specs
 from bmt import Toolkit
 
 from reasoner_validator.biolink import get_biolink_model_toolkit
-from translator.sri.testing import create_templates
+from sri_testing.translator.sri.testing import create_templates
 
 # Defaults to 'latest' default Biolink Model release in BMT
 _bmtk = Toolkit()

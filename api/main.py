@@ -25,7 +25,7 @@ from reasoner_validator.versioning import (
 )
 
 from tests.onehop.util import get_unit_test_definitions
-from translator.sri.testing.onehops_test_runner import (
+from sri_testing.translator.sri.testing.onehops_test_runner import (
     OneHopTestHarness,
     DEFAULT_WORKER_TIMEOUT
 )

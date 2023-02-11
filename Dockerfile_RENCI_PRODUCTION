@@ -5,7 +5,7 @@ WORKDIR /code
 COPY ./requirements*.txt /code/
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements-service.txt
-COPY translator /code/translator
+COPY sri_testing/translator /code/translator
 COPY tests /code/tests
 COPY api /code/api
 COPY *.env /code

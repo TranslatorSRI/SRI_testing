@@ -6,7 +6,7 @@ from typing import Dict
 import pytest
 
 from tests.onehop.util import get_unit_test_definitions
-from translator.sri.testing.onehops_test_runner import (
+from sri_testing.translator.sri.testing.onehops_test_runner import (
     parse_unit_test_name,
     build_resource_summary_key,
     build_edge_details_key, build_recommendations_key

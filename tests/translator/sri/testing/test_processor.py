@@ -10,7 +10,7 @@ from time import sleep
 
 import logging
 
-from translator.sri.testing.processor import (
+from sri_testing.translator.sri.testing.processor import (
     CMD_DELIMITER,
     PWD_CMD,
     PYTHON_PATH,
