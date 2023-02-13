@@ -3,6 +3,7 @@ from dataclasses import asdict
 from functools import wraps
 from typing import Set, Dict, List, Tuple, Optional
 
+from bmt import utils
 from reasoner_validator.versioning import SemVer
 from reasoner_validator.biolink import get_biolink_model_toolkit
 from sri_testing.translator.sri.testing.util import ontology_kp
@@ -166,12 +167,12 @@ def inverse_by_new_subject(request):
     elif original_predicate_element['symmetric']:
         transformed_predicate = request['predicate']
     else:
-        transformed_predicate_name = original_predicate_element['inverse']
+        transformed_predicate_name = tk.get_inverse(original_predicate_element.name)
         if transformed_predicate_name is None:
             transformed_predicate = None
         else:
             tp = tk.get_element(transformed_predicate_name)
-            transformed_predicate = tp.slot_uri
+            transformed_predicate = utils.format_element(tp)
 
     # Not everything has an inverse (it should, and it will, but it doesn't right now)
     if transformed_predicate is None:
@@ -281,13 +282,14 @@ def raise_object_by_subject(request):
         # This element may be a mixin or abstract, without any parent?
         return no_parent_error("raise_object_by_subject", original_object_element)
     transformed_request = request.copy()  # there's no depth to request, so it's ok
-    parent = tk.get_element(original_object_element['is_a'])
-    transformed_request['object_category'] = parent['class_uri']
+    parent = tk.get_parent(original_object_element['name'])
+    transformed_request['object_category'] = utils.format_element(tk.get_element(parent))
     message, errmsg = create_one_hop_message(transformed_request)
     if message:
         return message, 'object', 'b'
     else:
         return None, "raise_object_by_subject", errmsg
+
 
 @TestCode(
     code="RPBS",
@@ -313,8 +315,8 @@ def raise_predicate_by_subject(request):
         if original_predicate_element['is_a'] is None:
             # This element may be a mixin or abstract, without any parent?
             return no_parent_error("raise_predicate_by_subject", original_predicate_element)
-        parent = tk.get_element(original_predicate_element['is_a'])
-        transformed_request['predicate'] = parent['slot_uri']
+        parent = tk.get_parent(original_predicate_element['name'])
+        transformed_request['predicate'] = utils.format_element(tk.get_element(parent))
     message, errmsg = create_one_hop_message(transformed_request)
     if message:
         return message, 'object', 'b'

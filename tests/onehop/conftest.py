@@ -116,12 +116,14 @@ def _compile_recommendations(
     #     "errors": {
     #       "error.edge.predicate.unknown": [
     #         {
-    #           "message": {
-    #             "context": "Query Graph",
-    #             "edge_id": "a--['biolink:has_active_component']->b",
-    #             "predicate": "biolink:has_active_component",
-    #             "code": "error.edge.predicate.unknown"
-    #           },
+    #           "messages":
+    #             [
+    #               {
+    #                 "context": "Query Graph",
+    #                 "edge_id": "a--['biolink:has_active_component']->b",
+    #                 "predicate": "biolink:has_active_component"
+    #               }
+    #             ],
     #           "test_data": {
     #             "subject_category": "biolink:Gene",
     #             "object_category": "biolink:CellularComponent",
@@ -144,16 +146,15 @@ def _compile_recommendations(
         "object": test_case["object"]
     }
 
-    # Validation messages are list of dictionary objects with
-    # one 'code' key and optional (variable key) parameters
-    # Leveraging function closure here...
-    def _capture_messages(message_type: str, messages: List):
-        for entry in messages:
-            code: str = entry.pop('code')
+    # Validation messages are a dictionary with validation_code as keys and values which
+    # are a (possibly empty) list of dictionaries with optional (variable key) parameters.
+    # Leveraging function closure here to inject content into the recommendation_summary
+    def _capture_messages(message_type: str, messages: Dict[str, Optional[List[Dict[str, str]]]]):
+        for code, entries in messages.items():
             if code not in recommendation_summary[message_type]:
                 recommendation_summary[message_type][code] = list()
             item: Dict = {
-                "message": entry,
+                "messages": entries if entries else [],
                 "test_data": test_data,
                 "test": test_id
             }
