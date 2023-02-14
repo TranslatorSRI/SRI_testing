@@ -19,12 +19,20 @@ The tests are recommended to be run using Python 3.9 or better.
 
 If not running inside a Docker container, the creation of a virtual environment is recommended.
 
-## Python Dependencies
+## Working with Project Locally
 
-From within your virtual environment, install the indicated Python dependencies in the `requirements.txt` file:
+As of release 2.0.0, the SRI Testing project uses the [poetry dependency management](https://python-poetry.org) tool to orchestrate its installation and dependencies.
 
-```shell
-(venv) $ pip install -r requirements.txt  # or equivalent command
+After [installing poetry](https://python-poetry.org/docs/#installation) and cloning the project, the poetry installation may be run:
+
+```bash
+git clone https://github.com/TranslatorSRI/SRI_testing
+cd SRI_testing
+
+# creates a new virtual environment or 
+# reuses the current one,
+# then installs dependencies
+poetry install  
 ```
 
 ## Run the Tests
