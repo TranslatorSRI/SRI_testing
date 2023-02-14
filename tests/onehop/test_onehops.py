@@ -29,7 +29,7 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
     """
     Wrapper to propagate in Pytest, any skipped test edges.
 
-    :param scope: str, 'KP" or 'ARA'
+    :param scope: str, 'KP' or 'ARA'
     :param test: the particular unit test being skipped
     :param test_case: input edge data unit test case
     :param test_report: UnitTestReport wrapper for reporting test status

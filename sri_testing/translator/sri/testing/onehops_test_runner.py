@@ -221,11 +221,11 @@ class OneHopTestHarness:
         Run the SRT Testing test harness as a worker process.
         :param ara_id: Optional[str], identifier of the ARA resource(s) whose KP test results are being accessed
         :param kp_id: Optional[str], identifier of the KP resource(s) whose test results are being accessed.
-            - *Case 1* - non-empty kp_id, empty ara_id: just return the summary of the specified KP resource(s) for all ARAs calling the specified KP(s).
-            - *Case 2* - non-empty kp_id, ara_id == 'SKIP': only just test the specified KP resource(s) (without calling ARAs).
-            - *Case 3* - non-empty ara_id, non-empty kp_id: return the one specific KP(s) tested via the specified ARA
-            - *Case 4* - non-empty ara_id, empty kp_id: validate against all the KPs specified by the ARA configuration file
-            - *Case 5* - empty ara_id and kp_id: validate all Registry KPs and ARAs (long-running validation! Be careful now!)
+          - *Case 1* - non-empty kp_id, empty ara_id: return summary of specified KP resource(s) for ARAs calling them.
+          - *Case 2* - non-empty kp_id, ara_id == 'SKIP': only test the specified KP resource(s) (without calling ARAs).
+          - *Case 3* - non-empty ara_id, non-empty kp_id: return the one specific KP(s) tested via the specified ARA
+          - *Case 4* - non-empty ara_id, empty kp_id: validate against all KPs specified by the ARA configuration file
+        - *Case 5* - empty ara_id and kp_id: validate all Registry KPs and ARAs (long-running validation! Careful now!)
         :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)

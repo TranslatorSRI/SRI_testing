@@ -10,6 +10,7 @@ from sri_testing.translator.registry import (
     get_default_url,
     rewrite_github_url,
     query_smart_api,
+    load_specs,
     SMARTAPI_QUERY_PARAMETERS,
     tag_value,
     get_the_registry_data,
@@ -389,6 +390,17 @@ def test_query_smart_api():
             logger.debug(f"\tIs an ARA?")
 
 
+def test_load_specs():
+    specs = load_specs()
+    seen: int = 0
+    for entry in specs:
+        if not seen:
+            assert entry
+            assert 'info' in entry
+        seen += 1
+    assert seen, "load_specs() didn't return any Translator SmartAPI Entries?"
+
+
 def test_empty_json_data():
     value = tag_value({}, "testing.one.two.three")
     assert not value
@@ -445,13 +457,28 @@ def _wrap_infores(infores: str):
         # (<infores>, <target_sources>, <boolean return value>)
         (_wrap_infores("infores-object-id"), None, "infores-object-id"),   # Empty <target_sources>
         (_wrap_infores("infores-object-id"), set(), "infores-object-id"),  # Empty <target_sources>
-        (_wrap_infores("infores-object-id"), {"infores-object-id"}, "infores-object-id"),  # single matching element in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*"}, "infores-object-id"),   # match to single prefix wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"*-object-id"}, "infores-object-id"),  # match to single suffix wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*-id"}, "infores-object-id"),   # match to embedded wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*-ID"}, None),  # mismatch to embedded wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*-*"}, None),   # only matches a single embedded wildcard pattern...
-        (_wrap_infores("infores-object-id"), {"another-*"}, None),  # mismatch to single wildcard pattern in 'target_source' set
+
+        # single matching element in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-object-id"}, "infores-object-id"),
+
+        # match to single prefix wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-*"}, "infores-object-id"),
+
+        # match to single suffix wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"*-object-id"}, "infores-object-id"),
+
+        # match to embedded wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-*-id"}, "infores-object-id"),
+
+        # mismatch to embedded wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-*-ID"}, None),
+
+        # only matches a single embedded wildcard pattern...
+        (_wrap_infores("infores-object-id"), {"infores-*-*"}, None),
+        # mismatch to single wildcard pattern in 'target_source' set
+
+
+        (_wrap_infores("infores-object-id"), {"another-*"}, None),
         (
             # exact match to single element in the 'target_source' set
             _wrap_infores("infores-object-id"),
@@ -1121,6 +1148,7 @@ def test_validate_testable_resource(query: Tuple):
         assert query[2] in resource_metadata['url'], "expected URL not found in the resource_metadata!"
     else:
         assert not resource_metadata
+
 
 # validate_testable_resource(index, service, component) -> Optional[Dict[str, Union[str, List, Dict]]]
 @pytest.mark.parametrize(

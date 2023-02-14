@@ -2,7 +2,7 @@
 Translator SmartAPI Registry access module.
 """
 from functools import lru_cache
-from typing import Optional, Union, List, Dict, NamedTuple, Set, Tuple, Any
+from typing import Optional, Union, List, Dict, NamedTuple, Set, Tuple, Any, Generator
 from datetime import datetime
 
 import requests
@@ -121,6 +121,17 @@ def iterate_services_from_registry(registry_data):
         except Exception as e:
             print(e)
     return service_status_data
+
+
+def load_specs() -> Generator:
+    """
+    Generator to return service API 'hits' from Translator SmartAPI Registry.
+    :return: Generator returning one Dictionary entry at a time from the Registry.
+    """
+    registry_data: Dict = get_the_registry_data()
+    hits: List[Dict] = registry_data['hits']
+    for service in hits:
+        yield service
 
 
 def get_nested_tag_value(data: Dict, path: List[str], pos: int) -> Optional[str]:
@@ -775,7 +786,8 @@ def source_of_interest(service: Dict, target_sources: Set[str]) -> Optional[str]
     with possible prefix only, suffix only or prefix-<body>-suffix matches.
 
     :param service: Dict, Translator SmartAPI Registry entry for one service 'hit' containing an 'infores' property
-    :param target_sources: Set[str], of target identifiers or wildcard patterns of interest against which to filter service infores reference identifiers
+    :param target_sources: Set[str], of target identifiers or wildcard patterns of interest
+                           against which to filter service infores reference identifiers
     :return: Optional[str], infores if matched; None otherwise.
     """
     assert service, "registry.source_of_interest() method call: unexpected empty service?!?"
@@ -948,7 +960,7 @@ def extract_component_test_metadata_from_registry(
 _the_registry_data: Optional[Dict] = None
 
 
-def get_the_registry_data(refresh: bool = False):
+def get_the_registry_data(refresh: bool = False) -> Dict:
     global _the_registry_data
     if not _the_registry_data or refresh:
         _the_registry_data = query_smart_api(parameters=SMARTAPI_QUERY_PARAMETERS)

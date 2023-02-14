@@ -190,14 +190,14 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
         Note that 'kp_id' may be a comma delimited list of strings, in which case, any or all of the indicated KP
         identifiers are included in the test run, with or without an ARA identifier, interpreted as follows:
 
-    *Case 1* - non-empty kp_id, empty ara_id: just return the summary of the specified KP resource(s) for all ARAs calling the KP.
+    *Case 1* - non-empty kp_id, empty ara_id: just return  summary of specified KP resource(s) for all ARAs calling KPs.
     *Case 2* - non-empty kp_id, ara_id == 'SKIP': only just test the specified KP resource(s) (without calling ARAs).
     *Case 3* - non-empty ara_id, non-empty kp_id: return the one specific KP(s) tested via the specified ARA
     *Case 4* - non-empty ara_id, empty kp_id: validate against all the KPs specified by the ARA configuration file
     *Case 5* - empty ara_id and kp_id: validate all Registry KPs and ARAs (long-running validation! Be careful now!)
 
     The **'ara_id'** and **'kp_id'** may be a scalar string, or a comma-delimited set of strings.
-    If the 'source' string includes a single asterix ('\*'), it is treated as a wildcard match to the
+    If the 'source' string includes a single asterix ('\\*'), it is treated as a wildcard match to the
     infores identifier being filtered. Note that all identifiers here should be the reference (object)
     identifiers of the Infores CURIE of the target resource(s).
 

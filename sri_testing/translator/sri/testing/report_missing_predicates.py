@@ -10,7 +10,8 @@ import csv
 import requests
 
 import json
-from biothings_explorer.smartapi_kg.dataload import load_specs
+
+from sri_testing.translator.registry import load_specs
 
 from bmt import Toolkit
 
