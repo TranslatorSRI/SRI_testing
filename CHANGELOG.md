@@ -5,10 +5,11 @@ The SRI Testing harness package is evolving along with progress in TRAPI (includ
 ## v2.0.0
 
 - conversion to poetry dependency management
+- Upgrade to reasoner-validator 3.3.3 (with modified validation message format)
 
 ## v1.1.5
 
-- upgrade to reasoner-validator 3.2.4
+- Upgrade to reasoner-validator 3.2.4
 - clarified CLI docs, especially, use of ara_id SKIP and testing of subsets of (possibly wildcard) kp_id or ara_id identified services
 
 ## v1.1.4
