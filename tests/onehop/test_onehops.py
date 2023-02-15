@@ -7,6 +7,7 @@ Existing KP Unit Tests (defined in onehop.util module):
 - inverse_by_new_subject
 - by_object
 - raise_subject_entity
+- raise_object_entity
 - raise_object_by_subject
 - raise_predicate_by_subject
 
@@ -113,6 +114,7 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         oh_util.by_object,
         oh_util.inverse_by_new_subject,
         oh_util.raise_subject_entity,
+        oh_util.raise_object_entity,
         oh_util.raise_object_by_subject,
         oh_util.raise_predicate_by_subject
     ]

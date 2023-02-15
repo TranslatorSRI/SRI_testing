@@ -68,6 +68,7 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
 # - inverse_by_new_subject
 # - by_object
 # - raise_subject_entity
+# - raise_object_entity
 # - raise_object_by_subject
 # - raise_predicate_by_subject
 #
@@ -141,7 +142,11 @@ class TestCode:
     description="Given a known triple, create a TRAPI message that looks up the object by the subject"
 )
 def by_subject(request):
-    """Given a known triple, create a TRAPI message that looks up the object by the subject"""
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
     message, errmsg = create_one_hop_message(request)
     if message:
         return message, 'object', 'b'
@@ -156,8 +161,11 @@ def by_subject(request):
                 "then looks up the new object by the new subject (original object)"
 )
 def inverse_by_new_subject(request):
-    """Given a known triple, create a TRAPI message that inverts the predicate,
-       then looks up the new object by the new subject (original object)"""
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
     context: str = f"inverse_by_new_subject(predicate: '{request['predicate']}')"
     original_predicate_element = tk.get_element(request['predicate'])
@@ -204,7 +212,11 @@ def inverse_by_new_subject(request):
     description="Given a known triple, create a TRAPI message that looks up the subject by the object"
 )
 def by_object(request):
-    """Given a known triple, create a TRAPI message that looks up the subject by the object"""
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
     message, errmsg = create_one_hop_message(request, look_up_subject=True)
     if message:
         return message, 'subject', 'a'
@@ -226,37 +238,69 @@ def no_parent_error(unit_test_name: str, element: Dict, suffix: Optional[str] = 
     return None, context, reason
 
 
-@TestCode(
-    code="RSE",
-    unit_test_name="raise_subject_entity",
-    description="Given a known triple, create a TRAPI message that uses a parent instance " +
-                "of the original entity and looks up the object. This only works if a given " +
-                "instance (category) has an identifier (prefix) namespace bound to some kind " +
-                "of hierarchical class of instances (i.e. ontological structure)"
-)
-def raise_subject_entity(request):
+def raise_entity(request, target: str):
     """
-    Given a known triple, create a TRAPI message that uses
-    a parent instance of the original entity and looks up the object.
-    This only works if a given instance (category) has an identifier (prefix) namespace
-     bound to some kind of hierarchical class of instances (i.e. ontological structure)
+    Generic method - parameterized by association edge node target (either "subject" or "object") -
+    that, given a known triple, creates a TRAPI message that uses a parent instance of the original entity
+    to query for its association partner node. This only works if a given entity id namespace is listed in
+    the 'id_prefix' list of the entity category and specifies some kind of hierarchical ontology of terms"
+
+    :param request: test case edge data
+    :param target: target context for ontological 'raising': either "subject" or "object"
+    :return:
     """
-    subject_cat = request['subject_category']
-    subject = request['subject']
-    parent_subject = ontology_kp.get_parent(subject, subject_cat, biolink_version=request['biolink_version'])
-    if parent_subject is None:
+    # Sanity check!
+    assert target in ["subject", "object"]
+
+    category = request[f"{target}_category"]
+    entity = request[target]
+    parent_entity = ontology_kp.get_parent(entity, category, biolink_version=request['biolink_version'])
+    if parent_entity is None:
         return no_parent_error(
-            "raise_subject_entity",
-            {'name': f"{subject}[{subject_cat}]"},
+            f"raise_{target}_entity",
+            {'name': f"{entity}[{category}]"},
             suffix=" since it is either not an ontology term or does not map onto a parent ontology term."
         )
     mod_request = deepcopy(request)
-    mod_request['subject'] = parent_subject
+    mod_request[target] = parent_entity
     message, errmsg = create_one_hop_message(mod_request)
     if message:
-        return message, 'object', 'b'
+        # query the opposing association node partner here
+        return message, "subject" if target == "object" else "object", 'a'
     else:
-        return None, "raise_subject_entity", errmsg
+        return None, f"raise_{target}_entity", errmsg
+
+
+@TestCode(
+    code="RSE",
+    unit_test_name="raise_subject_entity",
+    description="Given a known triple, creates a TRAPI message that uses a parent instance of the original subject " +
+                "to query for its object node. This only works if a given subject entity id namespace is listed " +
+                "in the 'id_prefix' list of the category and specifies some kind of hierarchical ontology of terms."
+)
+def raise_subject_entity(request):
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
+    return raise_entity(request, "subject")
+
+
+@TestCode(
+    code="ROE",
+    unit_test_name="raise_object_entity",
+    description="Given a known triple, creates a TRAPI message that uses a parent instance of the original object " +
+                "to query for its subject node. This only works if a given object entity id namespace is listed " +
+                "in the 'id_prefix' list of the category and specifies some kind of hierarchical ontology of terms."
+)
+def raise_object_entity(request):
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
+    return raise_entity(request, "object")
 
 
 @TestCode(
@@ -267,8 +311,9 @@ def raise_subject_entity(request):
 )
 def raise_object_by_subject(request):
     """
-    Given a known triple, create a TRAPI message that uses the parent
-    of the original object category and looks up the object by the subject
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
     """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
     original_object_element = tk.get_element(request['object_category'])
@@ -299,8 +344,9 @@ def raise_object_by_subject(request):
 )
 def raise_predicate_by_subject(request):
     """
-    Given a known triple, create a TRAPI message that uses the parent
-    of the original predicate and looks up the object by the subject
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
     """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
     transformed_request = request.copy()  # there's no depth to request, so it's ok

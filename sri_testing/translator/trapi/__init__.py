@@ -274,3 +274,6 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     )
                     validator.check_compliance_of_trapi_response(response=response)
                     test_report.merge(validator)
+
+                # TODO: Do we need to check **here*** whether or not the
+                #       TRAPI response returned the original test case edge!!?!!

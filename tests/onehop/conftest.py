@@ -889,6 +889,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                     oh_util.inverse_by_new_subject,
                     oh_util.by_object,
                     oh_util.raise_subject_entity,
+                    oh_util.raise_object_entity,
                     oh_util.raise_object_by_subject,
                     oh_util.raise_predicate_by_subject
             ]
