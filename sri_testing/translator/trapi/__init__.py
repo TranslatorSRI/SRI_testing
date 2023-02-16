@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 from json import dumps
 
@@ -209,6 +209,87 @@ def constrain_trapi_request_to_kp(trapi_request: Dict, kp_source: str) -> Dict:
     return trapi_request
 
 
+def case_edge_found_in_response(case, response) -> bool:
+    """
+    Predicate to validate if test data specified edge is returned in the
+    Knowledge Graph of the TRAPI Response Message. This method assumes that
+    the TRAPI response is already generally validated as well-formed.
+
+    :param case: Dict, input data test case
+    :param response: Dict, TRAPI Response whose message ought to contain the test case edge
+    :return: True if test case edge found; False otherwise
+    """
+    # sanity checks
+    assert case, "case_edge_found_in_response(): Empty or missing test case data!"
+    assert response, "case_edge_found_in_response(): Empty or missing TRAPI Response!"
+    assert "message" in response, "case_edge_found_in_response(): TRAPI Response is missing its Message component!"
+
+    message: Dict = response["message"]
+    if not (
+        "knowledge_graph" in message and message["knowledge_graph"] and
+        "results" in message and message["results"]
+    ):
+        # empty knowledge graph is syntactically ok,
+        # but case data edge is automatically deemed missing
+        return False
+
+    # TODO: We need to check **here*** whether or not the
+    #       TRAPI response returned the original test case edge!!?!!
+    #       Not totally sure if we should first search the Results then
+    #       the Knowledge Graph, or go directly to the Knowledge Graph...
+
+    # The Message Query Graph could be something like:
+    # {
+    #     "nodes": {
+    #         "type-2 diabetes": {"ids": ["MONDO:0005148"]},
+    #         "drug": {"categories": ["biolink:Drug"]}
+    #     },
+    #     "edges": {
+    #         "treats": {
+    #             "subject": "drug",
+    #             "predicates": ["biolink:treats"],
+    #             "object": "type-2 diabetes"
+    #         }
+    #     }
+    # }
+    #
+    # associated with a Response Message Knowledge Graph looking something like:
+    #
+    # {
+    #     "nodes": {
+    #         "MONDO:0005148": {"name": "type-2 diabetes"},
+    #         "CHEBI:6801": {"name": "metformin", "categories": ["biolink:Drug"]}
+    #     },
+    #     "edges": {
+    #         "df87ff82": {
+    #             "subject": "CHEBI:6801",
+    #             "predicate": "biolink:treats",
+    #             "object": "MONDO:0005148"
+    #         }
+    #     }
+    # }
+    knowledge_graph: Dict = message["knowledge_graph"]
+    nodes: Dict = knowledge_graph["nodes"]
+    edges: Dict = knowledge_graph["edges"]
+
+    #
+    # Then, the Message Results could be something like:
+    # {
+    #     "node_bindings": {
+    #         "type-2 diabetes": [{"id": "MONDO:0005148"}],
+    #         "drug": [{"id": "CHEBI:6801"}]
+    #     },
+    #     "edge_bindings": {
+    #         "treats": [{"id": "df87ff82"}]
+    #     }
+    # }
+    results: Dict = message["results"]
+    node_bindings: Dict = results["node_bindings"]
+    edge_bindings: Dict = results["edge_bindings"]
+
+    return True  # default stub implementation - not terribly useful, but otherwise harmless?
+
+
 async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
     """
     Method to execute a TRAPI lookup, using the 'creator' test template.
@@ -275,5 +356,5 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     validator.check_compliance_of_trapi_response(response=response)
                     test_report.merge(validator)
 
-                # TODO: Do we need to check **here*** whether or not the
-                #       TRAPI response returned the original test case edge!!?!!
+                if not case_edge_found_in_response(case, response):
+                    test_report.report("error.trapi.response.knowledge_graph.missing_expected_edge")
