@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 
 from json import dumps
 
@@ -284,10 +284,12 @@ def case_edge_found_in_response(case, response) -> bool:
     #     }
     # }
     results: Dict = message["results"]
-    node_bindings: Dict = results["node_bindings"]
-    edge_bindings: Dict = results["edge_bindings"]
+    # node_bindings: List = results["node_bindings"]
+    # edge_bindings: List = results["edge_bindings"]
 
-    return True  # default stub implementation - not terribly useful, but otherwise harmless?
+    # default stub implementation...
+    # not terribly useful, but otherwise harmless?
+    return True
 
 
 async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
@@ -357,4 +359,17 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     test_report.merge(validator)
 
                 if not case_edge_found_in_response(case, response):
-                    test_report.report("error.trapi.response.knowledge_graph.missing_expected_edge")
+                    # case: Dict contains...
+                    #     idx: 0,
+                    #     subject_category: 'biolink:SmallMolecule',
+                    #     object_category: 'biolink:Disease',
+                    #     predicate: 'biolink:treats',
+                    #     subject: 'CHEBI:3002',
+                    #     object: 'MESH:D001249',
+                    test_edge_id: str = f"{case['idx']}|({case['subject']}#{case['subject_category']})" + \
+                                        f"-[{case['predicate']}]->" + \
+                                        f"({case['object']}#{case['object_category']})"
+                    test_report.report(
+                        code="error.trapi.response.knowledge_graph.missing_expected_edge",
+                        identifier=test_edge_id
+                    )
