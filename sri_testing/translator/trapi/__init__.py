@@ -299,7 +299,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
     :param case: input data test case
     :param creator: unit test-specific query message creator
     :param rbag: dictionary of results
-    :param test_report: ErrorReport, class wrapper object for asserting and reporting errors
+    :param test_report: UnitTestReport(ValidationReporter), class wrapper object for asserting and reporting errors
 
     :return: None
     """
