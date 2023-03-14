@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "SRI_Testing"
-version = "2.0.0"
+version = "2.1.0"
 description = "Semantics-driven tests for testing Translator TRAPI Components (KPs and ARAs)"
 authors = [
     "Richard Bruskiewich <richard.bruskiewich@delphinai.com>",
@@ -53,7 +53,7 @@ pymongo = "^4.2.0"
 
 # reasoner-validator should pull in many dependencies
 # also used by SRI Testing, including BMT (which adds some more)
-reasoner-validator = "^3.4.2"
+reasoner-validator = "^3.4.4"
 
 # [tool.poetry.group.dev.dependencies]
 

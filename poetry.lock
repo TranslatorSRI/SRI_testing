@@ -1027,7 +1027,7 @@ regex = ["regex"]
 
 [[package]]
 name = "linkml"
-version = "1.4.7"
+version = "1.4.8"
 description = "Linked Open Data Modeling Language"
 category = "main"
 optional = false
@@ -1936,7 +1936,7 @@ md = ["cmarkgfm (>=0.8.0)"]
 
 [[package]]
 name = "reasoner-validator"
-version = "3.4.2"
+version = "3.4.4"
 description = "Validation tools for Reasoner API"
 category = "main"
 optional = false
@@ -2734,7 +2734,7 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "844e631fe153fcb4a647568eb0894939ee2d1634150ebf43afb34f921e1e2b90"
+content-hash = "d2e954ee9bda24723eaad7f04d98a7fe96a165137b08c1f6cec1405d5f18e07e"
 
 [metadata.files]
 aiofiles = [
@@ -3531,8 +3531,8 @@ lark = [
     {file = "lark-1.1.5.tar.gz", hash = "sha256:4b534eae1f9af5b4ea000bea95776350befe1981658eea3820a01c37e504bb4d"},
 ]
 linkml = [
-    {file = "linkml-1.4.7-py3-none-any.whl", hash = "sha256:2722387b35b8f3787e34dceee864b157814b300482abaafdd8b2d07904b5ec83"},
-    {file = "linkml-1.4.7.tar.gz", hash = "sha256:f0b59ab13bc25888a5890931f2414bdf702c2034612a84500d4f4ca9eba4955a"},
+    {file = "linkml-1.4.8-py3-none-any.whl", hash = "sha256:d6ce88345994a5a34838ea891c32da2be90627499aa73fbfe50e1708a9841ac7"},
+    {file = "linkml-1.4.8.tar.gz", hash = "sha256:668ec6c02f9ca3926c62bf0df0051ea03f4bbb3c453f8e4a0f5326e57dc8b602"},
 ]
 linkml-dataops = [
     {file = "linkml_dataops-0.1.0-py3-none-any.whl", hash = "sha256:193cf7f659e5f07946d2c2761896910d5f7151d91282543b1363801f68307f4c"},
@@ -4218,8 +4218,8 @@ readme-renderer = [
     {file = "readme_renderer-37.3.tar.gz", hash = "sha256:cd653186dfc73055656f090f227f5cb22a046d7f71a841dfa305f55c9a513273"},
 ]
 reasoner-validator = [
-    {file = "reasoner_validator-3.4.2-py3-none-any.whl", hash = "sha256:76fb52a0098f9b9af4d585c52863e94fddd26bf4f2b0d02e95c79a02471f9b32"},
-    {file = "reasoner_validator-3.4.2.tar.gz", hash = "sha256:bf776df64dd7bb691f0a0f361d53429edb594e0ea19d16a055b9e741e3ba9189"},
+    {file = "reasoner_validator-3.4.4-py3-none-any.whl", hash = "sha256:cf0398207b0579e86091dc80510b2f9c519146312d04f2df91b02ec63d279c81"},
+    {file = "reasoner_validator-3.4.4.tar.gz", hash = "sha256:94787757de93f7feb5f206c99b059616cae721f08ac8311ad66f7a6c4eec61be"},
 ]
 recommonmark = [
     {file = "recommonmark-0.7.1-py2.py3-none-any.whl", hash = "sha256:1b1db69af0231efce3fa21b94ff627ea33dee7079a01dd0a7f8482c3da148b3f"},
