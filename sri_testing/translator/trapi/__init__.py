@@ -310,8 +310,15 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
     trapi_request, output_element, output_node_binding = creator(case)
 
     if not trapi_request:
-        # output_element and output_node_binding were expropriated by the 'creator' to return error information
-        test_report.report("error.trapi.request.invalid", context=output_element, reason=output_node_binding)
+        # output_element and output_node_binding were
+        # expropriated by the 'creator' to return error information
+        context = output_element.split("|")
+        test_report.report(
+            "error.trapi.request.invalid",
+            identifier=context[1],
+            context=context[0],
+            reason=output_node_binding
+        )
     else:
         # query use cases pertain to a particular TRAPI version
         trapi_version = case['trapi_version']

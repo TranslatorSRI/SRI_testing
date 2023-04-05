@@ -16,7 +16,7 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
     subject by object)"""
     trapi_version_tested = SemVer.from_string(edge['trapi_version'])
     if trapi_version_tested <= SemVer.from_string("1.1.0"):
-        return None, f"Legacy TRAPI version {edge['trapi_version']} unsupported by SRI Testing!"
+        return None, f"Legacy TRAPI version '{str(edge['trapi_version'])}' unsupported by SRI Testing!"
 
     query_graph: Dict = {
         "nodes": {
@@ -151,7 +151,7 @@ def by_subject(request):
     if message:
         return message, 'object', 'b'
     else:
-        return None, "by_subject", errmsg
+        return None, f"by_subject|subject '{str(request['subject'])}'", errmsg
 
 
 @TestCode(
@@ -167,7 +167,7 @@ def inverse_by_new_subject(request):
              if trapi_request is None, then error details returned in two other tuple elements
     """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
-    context: str = f"inverse_by_new_subject(predicate: '{request['predicate']}')"
+    context: str = f"inverse_by_new_subject|predicate '{str(request['predicate'])}')"
     original_predicate_element = tk.get_element(request['predicate'])
     if not original_predicate_element:
         reason: str = "is an unknown element?"
@@ -203,7 +203,7 @@ def inverse_by_new_subject(request):
     if message:
         return message, 'subject', 'b'
     else:
-        return None, "inverse_by_new_subject", errmsg
+        return None, context, errmsg
 
 
 @TestCode(
@@ -221,11 +221,11 @@ def by_object(request):
     if message:
         return message, 'subject', 'a'
     else:
-        return None, "by_object", errmsg
+        return None, f"by_object|object '{str(request['object'])}'", errmsg
 
 
 def no_parent_error(unit_test_name: str, element: Dict, suffix: Optional[str] = None) -> Tuple[None, str, str]:
-    context: str = f"{unit_test_name}() test predicate {element['name']}"
+    context: str = f"{unit_test_name}|element '{str(element['name'])}'"
     reason: str = "has no 'is_a' parent"
     if 'mixin' in element and element['mixin']:
         reason += " and is a mixin"
@@ -268,7 +268,7 @@ def raise_entity(request, target: str):
         # query the opposing association node partner here
         return message, "subject" if target == "object" else "object", 'a'
     else:
-        return None, f"raise_{target}_entity", errmsg
+        return None, f"raise_{target}_entity|parent entity '{str(parent_entity)}'", errmsg
 
 
 @TestCode(
@@ -325,7 +325,7 @@ def raise_object_by_subject(request):
         original_object_element['is_a'] = None
     if original_object_element['is_a'] is None:
         # This element may be a mixin or abstract, without any parent?
-        return no_parent_error("raise_object_by_subject", original_object_element)
+        return no_parent_error(f"raise_object_by_subject", original_object_element)
     transformed_request = request.copy()  # there's no depth to request, so it's ok
     parent = tk.get_parent(original_object_element['name'])
     transformed_request['object_category'] = utils.format_element(tk.get_element(parent))
@@ -333,7 +333,7 @@ def raise_object_by_subject(request):
     if message:
         return message, 'object', 'b'
     else:
-        return None, "raise_object_by_subject", errmsg
+        return None, f"raise_object_by_subject|object_category '{str(request['object_category'])}'", errmsg
 
 
 @TestCode(
@@ -367,4 +367,4 @@ def raise_predicate_by_subject(request):
     if message:
         return message, 'object', 'b'
     else:
-        return None, "raise_predicate_by_subject", errmsg
+        return None, f"raise_predicate_by_subject|predicate '{str(request['predicate'])}'", errmsg
