@@ -211,9 +211,9 @@ def constrain_trapi_request_to_kp(trapi_request: Dict, kp_source: str) -> Dict:
 
 def case_edge_found_in_response(case, response) -> bool:
     """
-    Predicate to validate if test data specified edge is returned in the
-    Knowledge Graph of the TRAPI Response Message. This method assumes that
-    the TRAPI response is already generally validated as well-formed.
+    Predicate to validate if test data test case specified edge is returned
+    in the Knowledge Graph of the TRAPI Response Message. This method assumes
+    that the TRAPI response is already generally validated as well-formed.
 
     :param case: Dict, input data test case
     :param response: Dict, TRAPI Response whose message ought to contain the test case edge
@@ -366,13 +366,16 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     test_report.merge(validator)
 
                 if not case_edge_found_in_response(case, response):
-                    # case: Dict contains...
+                    # case: Dict contains something like:
                     #     idx: 0,
                     #     subject_category: 'biolink:SmallMolecule',
                     #     object_category: 'biolink:Disease',
                     #     predicate: 'biolink:treats',
                     #     subject: 'CHEBI:3002',
                     #     object: 'MESH:D001249',
+                    #
+                    # the contents for which ought to be returned in
+                    # the TRAPI Knowledge Graph, as a Result mapping?
                     test_edge_id: str = f"{case['idx']}|({case['subject']}#{case['subject_category']})" + \
                                         f"-[{case['predicate']}]->" + \
                                         f"({case['object']}#{case['object_category']})"
