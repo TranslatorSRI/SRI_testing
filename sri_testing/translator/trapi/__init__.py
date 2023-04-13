@@ -365,17 +365,20 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     validator.check_compliance_of_trapi_response(response=response)
                     test_report.merge(validator)
 
+                #
+                # case: Dict contains something like:
+                #
+                #     idx: 0,
+                #     subject_category: 'biolink:SmallMolecule',
+                #     object_category: 'biolink:Disease',
+                #     predicate: 'biolink:treats',
+                #     subject: 'CHEBI:3002',
+                #     object: 'MESH:D001249',
+                #
+                # the contents for which ought to be returned in
+                # the TRAPI Knowledge Graph, as a Result mapping?
+                #
                 if not case_edge_found_in_response(case, response):
-                    # case: Dict contains something like:
-                    #     idx: 0,
-                    #     subject_category: 'biolink:SmallMolecule',
-                    #     object_category: 'biolink:Disease',
-                    #     predicate: 'biolink:treats',
-                    #     subject: 'CHEBI:3002',
-                    #     object: 'MESH:D001249',
-                    #
-                    # the contents for which ought to be returned in
-                    # the TRAPI Knowledge Graph, as a Result mapping?
                     test_edge_id: str = f"{case['idx']}|({case['subject']}#{case['subject_category']})" + \
                                         f"-[{case['predicate']}]->" + \
                                         f"({case['object']}#{case['object_category']})"
