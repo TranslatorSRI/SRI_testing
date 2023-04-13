@@ -224,6 +224,20 @@ def case_edge_found_in_response(case, response) -> bool:
     assert response, "case_edge_found_in_response(): Empty or missing TRAPI Response!"
     assert "message" in response, "case_edge_found_in_response(): TRAPI Response is missing its Message component!"
 
+    #
+    # case: Dict parameter contains something like:
+    #
+    #     idx: 0,
+    #     subject_category: 'biolink:SmallMolecule',
+    #     object_category: 'biolink:Disease',
+    #     predicate: 'biolink:treats',
+    #     subject_id: 'CHEBI:3002',  # may have the deprecated key 'subject' here
+    #     object_id: 'MESH:D001249', # may have the deprecated key 'object' here
+    #
+    # the contents for which ought to be returned in
+    # the TRAPI Knowledge Graph, as a Result mapping?
+    #
+
     message: Dict = response["message"]
     if not (
         "knowledge_graph" in message and message["knowledge_graph"] and
@@ -372,16 +386,18 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                 #     subject_category: 'biolink:SmallMolecule',
                 #     object_category: 'biolink:Disease',
                 #     predicate: 'biolink:treats',
-                #     subject: 'CHEBI:3002',
-                #     object: 'MESH:D001249',
+                #     subject_id: 'CHEBI:3002',  # may have the deprecated key 'subject' here
+                #     object_id: 'MESH:D001249', # may have the deprecated key 'object' here
                 #
                 # the contents for which ought to be returned in
                 # the TRAPI Knowledge Graph, as a Result mapping?
                 #
                 if not case_edge_found_in_response(case, response):
-                    test_edge_id: str = f"{case['idx']}|({case['subject']}#{case['subject_category']})" + \
+                    subject_id = case['subject'] if 'subject' in case else case['subject_id']
+                    object_id = case['object'] if 'object' in case else case['object_id']
+                    test_edge_id: str = f"{case['idx']}|({subject_id}#{case['subject_category']})" + \
                                         f"-[{case['predicate']}]->" + \
-                                        f"({case['object']}#{case['object_category']})"
+                                        f"({object_id}#{case['object_category']})"
                     test_report.report(
                         code="error.trapi.response.knowledge_graph.missing_expected_edge",
                         identifier=test_edge_id
