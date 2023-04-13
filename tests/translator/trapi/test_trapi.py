@@ -6,7 +6,7 @@ from typing import Tuple, Dict
 
 import pytest
 
-from translator.trapi import generate_test_error_msg_prefix, constrain_trapi_request_to_kp
+from sri_testing.translator.trapi import generate_test_error_msg_prefix, constrain_trapi_request_to_kp
 
 logger = logging.getLogger(__name__)
 

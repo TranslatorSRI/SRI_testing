@@ -2,7 +2,7 @@ import os
 import json
 import requests
 
-kps = os.listdir("../../../tests/onehop/templates/KP")
+kps = os.listdir("../../../../tests/onehop/templates/KP")
 for kp in kps:
     kpis = os.listdir(f"templates/kp/{kp}")
     for kpi in kpis:

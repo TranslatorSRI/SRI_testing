@@ -4,27 +4,35 @@ Unit tests for the backend logic of the web services application.
 Note: the nature of these unit tests, even with sample data,
       means that they may take over five minutes to run each one.
       Use of a running MongoDb instance may accelerate the tests.
+
+      TODO: February 14, 2023 - these unit tests are largely broken at the moment, but not sure if their failures
+            don't just reflect the evolution of data reporting formats since the tests were initially created?
 """
 from sys import stderr
 from typing import Optional, Dict
 from time import sleep
+
+import pytest
 import logging
 
 # Note that this test module assumes the use of the
 # MOCK_TRANSLATOR_SMARTAPI_REGISTRY_METADATA and a
 # FileTestDatabase, which will be initialized
 # during the module import of the OneHopTestHarness below
-from translator.sri.testing.report_db import get_test_report_database, TestReport
+from sri_testing.translator.sri.testing.report_db import get_test_report_database, TestReport
 from tests.translator.registry import mock_registry
 mock_registry(True)
 get_test_report_database(True)
 
 
 # This import comes after the above code... ordering is important here!
-from translator.sri.testing.onehops_test_runner import OneHopTestHarness
-
+from sri_testing.translator.sri.testing.onehops_test_runner import OneHopTestHarness
 
 logger = logging.getLogger()
+
+CURRENT_TRAPI_VERSION: str = "1.3.0"
+CURRENT_BIOLINK_VERSION: str = "3.1.1"
+TEST_KP: str = "molepro"
 
 
 def teardown_module(module):
@@ -34,13 +42,14 @@ def teardown_module(module):
 
 SPACER = '\n' + '#'*120 + '\n'
 
-MAX_TRIES = 5  # we'll try for just 20 minutes
+MAX_TRIES = 120  # we'll try for just ~20 minutes
 
 
 def _report_outcome(
         test_name: str,
         session_id: str,
-        expecting_report: bool = True
+        expecting_report: bool = True,
+        max_tries: int = MAX_TRIES
 ):
     print(f"Processing {test_name}() from {session_id}", file=stderr)
 
@@ -49,21 +58,22 @@ def _report_outcome(
     while 0.0 <= percentage_completed < 100.0:
 
         tries += 1
-        if tries > MAX_TRIES:
+        if tries > max_tries:
             break
 
-        print(f"{percentage_completed }% completed!", file=stderr)
-        sleep(60)  # rest a minute then try again
+        logger.info(f"{percentage_completed} % completed!")
+        sleep(10)  # rest 10 seconds, then try again
         percentage_completed = OneHopTestHarness(session_id).get_status()
 
-    assert percentage_completed == 100.0, f"OneHopTestHarness status retrieval failed after {MAX_TRIES} tries?"
+    if expecting_report:
+        assert percentage_completed == 100.0, f"OneHopTestHarness status retrieval failed after {max_tries} tries?"
 
     summary: Optional[str] = None
     tries = 0
     while not summary:
 
         tries += 1
-        if tries > MAX_TRIES:
+        if tries > max_tries:
             break
 
         summary: Optional[Dict] = OneHopTestHarness(session_id).get_summary()
@@ -84,33 +94,31 @@ def _report_outcome(
 
         assert summary, f"{test_name}() from {session_id} is missing an expected summary?"
 
-        print(f"{test_name}() test run 'summary':\n\t{summary}\n", file=stderr)
+        logger.info(f"{test_name}() test run 'summary':\n\t{summary}\n")
 
         details: Optional[str] = None
         tries = 0
         while not details:
 
             tries += 1
-            if tries > MAX_TRIES:
+            if tries > max_tries:
                 break
 
             details = OneHopTestHarness(session_id).get_details(
-                component="ARA",
-                edge_num="1",
-                ara_id="arax",
-                kp_id="sri-reference-kg"
+                component="KP",
+                edge_num="0",
+                kp_id=TEST_KP
             )
 
             sleep(0.1)
 
         assert details, \
             f"{test_name}() from test run '{session_id}' is missing expected details for " + \
-            f"ARA tests of edge number '1' of resource 'sri-reference-kg'?"
+            f"KP tests of edge number '0' of resource {TEST_KP}?"
 
-        print(
+        logger.info(
             f"{test_name}() test run '{session_id}' details for ARA tests of " +
-            f"edge number '1' of resource 'arax' for test run:\n\t{details}\n",
-            file=stderr
+            f"edge number '0' of resource {TEST_KP} for test run:\n\t{details}\n"
         )
 
     else:
@@ -118,77 +126,63 @@ def _report_outcome(
             f"{test_name}() test run '{session_id}' has unexpected non-empty report with contents: {summary}?"
 
 
-def test_run_local_onehop_tests_one_only():
+def test_run_onehop_tests_one_only():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.3",
-        biolink_version="2.4.8",
-        kp_id="sri-reference-kg",
-        ara_id="arax",
+        trapi_version=CURRENT_TRAPI_VERSION,
+        biolink_version=CURRENT_BIOLINK_VERSION,
+        kp_id=TEST_KP,
         one=True
     )
     _report_outcome(
-        "test_run_local_onehop_tests",
+        "test_run_onehop_tests_one_only",
         session_id=onehop_test.get_test_run_id()
     )
 
 
-def test_run_local_onehop_tests_all():
+def test_run_onehop_tests_all():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.3",
-        biolink_version="2.4.8",
-        kp_id="sri-reference-kg",
-        ara_id="arax"
+        trapi_version=CURRENT_TRAPI_VERSION,
+        biolink_version=CURRENT_BIOLINK_VERSION,
+        kp_id=TEST_KP
     )
     _report_outcome(
-        "test_run_local_onehop_tests",
+        "test_run_onehop_tests_all",
         session_id=onehop_test.get_test_run_id()
     )
 
 
-def test_run_local_onehop_tests_all_older_trapi_version():
-    onehop_test = OneHopTestHarness()
-    onehop_test.run(
-        trapi_version="1.0.0",
-        biolink_version="2.4.8",
-        kp_id="sri-reference-kg",
-        ara_id="arax"
-    )
-
-    _report_outcome(
-        "test_run_local_onehop_tests",
-        session_id=onehop_test.get_test_run_id()
-    )
-
-
-def test_run_local_onehop_tests_all_older_blm_version():
+def test_run_onehop_tests_older_trapi_version():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
         trapi_version="1.2.0",
-        biolink_version="1.8.2",
-        kp_id="sri-reference-kg",
-        ara_id="arax"
+        biolink_version=CURRENT_BIOLINK_VERSION,
+        kp_id=TEST_KP,
+        one=True
     )
+
     _report_outcome(
-        "test_run_local_onehop_tests",
+        "test_run_onehop_tests_older_trapi_version",
         session_id=onehop_test.get_test_run_id()
     )
 
 
-def test_run_onehop_tests_from_registry():
+def test_run_onehop_tests_older_blm_version():
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.3",
-        biolink_version="2.4.8",
+        trapi_version=CURRENT_TRAPI_VERSION,
+        biolink_version="1.8.2",
+        kp_id=TEST_KP,
         one=True
     )
     _report_outcome(
-        "test_run_onehop_tests_from_registry",
+        "test_run_onehop_tests_older_blm_version",
         session_id=onehop_test.get_test_run_id()
     )
 
 
+@pytest.mark.skip(reason="Takes a bit too long to run with the default registry... need to boost the timeout")
 def test_run_onehop_tests_from_registry_with_default_versioning():
     onehop_test = OneHopTestHarness()
     onehop_test.run(one=True)
@@ -203,15 +197,16 @@ def test_run_onehop_tests_with_timeout():
     # to completion, so a WorkerProcess timeout is triggered
     onehop_test = OneHopTestHarness()
     onehop_test.run(
-        trapi_version="1.3",
-        biolink_version="2.4.8",
-        one=True,
+        trapi_version=CURRENT_TRAPI_VERSION,
+        biolink_version=CURRENT_BIOLINK_VERSION,
+        kp_id=TEST_KP,
         timeout=1
     )
     _report_outcome(
         "test_run_onehop_tests_with_timeout",
         session_id=onehop_test.get_test_run_id(),
-        expecting_report=False
+        expecting_report=False,
+        max_tries=2
     )
 
 

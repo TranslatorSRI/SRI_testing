@@ -7,6 +7,7 @@ Existing KP Unit Tests (defined in onehop.util module):
 - inverse_by_new_subject
 - by_object
 - raise_subject_entity
+- raise_object_entity
 - raise_object_by_subject
 - raise_predicate_by_subject
 
@@ -16,7 +17,7 @@ from typing import List, Dict
 import pytest
 
 from tests.onehop.util import in_excluded_tests
-from translator.trapi import execute_trapi_lookup, UnitTestReport
+from sri_testing.translator.trapi import execute_trapi_lookup, UnitTestReport
 from tests.onehop import util as oh_util
 
 import logging
@@ -29,7 +30,7 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
     """
     Wrapper to propagate in Pytest, any skipped test edges.
 
-    :param scope: str, 'KP" or 'ARA'
+    :param scope: str, 'KP' or 'ARA'
     :param test: the particular unit test being skipped
     :param test_case: input edge data unit test case
     :param test_report: UnitTestReport wrapper for reporting test status
@@ -113,6 +114,7 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         oh_util.by_object,
         oh_util.inverse_by_new_subject,
         oh_util.raise_subject_entity,
+        oh_util.raise_object_entity,
         oh_util.raise_object_by_subject,
         oh_util.raise_predicate_by_subject
     ]

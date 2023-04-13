@@ -12,19 +12,19 @@ from pytest_harvest import get_session_results_dct
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
 from reasoner_validator.versioning import latest
 
-from translator.registry import (
+from sri_testing.translator.registry import (
     get_remote_test_data_file,
     get_the_registry_data,
     extract_component_test_metadata_from_registry
 )
 
-from translator.trapi import generate_edge_id, UnitTestReport
+from sri_testing.translator.trapi import generate_edge_id, UnitTestReport
 
 from tests.onehop import util as oh_util
 from tests.onehop.util import (
     get_unit_test_codes, get_unit_test_list
 )
-from translator.sri.testing.onehops_test_runner import (
+from sri_testing.translator.sri.testing.onehops_test_runner import (
     OneHopTestHarness,
     parse_unit_test_name
 )
@@ -116,12 +116,14 @@ def _compile_recommendations(
     #     "errors": {
     #       "error.edge.predicate.unknown": [
     #         {
-    #           "message": {
-    #             "context": "Query Graph",
-    #             "edge_id": "a--['biolink:has_active_component']->b",
-    #             "predicate": "biolink:has_active_component",
-    #             "code": "error.edge.predicate.unknown"
-    #           },
+    #           "messages":
+    #             [
+    #               {
+    #                 "context": "Query Graph",
+    #                 "edge_id": "a--['biolink:has_active_component']->b",
+    #                 "predicate": "biolink:has_active_component"
+    #               }
+    #             ],
     #           "test_data": {
     #             "subject_category": "biolink:Gene",
     #             "object_category": "biolink:CellularComponent",
@@ -149,16 +151,16 @@ def _compile_recommendations(
     if 'association' in test_case:
         test_data['association'] = test_case["association"]
 
-    # Validation messages are list of dictionary objects with
-    # one 'code' key and optional (variable key) parameters
-    # Leveraging function closure here...
-    def _capture_messages(message_type: str, messages: List):
-        for entry in messages:
-            code: str = entry.pop('code')
+    # Validation messages are a dictionary with validation_code as keys and values which
+    # are a (possibly empty) list of dictionaries with optional (variable key) parameters.
+    # Leveraging function closure here to inject content into the recommendation_summary
+    def _capture_messages(message_type: str, messages: Dict[str, Optional[List[Dict[str, str]]]]):
+        for code, entries in messages.items():
+
             if code not in recommendation_summary[message_type]:
                 recommendation_summary[message_type][code] = list()
             item: Dict = {
-                "message": entry,
+                "messages": entries if entries else [],
                 "test_data": test_data,
                 "test": test_id
             }
@@ -920,6 +922,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                     oh_util.inverse_by_new_subject,
                     oh_util.by_object,
                     oh_util.raise_subject_entity,
+                    oh_util.raise_object_entity,
                     oh_util.raise_object_by_subject,
                     oh_util.raise_predicate_by_subject
             ]

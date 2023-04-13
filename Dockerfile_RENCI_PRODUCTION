@@ -2,13 +2,15 @@
 FROM renciorg/renci-python-image:v0.0.1
 RUN python -m pip install --upgrade pip
 WORKDIR /code
-COPY ./requirements*.txt /code/
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements-service.txt
-COPY translator /code/translator
-COPY tests /code/tests
-COPY api /code/api
+RUN pip install poetry
+COPY ./pyproject.toml /code/pyproject.toml
+COPY ./poetry.lock /code/poetry.lock
+COPY ./sri_testing/translator /code/sri_testing/translator
+COPY ./tests /code/tests
+COPY ./README.md /code/README.md
+COPY ./api /code/api
 COPY *.env /code
+RUN python -m poetry install
 # allow non root user write access to tests dir
 RUN chown nru:nru /code/tests
 # use non root user

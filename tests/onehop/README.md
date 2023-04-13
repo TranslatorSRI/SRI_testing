@@ -138,6 +138,7 @@ A test exclusion tag (`exclude_tests`) may be placed at the top level of a KP fi
 | inverse by new subject     |   IBNS    |
 | by object                  |    BO     |
 | raise subject entity       |    RSE    |
+| raise object entity        |    ROE    |
 | raise object by subject    |   ROBS    |
 | raise predicate by subject |   RPBS    |
 
@@ -364,6 +365,7 @@ Either way, each KP S-P-O test triple is used to generate set of several distinc
 - inverse by new subject
 - by object
 - raise subject entity
+- raise object entity
 - raise object by subject
 - raise predicate by subject
 

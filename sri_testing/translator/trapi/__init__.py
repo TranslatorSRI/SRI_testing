@@ -209,6 +209,89 @@ def constrain_trapi_request_to_kp(trapi_request: Dict, kp_source: str) -> Dict:
     return trapi_request
 
 
+def case_edge_found_in_response(case, response) -> bool:
+    """
+    Predicate to validate if test data test case specified edge is returned
+    in the Knowledge Graph of the TRAPI Response Message. This method assumes
+    that the TRAPI response is already generally validated as well-formed.
+
+    :param case: Dict, input data test case
+    :param response: Dict, TRAPI Response whose message ought to contain the test case edge
+    :return: True if test case edge found; False otherwise
+    """
+    # sanity checks
+    assert case, "case_edge_found_in_response(): Empty or missing test case data!"
+    assert response, "case_edge_found_in_response(): Empty or missing TRAPI Response!"
+    assert "message" in response, "case_edge_found_in_response(): TRAPI Response is missing its Message component!"
+
+    message: Dict = response["message"]
+    if not (
+        "knowledge_graph" in message and message["knowledge_graph"] and
+        "results" in message and message["results"]
+    ):
+        # empty knowledge graph is syntactically ok,
+        # but case data edge is automatically deemed missing
+        return False
+
+    # TODO: We need to check **here*** whether or not the
+    #       TRAPI response returned the original test case edge!!?!!
+    #       Not totally sure if we should first search the Results then
+    #       the Knowledge Graph, or go directly to the Knowledge Graph...
+
+    # The Message Query Graph could be something like:
+    # {
+    #     "nodes": {
+    #         "type-2 diabetes": {"ids": ["MONDO:0005148"]},
+    #         "drug": {"categories": ["biolink:Drug"]}
+    #     },
+    #     "edges": {
+    #         "treats": {
+    #             "subject": "drug",
+    #             "predicates": ["biolink:treats"],
+    #             "object": "type-2 diabetes"
+    #         }
+    #     }
+    # }
+    #
+    # associated with a Response Message Knowledge Graph looking something like:
+    #
+    # {
+    #     "nodes": {
+    #         "MONDO:0005148": {"name": "type-2 diabetes"},
+    #         "CHEBI:6801": {"name": "metformin", "categories": ["biolink:Drug"]}
+    #     },
+    #     "edges": {
+    #         "df87ff82": {
+    #             "subject": "CHEBI:6801",
+    #             "predicate": "biolink:treats",
+    #             "object": "MONDO:0005148"
+    #         }
+    #     }
+    # }
+    knowledge_graph: Dict = message["knowledge_graph"]
+    nodes: Dict = knowledge_graph["nodes"]
+    edges: Dict = knowledge_graph["edges"]
+
+    #
+    # Then, the Message Results could be something like:
+    # {
+    #     "node_bindings": {
+    #         "type-2 diabetes": [{"id": "MONDO:0005148"}],
+    #         "drug": [{"id": "CHEBI:6801"}]
+    #     },
+    #     "edge_bindings": {
+    #         "treats": [{"id": "df87ff82"}]
+    #     }
+    # }
+    results: Dict = message["results"]
+    # node_bindings: List = results["node_bindings"]
+    # edge_bindings: List = results["edge_bindings"]
+
+    # default stub implementation...
+    # not terribly useful, but otherwise harmless?
+    return True
+
+
 async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
     """
     Method to execute a TRAPI lookup, using the 'creator' test template.
@@ -216,7 +299,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
     :param case: input data test case
     :param creator: unit test-specific query message creator
     :param rbag: dictionary of results
-    :param test_report: ErrorReport, class wrapper object for asserting and reporting errors
+    :param test_report: UnitTestReport(ValidationReporter), class wrapper object for asserting and reporting errors
 
     :return: None
     """
@@ -227,8 +310,15 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
     trapi_request, output_element, output_node_binding = creator(case)
 
     if not trapi_request:
-        # output_element and output_node_binding were expropriated by the 'creator' to return error information
-        test_report.report("error.trapi.request.invalid", context=output_element, reason=output_node_binding)
+        # output_element and output_node_binding were
+        # expropriated by the 'creator' to return error information
+        context = output_element.split("|")
+        test_report.report(
+            "error.trapi.request.invalid",
+            identifier=context[1],
+            context=context[0],
+            reason=output_node_binding
+        )
     else:
         # query use cases pertain to a particular TRAPI version
         trapi_version = case['trapi_version']
@@ -259,7 +349,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
             # Second sanity check: was the web service (HTTP) call itself successful?
             status_code: int = trapi_response['status_code']
             if status_code != 200:
-                test_report.report("error.trapi.response.unexpected_http_code", status_code=status_code)
+                test_report.report("error.trapi.response.unexpected_http_code", identifier=status_code)
             else:
                 #########################################################
                 # Looks good so far, so now validate the TRAPI schemata #
@@ -274,3 +364,25 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     )
                     validator.check_compliance_of_trapi_response(response=response)
                     test_report.merge(validator)
+
+                #
+                # case: Dict contains something like:
+                #
+                #     idx: 0,
+                #     subject_category: 'biolink:SmallMolecule',
+                #     object_category: 'biolink:Disease',
+                #     predicate: 'biolink:treats',
+                #     subject: 'CHEBI:3002',
+                #     object: 'MESH:D001249',
+                #
+                # the contents for which ought to be returned in
+                # the TRAPI Knowledge Graph, as a Result mapping?
+                #
+                if not case_edge_found_in_response(case, response):
+                    test_edge_id: str = f"{case['idx']}|({case['subject']}#{case['subject_category']})" + \
+                                        f"-[{case['predicate']}]->" + \
+                                        f"({case['object']}#{case['object_category']})"
+                    test_report.report(
+                        code="error.trapi.response.knowledge_graph.missing_expected_edge",
+                        identifier=test_edge_id
+                    )

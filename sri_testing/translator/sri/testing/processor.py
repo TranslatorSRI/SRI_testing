@@ -22,7 +22,7 @@ from subprocess import Popen, PIPE, STDOUT
 
 import logging
 
-from translator.sri.testing.report_db import (
+from sri_testing.translator.sri.testing.report_db import (
     TestReportDatabase,
     get_test_report_database, TestReport
 )
