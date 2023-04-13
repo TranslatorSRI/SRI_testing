@@ -4,7 +4,7 @@ The SRI Testing harness package is evolving along with progress in TRAPI (includ
 
 ## v2.1.0
 
-- Upgrade to reasoner-validator 3.4.14
+- Upgrade to reasoner-validator 3.4.15
 - Provided extra context for "error.trapi.request.invalid" validation error
 
 ## v2.0.0
