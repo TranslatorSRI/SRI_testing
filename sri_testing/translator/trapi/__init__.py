@@ -110,7 +110,7 @@ class UnitTestReport(ValidationReporter):
             logger.info(self.dump_info(flat=True))
             pass  # not yet sure what else to do here?
         else:
-            pass  # do nothing... just PASSing through...
+            pass  # do nothing... just passing through...
 
 
 def generate_test_error_msg_prefix(case: Dict, test_name: str) -> str:
