@@ -1,10 +1,11 @@
 import warnings
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 from json import dumps
 
 import requests
 
+from reasoner_validator.versioning import SemVer
 from reasoner_validator.report import ValidationReporter
 from reasoner_validator.trapi import check_trapi_validity
 from reasoner_validator import TRAPIResponseValidator
@@ -209,7 +210,166 @@ def constrain_trapi_request_to_kp(trapi_request: Dict, kp_source: str) -> Dict:
     return trapi_request
 
 
-def case_edge_found_in_response(case, response) -> bool:
+def case_node_found(target: str, identifier: str, case: Dict, nodes: Dict) -> bool:
+    """
+    Check for presence of the target identifier,
+    with expected categories, in the "nodes" catalog.
+
+    :param target: 'subject' or 'object'
+    :param identifier: (CURIE) identifier of the node
+    :param case: Dict, full test case (to access the target node 'category')
+    :param nodes: Dict, nodes category indexed by node identifiers.
+    :return:
+    """
+    #
+    #     "nodes": {
+    #         "MONDO:0005148": {"name": "type-2 diabetes"},
+    #         "CHEBI:6801": {"name": "metformin", "categories": ["biolink:Drug"]}
+    #     }
+    #
+    if identifier in nodes.keys():
+        # Found the target node identifier,
+        # but is the expected category present?
+        node_details = nodes[identifier]
+        if "categories" in node_details:
+            category = case[f"{target}_category"]
+            if category in node_details["categories"]:
+                return True
+
+    # Target node identifier or categories is missing,
+    # or not annotated with the expected category?
+    return False
+
+
+def case_result_found(
+        subject_id: str,
+        predicate: str,
+        object_id: str,
+        edge_id: str,
+        results: List,
+        trapi_version: str
+) -> bool:
+    """
+    Validate that test case S--P->O edge is found bound to the Results?
+    :param subject_id: str, subject node (CURIE) identifier
+    :param predicate:  str, (Biolink) predicate (CURIE) identifier
+    :param object_id:  str, subject node (CURIE) identifier
+    :param edge_id:  str, subject node (CURIE) identifier
+    :param results: List of (TRAPI-version specific) Result objects
+    :param trapi_version: str, target TRAPI version of the Response being validated
+    :return: bool, True if case S-P-O edge was found in the results
+    """
+    trapi_1_4_0: bool = SemVer.from_string(trapi_version) >= SemVer.from_string("1.4.0")
+    result_found: bool = False
+    result: Dict
+    for result in results:
+        node_bindings: Dict = result["node_bindings"]
+        if trapi_1_4_0:
+            analyses: List = result["analyses"]
+            # NOTE: TRAPI 1.4.0 Message 'Results' are structured differently from 1.3.0,
+            #       associated with 'Auxiliary Graphs" and  'Analysis' objects, e.g.
+            #
+            #     "knowledge_graph": ...,
+            #     "auxiliary_graphs": {
+            #         "a0": {
+            #             "edges": [
+            #                 "e02",
+            #                 "e12"
+            #             ]
+            #         },
+            #         "a1": {
+            #             "edges": [
+            #                 "extra_edge0"
+            #             ]
+            #         },
+            #         "a2": {
+            #             "edges" [
+            #                 "extra_edge1"
+            #             ]
+            #         }
+            #     },
+            #     "results": [
+            #         {
+            #             "node_bindings": {
+            #                 "n0": [
+            #                     "id": "diabetes"
+            #                 ],
+            #                 "n1": [
+            #                     "id": "metformin"
+            #                 ]
+            #             },
+            #             "analyses":[
+            #                 {
+            #                     "reasoner_id": "ara0"
+            #                     "edge_bindings": {
+            #                         "e0": [
+            #                             {
+            #                                 "id": "e01"
+            #                             },
+            #                             {
+            #                                 "id": "creative_edge"
+            #                             }
+            #                         ]
+            #                     },
+            #                     "support_graphs": [
+            #                         "a1",
+            #                         "a2"
+            #                     ]
+            #                     "score": .7
+            #                 },
+            #             ]
+            #         }
+            #     ]
+            pass
+
+        else:
+            # TRAPI 1.3.0 or earlier?
+            #
+            # Then, the TRAPI 1.3.0 Message Results (referencing the
+            # Response Knowledge Graph) could be something like this:
+            #
+            #     "results": [
+            #         {
+            #             "node_bindings": {
+            #                # node "id"'s in knowledge graph, in edge "id"
+            #                 "type-2 diabetes": [{"id": "MONDO:0005148"}],
+            #                 "drug": [{"id": "CHEBI:6801"}]
+            #             },
+            #             "edge_bindings": {
+            #                 # edge "id" from knowledge graph
+            #                 "treats": [{"id": "df87ff82"}]
+            #             }
+            #         }
+            #     ]
+            #
+            subject_id_found: bool = False
+            object_id_found: bool = False
+            for node in node_bindings.values():
+                for details in node:
+                    if "id" in details:
+                        if subject_id == details["id"]:
+                            subject_id_found = True
+                        elif object_id == details["id"]:
+                            object_id_found = True
+
+            edge_bindings: Dict = result["edge_bindings"]
+            edge_id_found: bool = False
+            for edge_predicate, edge in edge_bindings.items():
+                if edge_predicate == predicate:
+                    for details in edge:
+                        if "id" in details:
+                            if edge_id == details["id"]:
+                                edge_id_found = True
+                                break
+
+            if subject_id_found and object_id_found and edge_id_found:
+                result_found = True
+                break
+
+    return result_found
+
+
+def test_case_input_found_in_response(case: Dict, response: Dict, trapi_version: str) -> bool:
     """
     Predicate to validate if test data test case specified edge is returned
     in the Knowledge Graph of the TRAPI Response Message. This method assumes
@@ -217,12 +377,13 @@ def case_edge_found_in_response(case, response) -> bool:
 
     :param case: Dict, input data test case
     :param response: Dict, TRAPI Response whose message ought to contain the test case edge
+    :param trapi_version: str, TRAPI version of response being tested
     :return: True if test case edge found; False otherwise
     """
     # sanity checks
-    assert case, "case_edge_found_in_response(): Empty or missing test case data!"
-    assert response, "case_edge_found_in_response(): Empty or missing TRAPI Response!"
-    assert "message" in response, "case_edge_found_in_response(): TRAPI Response is missing its Message component!"
+    assert case, "test_case_input_found_in_response(): Empty or missing test case data!"
+    assert response, "test_case_input_found_in_response(): Empty or missing TRAPI Response!"
+    assert "message" in response, "test_case_input_found_in_response(): TRAPI Response is missing its Message component!"
 
     #
     # case: Dict parameter contains something like:
@@ -243,8 +404,8 @@ def case_edge_found_in_response(case, response) -> bool:
         "knowledge_graph" in message and message["knowledge_graph"] and
         "results" in message and message["results"]
     ):
-        # empty knowledge graph is syntactically ok,
-        # but case data edge is automatically deemed missing
+        # empty knowledge graph is syntactically ok, but in
+        # this, input test data edge is automatically deemed missing
         return False
 
     # TODO: We need to check **here*** whether or not the
@@ -253,7 +414,7 @@ def case_edge_found_in_response(case, response) -> bool:
     #       the Knowledge Graph, or go directly to the Knowledge Graph...
 
     # The Message Query Graph could be something like:
-    # {
+    # "query_graph": {
     #     "nodes": {
     #         "type-2 diabetes": {"ids": ["MONDO:0005148"]},
     #         "drug": {"categories": ["biolink:Drug"]}
@@ -267,13 +428,37 @@ def case_edge_found_in_response(case, response) -> bool:
     #     }
     # }
     #
-    # associated with a Response Message Knowledge Graph looking something like:
+    # with a Response Message Knowledge Graph
+    # dictionary with 'nodes' and 'edges':
     #
-    # {
+    # "knowledge_graph": {
+    #     "nodes": ...,
+    #     "edges": ...
+    # }
+    knowledge_graph: Dict = message["knowledge_graph"]
+
+    # In the Knowledge Graph:
+    #
     #     "nodes": {
     #         "MONDO:0005148": {"name": "type-2 diabetes"},
     #         "CHEBI:6801": {"name": "metformin", "categories": ["biolink:Drug"]}
-    #     },
+    #     }
+    #
+    # Check for case 'subject_id' and 'object_id',
+    # with expected categories, in nodes catalog
+    nodes: Dict = knowledge_graph["nodes"]
+    subject_id = case["subject"] if "subject" in case else case["subject_id"]
+    if not case_node_found("subject", subject_id, case, nodes):
+        # 'subject' node not found?
+        return False
+
+    object_id = case["object"] if "object" in case else case["object_id"]
+    if not case_node_found("object", object_id, case, nodes):
+        # 'object' node not found?
+        return False
+
+    # In the Knowledge Graph:
+    #
     #     "edges": {
     #         "df87ff82": {
     #             "subject": "CHEBI:6801",
@@ -281,28 +466,34 @@ def case_edge_found_in_response(case, response) -> bool:
     #             "object": "MONDO:0005148"
     #         }
     #     }
-    # }
-    knowledge_graph: Dict = message["knowledge_graph"]
-    nodes: Dict = knowledge_graph["nodes"]
-    edges: Dict = knowledge_graph["edges"]
-
     #
-    # Then, the Message Results could be something like:
-    # {
-    #     "node_bindings": {
-    #         "type-2 diabetes": [{"id": "MONDO:0005148"}],
-    #         "drug": [{"id": "CHEBI:6801"}]
-    #     },
-    #     "edge_bindings": {
-    #         "treats": [{"id": "df87ff82"}]
-    #     }
-    # }
-    results: Dict = message["results"]
-    # node_bindings: List = results["node_bindings"]
-    # edge_bindings: List = results["edge_bindings"]
+    # Check in the edges catalog for an edge containing
+    # the case 'subject_id', 'predicate' and 'object_id'
+    edges: Dict = knowledge_graph["edges"]
+    predicate = case["predicate"]
+    edge_id_found: Optional[str] = None
+    for edge_id, edge in edges.items():
+        # Note: this edge search could be arduous on a big knowledge graph?
+        if edge["subject"] == subject_id and \
+                edge["predicate"] == predicate and \
+                edge["object"] == object_id:
+            edge_id_found = edge_id
+            break
 
-    # default stub implementation...
-    # not terribly useful, but otherwise harmless?
+    if edge_id_found is None:
+        # Test case S--P->O edge not found?
+        return False
+
+    results: List = message["results"]
+    if not case_result_found(
+            subject_id, predicate, object_id,
+            edge_id_found, results, trapi_version
+    ):
+        # Test case S--P->O edge not discovered to be bound within the Results?
+        return False
+
+    # By this point, the case data assumed to be
+    # successfully validated in the TRAPI Response?
     return True
 
 
@@ -392,7 +583,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                 # the contents for which ought to be returned in
                 # the TRAPI Knowledge Graph, as a Result mapping?
                 #
-                if not case_edge_found_in_response(case, response):
+                if not test_case_input_found_in_response(case, response, trapi_version):
                     subject_id = case['subject'] if 'subject' in case else case['subject_id']
                     object_id = case['object'] if 'object' in case else case['object_id']
                     test_edge_id: str = f"{case['idx']}|({subject_id}#{case['subject_category']})" + \
