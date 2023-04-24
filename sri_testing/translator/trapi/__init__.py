@@ -243,7 +243,6 @@ def case_node_found(target: str, identifier: str, case: Dict, nodes: Dict) -> bo
 
 def case_result_found(
         subject_id: str,
-        predicate: str,
         object_id: str,
         edge_id: str,
         results: List,
@@ -252,7 +251,6 @@ def case_result_found(
     """
     Validate that test case S--P->O edge is found bound to the Results?
     :param subject_id: str, subject node (CURIE) identifier
-    :param predicate:  str, (Biolink) predicate (CURIE) identifier
     :param object_id:  str, subject node (CURIE) identifier
     :param edge_id:  str, subject node (CURIE) identifier
     :param results: List of (TRAPI-version specific) Result objects
@@ -262,14 +260,44 @@ def case_result_found(
     trapi_1_4_0: bool = SemVer.from_string(trapi_version) >= SemVer.from_string("1.4.0")
     result_found: bool = False
     result: Dict
+
+    def case_edge_bindings(target_edge_id: str, data: Dict) -> bool:
+        """
+        Check if target query edge id and knowledge graph edge id are in specified edge_bindings.
+        :param target_edge_id:  str, expected knowledge edge identifier in a matching result
+        :param data: TRAPI version-specific Response context from which the 'edge_bindings' may be retrieved
+        :return: True, if found
+        """
+        edge_bindings: Dict = data["edge_bindings"]
+        for bound_query_id, edge in edge_bindings.items():
+            # The expected query identifier in this context is
+            # hard coded in the 'one_hop.util.py' model
+            if bound_query_id == "ab":
+                for binding_details in edge:
+                    if "id" in binding_details:
+                        if target_edge_id == binding_details["id"]:
+                            return True
+        return False
+
     for result in results:
+
+        # Node binding validation still currently same for recent TRAPI versions
         node_bindings: Dict = result["node_bindings"]
+        subject_id_found: bool = False
+        object_id_found: bool = False
+        edge_id_found: bool = False
+        for node in node_bindings.values():
+            for details in node:
+                if "id" in details:
+                    if subject_id == details["id"]:
+                        subject_id_found = True
+                    elif object_id == details["id"]:
+                        object_id_found = True
+
+        # However, TRAPI 1.4.0 Message 'Results' 'edge_bindings' are reported differently
+        #          from 1.3.0, rather, embedded in 'Analysis' objects (and 'Auxiliary Graphs')
         if trapi_1_4_0:
-            analyses: List = result["analyses"]
-            # NOTE: TRAPI 1.4.0 Message 'Results' are structured differently from 1.3.0,
-            #       associated with 'Auxiliary Graphs" and  'Analysis' objects, e.g.
             #
-            #     "knowledge_graph": ...,
             #     "auxiliary_graphs": {
             #         "a0": {
             #             "edges": [
@@ -320,8 +348,14 @@ def case_result_found(
             #             ]
             #         }
             #     ]
-            pass
 
+            # result["analyses"] may be empty but prior TRAPI 1.4.0 schema validation ensures that
+            # the "analysis" key is at least present plus the objects themselves are 'well-formed'
+            analyses: List = result["analyses"]
+            for analysis in analyses:
+                edge_id_found = case_edge_bindings(edge_id, analysis)
+                if edge_id_found:
+                    break
         else:
             # TRAPI 1.3.0 or earlier?
             #
@@ -336,35 +370,18 @@ def case_result_found(
             #                 "drug": [{"id": "CHEBI:6801"}]
             #             },
             #             "edge_bindings": {
-            #                 # edge "id" from knowledge graph
+            #                 # the edge binding key should be the query edge id
+            #                 # bounded edge "id" is from knowledge graph
             #                 "treats": [{"id": "df87ff82"}]
             #             }
             #         }
             #     ]
             #
-            subject_id_found: bool = False
-            object_id_found: bool = False
-            for node in node_bindings.values():
-                for details in node:
-                    if "id" in details:
-                        if subject_id == details["id"]:
-                            subject_id_found = True
-                        elif object_id == details["id"]:
-                            object_id_found = True
+            edge_id_found = case_edge_bindings(edge_id, result)
 
-            edge_bindings: Dict = result["edge_bindings"]
-            edge_id_found: bool = False
-            for edge_predicate, edge in edge_bindings.items():
-                if edge_predicate == predicate:
-                    for details in edge:
-                        if "id" in details:
-                            if edge_id == details["id"]:
-                                edge_id_found = True
-                                break
-
-            if subject_id_found and object_id_found and edge_id_found:
-                result_found = True
-                break
+        if subject_id_found and object_id_found and edge_id_found:
+            result_found = True
+            break
 
     return result_found
 
@@ -383,7 +400,7 @@ def test_case_input_found_in_response(case: Dict, response: Dict, trapi_version:
     # sanity checks
     assert case, "test_case_input_found_in_response(): Empty or missing test case data!"
     assert response, "test_case_input_found_in_response(): Empty or missing TRAPI Response!"
-    assert "message" in response, "test_case_input_found_in_response(): TRAPI Response is missing its Message component!"
+    assert "message" in response, "test_case_input_found_in_response(): TRAPI Response missing its Message component!"
 
     #
     # case: Dict parameter contains something like:
@@ -485,10 +502,7 @@ def test_case_input_found_in_response(case: Dict, response: Dict, trapi_version:
         return False
 
     results: List = message["results"]
-    if not case_result_found(
-            subject_id, predicate, object_id,
-            edge_id_found, results, trapi_version
-    ):
+    if not case_result_found(subject_id, object_id, edge_id_found, results, trapi_version):
         # Test case S--P->O edge not discovered to be bound within the Results?
         return False
 
