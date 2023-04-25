@@ -227,6 +227,10 @@ def case_node_found(target: str, identifier: str, case: Dict, nodes: Dict) -> bo
     #         "CHEBI:6801": {"name": "metformin", "categories": ["biolink:Drug"]}
     #     }
     #
+
+    # Sanity check
+    assert target in ["subject", "object"]
+
     if identifier in nodes.keys():
         # Found the target node identifier,
         # but is the expected category present?
@@ -386,7 +390,7 @@ def case_result_found(
     return result_found
 
 
-def test_case_input_found_in_response(case: Dict, response: Dict, trapi_version: str) -> bool:
+def case_input_found_in_response(case: Dict, response: Dict, trapi_version: str) -> bool:
     """
     Predicate to validate if test data test case specified edge is returned
     in the Knowledge Graph of the TRAPI Response Message. This method assumes
@@ -398,9 +402,10 @@ def test_case_input_found_in_response(case: Dict, response: Dict, trapi_version:
     :return: True if test case edge found; False otherwise
     """
     # sanity checks
-    assert case, "test_case_input_found_in_response(): Empty or missing test case data!"
-    assert response, "test_case_input_found_in_response(): Empty or missing TRAPI Response!"
-    assert "message" in response, "test_case_input_found_in_response(): TRAPI Response missing its Message component!"
+    assert case, "case_input_found_in_response(): Empty or missing test case data!"
+    assert response, "case_input_found_in_response(): Empty or missing TRAPI Response!"
+    assert "message" in response, "case_input_found_in_response(): TRAPI Response missing its Message component!"
+    assert trapi_version
 
     #
     # case: Dict parameter contains something like:
@@ -503,7 +508,8 @@ def test_case_input_found_in_response(case: Dict, response: Dict, trapi_version:
 
     results: List = message["results"]
     if not case_result_found(subject_id, object_id, edge_id_found, results, trapi_version):
-        # Test case S--P->O edge not discovered to be bound within the Results?
+        # Some components of test case S--P->O edge
+        # NOT bound within any Results?
         return False
 
     # By this point, the case data assumed to be
@@ -597,7 +603,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                 # the contents for which ought to be returned in
                 # the TRAPI Knowledge Graph, as a Result mapping?
                 #
-                if not test_case_input_found_in_response(case, response, trapi_version):
+                if not case_input_found_in_response(case, response, trapi_version):
                     subject_id = case['subject'] if 'subject' in case else case['subject_id']
                     object_id = case['object'] if 'object' in case else case['object_id']
                     test_edge_id: str = f"{case['idx']}|({subject_id}#{case['subject_category']})" + \
