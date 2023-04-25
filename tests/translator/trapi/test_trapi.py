@@ -3,7 +3,7 @@ Unit tests for the generic (shared) components of the TRAPI testing utilities
 """
 import logging
 from typing import Tuple, Dict
-
+from copy import deepcopy
 import pytest
 
 from sri_testing.translator.trapi import generate_test_error_msg_prefix, constrain_trapi_request_to_kp, \
@@ -112,6 +112,8 @@ SAMPLE_KG_NODES = {
     "MONDO:0005148": {"name": "type-2 diabetes", "categories": ["biolink:Disease"]},
     "CHEBI:6801": {"name": "metformin", "categories": ["biolink:Drug"]}
 }
+SAMPLE_KG_NODES2 = deepcopy(SAMPLE_KG_NODES)
+SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
 
 
 @pytest.mark.parametrize(
@@ -120,7 +122,7 @@ SAMPLE_KG_NODES = {
         (
             # query0 - Empty 'nodes'
             "subject",
-            "CHEBI:6801",  # node identifier
+            "CHEBI:6801",     # node identifier
             TEST_CASE,        # case
             dict(),           # empty nodes
             False             # outcome
@@ -128,26 +130,26 @@ SAMPLE_KG_NODES = {
         (
             # query1 - Nodes catalog containing the target (subject) node with complete annotation
             "subject",
-            "CHEBI:6801",  # valid node identifier
-            TEST_CASE,  # case
+            "CHEBI:6801",     # valid node identifier
+            TEST_CASE,        # case
             SAMPLE_KG_NODES,  # non-empty sample nodes catalog
-            True           # outcome
+            True              # outcome
         ),
         (
             # query2 - Nodes catalog containing the target (object) node with missing category
             "object",
-            "MONDO:0005148",  # valid node identifier
-            TEST_CASE,  # case
-            SAMPLE_KG_NODES,  # good sample nodes catalog
-            False             # outcome
+            "MONDO:0005148",   # valid node identifier
+            TEST_CASE,         # case
+            SAMPLE_KG_NODES2,  # sample nodes catalog missing in 'MONDO:0005148'
+            False              # outcome
         ),
         (
-            # query2 - Nodes catalog containing the target (object) node with incorrect category
+            # query3 - Nodes catalog containing the target (object) node with incorrect category
             "subject",
-            "CHEBI:6801",  # valid node identifier
-            TEST_CASE2,  # case
+            "CHEBI:6801",     # valid node identifier
+            TEST_CASE2,       # case
             SAMPLE_KG_NODES,  # good sample nodes catalog
-            False          # outcome
+            False             # outcome
         )
     ]
 )
@@ -168,6 +170,9 @@ SAMPLE_KG_EDGES = {
         "object": "MONDO:0005148"
     }
 }
+
+SAMPLE_KG_EDGES2 = deepcopy(SAMPLE_KG_EDGES)
+SAMPLE_KG_EDGES2["df87ff82"]["object"] = "MONDO:0001234"
 
 
 SAMPLE_TRAPI_1_3_0_RESPONSE = {
@@ -193,6 +198,10 @@ SAMPLE_TRAPI_1_3_0_RESPONSE = {
         ]
     }
 }
+
+SAMPLE_TRAPI_1_3_0_RESPONSE2 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE)
+SAMPLE_TRAPI_1_3_0_RESPONSE2["message"]["knowledge_graph"]["edges"] = SAMPLE_KG_EDGES2
+
 
 SAMPLE_TRAPI_1_4_0_RESPONSE = {
     "message": {
@@ -228,60 +237,80 @@ SAMPLE_TRAPI_1_4_0_RESPONSE = {
     "case,response,trapi_version,outcome",
     [
         (
-            TEST_CASE,  # case
-            {   # query0 - empty TRAPI Response Message (would be same failure with 1.4.0)
+            TEST_CASE,                    # case
+            {   # query0 - empty TRAPI Response Message
+                # (would be same failure with 1.4.0)
                 "message": {
 
                 }
             },
-            "1.3.0",    # TRAPI version
-            False       # expected outcome
+            "1.3.0",                     # TRAPI version
+            False                        # expected outcome
         ),
         (
-            TEST_CASE,
+            TEST_CASE,                   # case
             {   # query1 - missing TRAPI Response Message Knowledge Graph key
                 "message": {
                     # "knowledge_graph": {},
                     "results": []
                 }
             },
-            "1.4.0",
-            False
+            "1.4.0",                     # TRAPI version
+            False                        # expected outcome
         ),
         (
-            TEST_CASE,
+            TEST_CASE,                   # case
             {   # query2 - missing TRAPI Response Message Results key
                 "message": {
                     "knowledge_graph": {},
                     # "results": []
                 }
             },
-            "1.4.0",
-            False
+            "1.4.0",                     # TRAPI version
+            False                        # expected outcome
         ),
         (
-            TEST_CASE,
+            TEST_CASE,                   # case
             {   # query3 - empty TRAPI Response Message Knowledge Graph and Results
                 "message": {
                     "knowledge_graph": {},
                     "results": []
                 }
             },
-            "1.4.0",
-            False
+            "1.4.0",                     # TRAPI version
+            False                        # expected outcome
         ),
         (   # query4 - fully compliant 1.3.0 Response
-            TEST_CASE,  # case
+            TEST_CASE,                    # case
             SAMPLE_TRAPI_1_3_0_RESPONSE,  # response
-            "1.3.0",  # response
-            True  # result
+            "1.3.0",                      # TRAPI version
+            True                          # expected outcome
         ),
         (   # query5 - fully compliant 1.4.0 Response
-            TEST_CASE,  # case
+            TEST_CASE,                    # case
             SAMPLE_TRAPI_1_4_0_RESPONSE,  # response
-            "1.4.0",  # response
-            True  # result
+            "1.4.0",                      # TRAPI version
+            True                          # expected outcome
         ),
+        (   # query6 - fully compliant 1.3.0 Response but different test case category
+            TEST_CASE2,                   # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE,  # response
+            "1.3.0",                      # TRAPI version
+            False                         # expected outcome
+        ),
+        (   # query7 - fully compliant 1.4.0 Response but different test case category
+            TEST_CASE2,                   # case
+            SAMPLE_TRAPI_1_4_0_RESPONSE,  # response
+            "1.4.0",                      # TRAPI version
+            False                         # expected outcome
+        ),
+        (   # query8 - fully compliant 1.3.0 Response but missing
+            #          expected KG edge object identifier
+            TEST_CASE,                     # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE2,  # response
+            "1.3.0",                       # TRAPI version
+            False                          # expected outcome
+        )
     ]
 )
 def test_case_input_found_in_response(
