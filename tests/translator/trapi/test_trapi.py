@@ -108,8 +108,8 @@ TEST_CASE = {
 TEST_CASE2 = TEST_CASE.copy()
 TEST_CASE2["subject_category"] = 'biolink:SmallMolecule'
 
-SAMPLE_NODES = {
-    "MONDO:0005148": {"name": "type-2 diabetes"},
+SAMPLE_KG_NODES = {
+    "MONDO:0005148": {"name": "type-2 diabetes", "categories": ["biolink:Disease"]},
     "CHEBI:6801": {"name": "metformin", "categories": ["biolink:Drug"]}
 }
 
@@ -129,24 +129,24 @@ SAMPLE_NODES = {
             # query1 - Nodes catalog containing the target (subject) node with complete annotation
             "subject",
             "CHEBI:6801",  # valid node identifier
-            TEST_CASE,     # case
-            SAMPLE_NODES,  # non-empty sample nodes catalog
+            TEST_CASE,  # case
+            SAMPLE_KG_NODES,  # non-empty sample nodes catalog
             True           # outcome
         ),
         (
             # query2 - Nodes catalog containing the target (object) node with missing category
             "object",
             "MONDO:0005148",  # valid node identifier
-            TEST_CASE,        # case
-            SAMPLE_NODES,     # good sample nodes catalog
+            TEST_CASE,  # case
+            SAMPLE_KG_NODES,  # good sample nodes catalog
             False             # outcome
         ),
         (
             # query2 - Nodes catalog containing the target (object) node with incorrect category
             "subject",
             "CHEBI:6801",  # valid node identifier
-            TEST_CASE2,    # case
-            SAMPLE_NODES,  # good sample nodes catalog
+            TEST_CASE2,  # case
+            SAMPLE_KG_NODES,  # good sample nodes catalog
             False          # outcome
         )
     ]
@@ -161,15 +161,65 @@ def test_case_node_found(
     assert case_node_found(target, identifier, case, nodes) is outcome
 
 
+SAMPLE_KG_EDGES = {
+    "df87ff82": {
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0005148"
+    }
+}
+
+
 SAMPLE_TRAPI_1_3_0_RESPONSE = {
     "message": {
-
+        # we don't worry here about the query_graph for now
+        "knowledge_graph": {
+            "nodes": SAMPLE_KG_NODES,
+            "edges": SAMPLE_KG_EDGES
+        },
+        "results": [
+            {
+                "node_bindings": {
+                    # node "id"'s in knowledge graph, in edge "id"
+                    "type-2 diabetes": [{"id": "MONDO:0005148"}],
+                    "drug": [{"id": "CHEBI:6801"}]
+                },
+                "edge_bindings": {
+                    # the edge binding key should be the query edge id
+                    # bounded edge "id" is from knowledge graph
+                    "ab": [{"id": "df87ff82"}]
+                }
+            }
+        ]
     }
 }
 
 SAMPLE_TRAPI_1_4_0_RESPONSE = {
     "message": {
-
+        # we don't worry here about the query_graph for now
+        "knowledge_graph": {
+            "nodes": SAMPLE_KG_NODES,
+            "edges": SAMPLE_KG_EDGES
+        },
+        "results": [
+            {
+                "node_bindings": {
+                    # node "id"'s in knowledge graph, in edge "id"
+                    "type-2 diabetes": [{"id": "MONDO:0005148"}],
+                    "drug": [{"id": "CHEBI:6801"}]
+                },
+                "analyses": [
+                    {
+                        "reasoner_id": "infores:molepro",
+                        "edge_bindings": {
+                            "ab": [{"id": "df87ff82"}]
+                        },
+                        "support_graphs": [],
+                        "score": ".7"
+                    },
+                ]
+            }
+        ]
     }
 }
 
@@ -232,7 +282,6 @@ SAMPLE_TRAPI_1_4_0_RESPONSE = {
             "1.4.0",  # response
             True  # result
         ),
-
     ]
 )
 def test_case_input_found_in_response(

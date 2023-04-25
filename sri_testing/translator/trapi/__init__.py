@@ -332,7 +332,7 @@ def case_result_found(
             #             },
             #             "analyses":[
             #                 {
-            #                     "reasoner_id": "ara0"
+            #                     "reasoner_id": "ara0",
             #                     "edge_bindings": {
             #                         "e0": [
             #                             {
@@ -347,7 +347,7 @@ def case_result_found(
             #                         "a1",
             #                         "a2"
             #                     ]
-            #                     "score": .7
+            #                     "score": ".7"
             #                 },
             #             ]
             #         }
