@@ -275,9 +275,11 @@ def case_result_found(
         edge_bindings: Dict = data["edge_bindings"]
         for bound_query_id, edge in edge_bindings.items():
             # The expected query identifier in this context is
-            # hard coded in the 'one_hop.util.py' model
+            # hard coded as 'ab' in the 'one_hop.util.py' model
             if bound_query_id == "ab":
                 for binding_details in edge:
+                    # TRAPI schema validation actually
+                    # catches missing id's, but sanity check...
                     if "id" in binding_details:
                         if target_edge_id == binding_details["id"]:
                             return True
@@ -360,6 +362,10 @@ def case_result_found(
                 edge_id_found = case_edge_bindings(edge_id, analysis)
                 if edge_id_found:
                     break
+
+            # TODO: perhaps need to validate 'resource_id' as CURIE
+            #       and other 1.4.0 'results' components here?
+
         else:
             # TRAPI 1.3.0 or earlier?
             #

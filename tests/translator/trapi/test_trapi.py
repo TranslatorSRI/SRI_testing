@@ -172,10 +172,15 @@ SAMPLE_KG_EDGES = {
 }
 
 SAMPLE_KG_EDGES2 = deepcopy(SAMPLE_KG_EDGES)
+# KG 'object' node id made to differ from test input edge object id
 SAMPLE_KG_EDGES2["df87ff82"]["object"] = "MONDO:0001234"
 
+SAMPLE_KG_EDGES3 = deepcopy(SAMPLE_KG_EDGES)
+# KG 'object' node id made to differ from test input edge object id
+SAMPLE_KG_EDGES3["df87ff82"]["predicate"] = "biolink:interacts_with"
 
-SAMPLE_TRAPI_1_3_0_RESPONSE = {
+
+SAMPLE_TRAPI_1_3_0_RESPONSE_1 = {
     "message": {
         # we don't worry here about the query_graph for now
         "knowledge_graph": {
@@ -199,11 +204,38 @@ SAMPLE_TRAPI_1_3_0_RESPONSE = {
     }
 }
 
-SAMPLE_TRAPI_1_3_0_RESPONSE2 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE)
-SAMPLE_TRAPI_1_3_0_RESPONSE2["message"]["knowledge_graph"]["edges"] = SAMPLE_KG_EDGES2
+SAMPLE_TRAPI_1_3_0_RESPONSE_2 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
+SAMPLE_TRAPI_1_3_0_RESPONSE_2["message"]["knowledge_graph"]["edges"] = SAMPLE_KG_EDGES2
 
 
-SAMPLE_TRAPI_1_4_0_RESPONSE = {
+SAMPLE_TRAPI_1_3_0_RESPONSE_3 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
+SAMPLE_TRAPI_1_3_0_RESPONSE_3["message"]["knowledge_graph"]["edges"] = SAMPLE_KG_EDGES3
+
+
+SAMPLE_INCOMPLETE_NODES = {
+    "drug": [{"id": "CHEBI:6801"}]
+}
+
+SAMPLE_TRAPI_1_3_0_RESPONSE_4 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
+SAMPLE_TRAPI_1_3_0_RESPONSE_4["message"]["results"][0]["node_bindings"] = SAMPLE_INCOMPLETE_NODES
+
+SAMPLE_INCOMPLETE_EDGES_1 = {
+    # the edge binding key should be the query edge id
+    # bounded edge "id" is from knowledge graph
+    "ab": [{"id": "non-test-edge-id"}]
+}
+SAMPLE_TRAPI_1_3_0_RESPONSE_5 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
+SAMPLE_TRAPI_1_3_0_RESPONSE_5["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGES_1
+
+SAMPLE_INCOMPLETE_EDGES_2 = {
+    # the edge binding key should be the query edge id
+    # bounded edge "id" is from knowledge graph
+    "unknown-query-id": [{"id": "df87ff82"}]
+}
+SAMPLE_TRAPI_1_3_0_RESPONSE_6 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
+SAMPLE_TRAPI_1_3_0_RESPONSE_6["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGES_2
+
+SAMPLE_TRAPI_1_4_0_RESPONSE_1 = {
     "message": {
         # we don't worry here about the query_graph for now
         "knowledge_graph": {
@@ -219,7 +251,7 @@ SAMPLE_TRAPI_1_4_0_RESPONSE = {
                 },
                 "analyses": [
                     {
-                        "reasoner_id": "infores:molepro",
+                        "resource_id": "infores:molepro",
                         "edge_bindings": {
                             "ab": [{"id": "df87ff82"}]
                         },
@@ -231,6 +263,9 @@ SAMPLE_TRAPI_1_4_0_RESPONSE = {
         ]
     }
 }
+
+SAMPLE_TRAPI_1_4_0_RESPONSE_2 = deepcopy(SAMPLE_TRAPI_1_4_0_RESPONSE_1)
+SAMPLE_TRAPI_1_4_0_RESPONSE_2["message"]["results"][0]["analyses"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGES_1
 
 
 @pytest.mark.parametrize(
@@ -281,35 +316,70 @@ SAMPLE_TRAPI_1_4_0_RESPONSE = {
             False                        # expected outcome
         ),
         (   # query4 - fully compliant 1.3.0 Response
-            TEST_CASE,                    # case
-            SAMPLE_TRAPI_1_3_0_RESPONSE,  # response
-            "1.3.0",                      # TRAPI version
+            TEST_CASE,  # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE_1,  # response
+            "1.3.0",  # TRAPI version
             True                          # expected outcome
         ),
         (   # query5 - fully compliant 1.4.0 Response
-            TEST_CASE,                    # case
-            SAMPLE_TRAPI_1_4_0_RESPONSE,  # response
-            "1.4.0",                      # TRAPI version
+            TEST_CASE,  # case
+            SAMPLE_TRAPI_1_4_0_RESPONSE_1,  # response
+            "1.4.0",  # TRAPI version
             True                          # expected outcome
         ),
         (   # query6 - fully compliant 1.3.0 Response but different test case category
-            TEST_CASE2,                   # case
-            SAMPLE_TRAPI_1_3_0_RESPONSE,  # response
-            "1.3.0",                      # TRAPI version
-            False                         # expected outcome
+                TEST_CASE2,  # case
+                SAMPLE_TRAPI_1_3_0_RESPONSE_1,  # response
+            "1.3.0",  # TRAPI version
+                False                         # expected outcome
         ),
         (   # query7 - fully compliant 1.4.0 Response but different test case category
-            TEST_CASE2,                   # case
-            SAMPLE_TRAPI_1_4_0_RESPONSE,  # response
-            "1.4.0",                      # TRAPI version
-            False                         # expected outcome
+            TEST_CASE2,                     # case
+            SAMPLE_TRAPI_1_4_0_RESPONSE_1,  # response
+            "1.4.0",                        # TRAPI version
+            False                           # expected outcome
         ),
         (   # query8 - fully compliant 1.3.0 Response but missing
-            #          expected KG edge object identifier
-            TEST_CASE,                     # case
-            SAMPLE_TRAPI_1_3_0_RESPONSE2,  # response
-            "1.3.0",                       # TRAPI version
-            False                          # expected outcome
+            #          expected KG edge 'object' node identifier
+            TEST_CASE,                      # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE_2,  # response
+            "1.3.0",                        # TRAPI version
+            False                           # expected outcome
+        ),
+        (   # query9 - fully compliant 1.3.0 Response but missing
+            #          expected KG edge 'predicate' identifier
+            TEST_CASE,                      # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE_3,  # response
+            "1.3.0",                        # TRAPI version
+            False                           # expected outcome
+        ),
+        (   # query10 - fully compliant 1.3.0 Response but missing
+            #           expected Message Result node_binding
+            TEST_CASE,                      # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE_4,  # response
+            "1.3.0",                        # TRAPI version
+            False                           # expected outcome
+        ),
+        (   # query11 - fully compliant 1.3.0 Response but missing
+            #           expected Message Result edge_binding
+            TEST_CASE,                      # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE_5,  # response
+            "1.3.0",                        # TRAPI version
+            False                           # expected outcome
+        ),
+        (   # query12 - fully compliant 1.3.0 Response but missing
+            #           expected Message Result edge_binding query graph id
+            TEST_CASE,                      # case
+            SAMPLE_TRAPI_1_3_0_RESPONSE_6,  # response
+            "1.3.0",                        # TRAPI version
+            False                           # expected outcome
+        ),
+        (   # query13 - fully compliant 1.4.0 Response but missing
+            #           expected Message Result edge_binding
+            TEST_CASE,                      # case
+            SAMPLE_TRAPI_1_4_0_RESPONSE_2,  # response
+            "1.4.0",                        # TRAPI version
+            False                           # expected outcome
         )
     ]
 )
