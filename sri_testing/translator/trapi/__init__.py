@@ -5,10 +5,11 @@ from json import dumps
 
 import requests
 
-from reasoner_validator.versioning import SemVer
+from reasoner_validator import TRAPIResponseValidator
+from reasoner_validator.sri.util import is_curie
+from reasoner_validator.versioning import SemVer, SemVerError
 from reasoner_validator.report import ValidationReporter
 from reasoner_validator.trapi import check_trapi_validity
-from reasoner_validator import TRAPIResponseValidator
 
 import pytest
 
@@ -261,7 +262,14 @@ def case_result_found(
     :param trapi_version: str, target TRAPI version of the Response being validated
     :return: bool, True if case S-P-O edge was found in the results
     """
-    trapi_1_4_0: bool = SemVer.from_string(trapi_version) >= SemVer.from_string("1.4.0")
+    trapi_1_4_0: bool
+    try:    # try block ... Sanity check: in case the trapi_version is somehow invalid?
+        target_version: SemVer = SemVer.from_string(trapi_version)
+        trapi_1_4_0 = target_version >= SemVer.from_string("1.4.0")
+    except SemVerError as sve:
+        logger.warning(f"case_result_found() 'trapi_version' seems invalid: {str(sve)}. Default to latest?")
+        trapi_1_4_0 = True
+
     result_found: bool = False
     result: Dict
 
@@ -362,9 +370,6 @@ def case_result_found(
                 edge_id_found = case_edge_bindings(edge_id, analysis)
                 if edge_id_found:
                     break
-
-            # TODO: perhaps need to validate 'resource_id' as CURIE
-            #       and other 1.4.0 'results' components here?
 
         else:
             # TRAPI 1.3.0 or earlier?
