@@ -601,10 +601,18 @@ def get_test_data_sources(
     # Access service metadata from the Translator SmartAPI Registry,
     # indexed using the "test_data_location" field as the unique key
     registry_data: Dict = get_the_registry_data()
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, component_type, source, x_maturity)
+    service_metadata = extract_component_test_metadata_from_registry(
+        registry_data=registry_data,
+        component_type=component_type,
+        source=source,
+        trapi_version=trapi_version,
+        x_maturity=x_maturity
+    )
 
-    # Possible CLI override of the metadata value of
-    # TRAPI and/or Biolink Model releases used for data validation
+    # Possible CLI override of the target value of
+    # TRAPI and Biolink Model releases used for data validation
+    # (coerce TRAPI to 'latest' in this case; keep Biolink version as stated)
+    # Otherwise, the service's declared version is not overwritten
     if trapi_version:
         for service_name in service_metadata.keys():
             service_metadata[service_name]['trapi_version'] = latest.get(trapi_version)

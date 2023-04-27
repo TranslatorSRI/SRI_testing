@@ -7,7 +7,7 @@ from datetime import datetime
 
 import requests
 import yaml
-from reasoner_validator.versioning import SemVer
+from reasoner_validator.versioning import SemVer, latest
 
 from requests.exceptions import RequestException
 
@@ -835,10 +835,13 @@ def extract_component_test_metadata_from_registry(
         registry_data: Dict,
         component_type: str,
         source: Optional[str] = None,
+        trapi_version: Optional[str] = None,
         x_maturity: Optional[str] = None
 ) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
+    The services returned are assumed to a strict subset of services having the same single
+    TRAPI version (possibly inferred as 'latest') and x-maturity environment.
 
     :param registry_data:
         Dict, Translator SmartAPI Registry dataset
@@ -851,7 +854,8 @@ def extract_component_test_metadata_from_registry(
                                   as a wildcard match to the infores name being filtered.
                                   Note that all identifiers here should be the reference (object) id's
                                   of the Infores CURIE of the target resource.
-    :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
+    :param trapi_version: Optional[str], target TRAPI version for test run (system chooses 'latest', if not specified)
+    :param x_maturity: Optional[str], 'x_maturity' environment target for test run (system chooses, if not specified)
 
     :return: Dict[str, Dict[str,  Optional[str]]] of metadata, indexed by 'test_data_location'
     """
@@ -870,6 +874,7 @@ def extract_component_test_metadata_from_registry(
             infores = infores.strip()
             target_sources.add(infores)
 
+    latest_service: Dict = dict()
     service_metadata: Dict[str, Dict[str, Optional[Union[str, Dict]]]] = dict()
 
     for index, service in enumerate(registry_data['hits']):
@@ -889,8 +894,19 @@ def extract_component_test_metadata_from_registry(
 
         resource_metadata: Optional[Dict[str, Any]] = \
             validate_testable_resource(index, service, component, x_maturity)
+
         if not resource_metadata:
             continue
+
+        xxxx how do I constrain by user specified TRAPI?
+        service_trapi_version = tag_value(service, "info.x-trapi.version")
+        if infores in latest_service:
+            # always keep the latest seen
+            if SemVer.from_string(latest_service[infores]) >= SemVer.from_string(service_trapi_version):
+                continue
+
+        # set if not set or more recent TRAPI release
+        latest_service[infores] = service_trapi_version
 
         # Once past the 'testable resources' metadata gauntlet,
         # the following parameters are assumed valid and non-empty
@@ -910,7 +926,6 @@ def extract_component_test_metadata_from_registry(
 
         # Grab additional service metadata, then store it all
         service_version = tag_value(service, "info.version")
-        trapi_version = tag_value(service, "info.x-trapi.version")
         biolink_version = tag_value(service, "info.x-translator.biolink-version")
 
         # TODO: temporary hack to deal with resources which are somewhat sloppy or erroneous in their declaration
@@ -919,7 +934,7 @@ def extract_component_test_metadata_from_registry(
             biolink_version = MINIMUM_BIOLINK_VERSION
 
         # Index services by (infores, trapi_version, biolink_version)
-        service_id: str = f"{infores},{trapi_version},{biolink_version}"
+        service_id: str = f"{infores},{service_trapi_version},{biolink_version}"
 
         if service_id not in _service_catalog:
             _service_catalog[service_id] = list()
@@ -951,9 +966,13 @@ def extract_component_test_metadata_from_registry(
         capture_tag_value(service_metadata, service_id, "infores", infores)
         capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)
         capture_tag_value(service_metadata, service_id, "biolink_version", biolink_version)
-        capture_tag_value(service_metadata, service_id, "trapi_version", trapi_version)
+        capture_tag_value(service_metadata, service_id, "trapi_version", service_trapi_version)
 
-    return service_metadata
+    return {
+        key: value
+        for key, value in service_metadata
+        if value["trapi_version"] == latest_service[value["trapi_version"]]
+    }
 
 
 # Singleton reading of the Registry Data
