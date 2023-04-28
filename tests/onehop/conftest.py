@@ -128,8 +128,8 @@ def _compile_recommendations(
     #             "subject_category": "biolink:Gene",
     #             "object_category": "biolink:CellularComponent",
     #             "predicate": "biolink:active_in",
-    #             "subject": "ZFIN:ZDB-GENE-060825-345",
-    #             "object": "GO:0042645"
+    #             "subject_id": "ZFIN:ZDB-GENE-060825-345",
+    #             "object_id": "GO:0042645"
     #           },
     #           "test": "inverse_by_new_subject"
     #         }
@@ -142,8 +142,8 @@ def _compile_recommendations(
         "subject_category": test_case["subject_category"],
         "object_category": test_case["object_category"],
         "predicate": test_case["predicate"],
-        "subject": test_case["subject"],
-        "object": test_case["object"]
+        "subject_id": test_case["subject_id"] if "subject" in test_case else test_case["subject"],
+        "object_id": test_case["object_id"] if "object" in test_case else test_case["object"]
     }
 
     if 'qualifiers' in test_case:
@@ -228,8 +228,8 @@ RESOURCE_SUMMARY_FIELDS = [
     "subject_category",
     "object_category",
     "predicate",
-    "subject",
-    "object"
+    "subject_id",
+    "object_id"
 ]
 
 

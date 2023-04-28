@@ -840,8 +840,23 @@ def extract_component_test_metadata_from_registry(
 ) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
-    The services returned are assumed to a strict subset of services having the same single
-    TRAPI version (possibly inferred as 'latest') and x-maturity environment.
+
+    Generally speaking, this method should only send back *one* specific service entry for each
+    unique (infores-defined) KP or ARA resource, for a given (user-specified) or inferred
+    ('latest') TRAPI version and 'x-maturity' environment.
+
+    The rules for this may be expressed as follows, for a given 'infores' identity:
+
+    * if the caller of the method HAS set a 'trapi_version', then use the release as the validation 'target'.
+          Note: that doesn't mean that the specified release specifically exists, just that
+                it will be used in the filtering process for service resolution.
+
+    * retrieve all available releases of service entries - as retrieved and enumerated from the
+      Translator SmartAPI Registry dataset, as filtered by the 'source' specification - for services
+      with available test data, for the (specified or inferred) target 'x-maturity' environment.
+
+    * filter out the list, of x-maturity-constrained service releases, for the latest TRAPI version
+      compatible with (i.e. greater-than-or-equal to) the (specified or inferred) 'target' TRAPI release.
 
     :param registry_data:
         Dict, Translator SmartAPI Registry dataset
@@ -874,7 +889,10 @@ def extract_component_test_metadata_from_registry(
             infores = infores.strip()
             target_sources.add(infores)
 
+    # this dictionary, indexed by service 'infores',
+    # will track the latest reported TRAPI release of the service
     latest_service: Dict = dict()
+
     service_metadata: Dict[str, Dict[str, Optional[Union[str, Dict]]]] = dict()
 
     for index, service in enumerate(registry_data['hits']):
@@ -884,7 +902,9 @@ def extract_component_test_metadata_from_registry(
         if not (component and component == component_type):
             continue
 
-        # Filter on target sources of interest
+        # Retrieve all available releases of service entries - as retrieved and enumerated from the
+        # Translator SmartAPI Registry dataset, as filtered by the 'source' specification - for services
+        # with available test data, for the (specified or inferred) target 'x-maturity' environment.
         infores: Optional[str] = source_of_interest(service=service, target_sources=target_sources)
         if not infores:
             # silently ignore any resource whose InfoRes CURIE
@@ -898,14 +918,24 @@ def extract_component_test_metadata_from_registry(
         if not resource_metadata:
             continue
 
-        xxxx how do I constrain by user specified TRAPI?
         service_trapi_version = tag_value(service, "info.x-trapi.version")
-        if infores in latest_service:
-            # always keep the latest seen
-            if SemVer.from_string(latest_service[infores]) >= SemVer.from_string(service_trapi_version):
+
+        # First, (optionally) check compatibility of the release against the 'target' TRAPI version
+        # We assume here that if the caller is being explicit about the TRAPI version, then they want to
+        # validate their code against the latest release of that specific major.minor.patch SemVer release
+        if trapi_version is not None:
+            if not (SemVer.from_string(latest[trapi_version]) == SemVer.from_string(latest[service_trapi_version])):
                 continue
 
-        # set if not set or more recent TRAPI release
+        # Second, only process the 'latest' service TRAPI release, as you encounter them
+        if infores in latest_service:
+            if SemVer.from_string(latest_service[infores]) >= SemVer.from_string(service_trapi_version):
+                # a more recent TRAPI service was already seen
+                continue
+
+        # otherwise, if latest service for the infores was not yet known, or if
+        # the service currently being parsed is a more recent TRAPI release, then
+        # reset the latest service to the TRAPI version of the service just seen
         latest_service[infores] = service_trapi_version
 
         # Once past the 'testable resources' metadata gauntlet,
@@ -969,9 +999,9 @@ def extract_component_test_metadata_from_registry(
         capture_tag_value(service_metadata, service_id, "trapi_version", service_trapi_version)
 
     return {
-        key: value
-        for key, value in service_metadata
-        if value["trapi_version"] == latest_service[value["trapi_version"]]
+        service_id: details
+        for service_id, details in service_metadata.items()
+        if details["trapi_version"] == latest_service[details["infores"]]
     }
 
 

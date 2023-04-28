@@ -47,13 +47,13 @@ python-dateutil = "^2.8.2"
 pytest-asyncio = "^0.19.0"
 pytest-harvest = "^1.10.4"
 httpx = "^0.23.0"
-orjson = "^3.8.0"
+orjson = "3.8.10"
 aiofiles = "^22.1.0"
 pymongo = "^4.2.0"
 
 # reasoner-validator should pull in many dependencies
 # also used by SRI Testing, including BMT (which adds some more)
-reasoner-validator = "^3.4.16"
+reasoner-validator = "^3.4.17"
 
 # [tool.poetry.group.dev.dependencies]
 

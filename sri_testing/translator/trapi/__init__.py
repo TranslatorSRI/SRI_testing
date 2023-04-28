@@ -6,7 +6,6 @@ from json import dumps
 import requests
 
 from reasoner_validator import TRAPIResponseValidator
-from reasoner_validator.sri.util import is_curie
 from reasoner_validator.versioning import SemVer, SemVerError
 from reasoner_validator.report import ValidationReporter
 from reasoner_validator.trapi import check_trapi_validity
