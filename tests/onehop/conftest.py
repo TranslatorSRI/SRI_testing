@@ -10,7 +10,7 @@ import logging
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
-from reasoner_validator.versioning import latest
+from reasoner_validator.versioning import get_latest_version
 
 from sri_testing.translator.registry import (
     get_remote_test_data_file,
@@ -219,7 +219,7 @@ def _tally_unit_test_result(test_case_summary: Dict, test_id: str, edge_num: int
 # 1. Test Summary:  summary statistics of entire test run, indexed by ARA and KP resources
 # 2. Resource Summary: ARA or KP level summary across all edges
 # 3. Edge Details: details of test results for one edge in a given resource test dataset
-# 4. Response: TRAPI JSON response message (may be huge; use file streaming to access!)
+# 4. Response: TRAPI JSON response message (maybe huge; use file streaming to access!)
 # 5. Recommendations: KP (or ARA/KP) non-redundant hierarchical summary of validation messages
 ##########################################################################################
 
@@ -269,7 +269,7 @@ def pytest_sessionfinish(session):
             unit_test_key=unit_test_key
         )
 
-        # Sanity check: missing 'url' or 'x_maturity is likely a logical bug in SRI Testing?
+        # Sanity check: missing 'url' or 'x_maturity' is likely a logical bug in SRI Testing?
         assert 'url' in test_case
         url: str = test_case['url']
 
@@ -615,7 +615,7 @@ def get_test_data_sources(
     # Otherwise, the service's declared version is not overwritten
     if trapi_version:
         for service_name in service_metadata.keys():
-            service_metadata[service_name]['trapi_version'] = latest.get(trapi_version)
+            service_metadata[service_name]['trapi_version'] = get_latest_version(trapi_version)
 
     if biolink_version:
         for service_name in service_metadata.keys():

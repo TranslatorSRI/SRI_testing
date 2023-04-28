@@ -7,7 +7,7 @@ from datetime import datetime
 
 import requests
 import yaml
-from reasoner_validator.versioning import SemVer, latest
+from reasoner_validator.versioning import SemVer, get_latest_version
 
 from requests.exceptions import RequestException
 
@@ -189,7 +189,7 @@ def capture_tag_value(service_metadata: Dict, resource: str, tag: str, value: st
 
 def rewrite_github_url(url: str) -> str:
     """
-    If the URL is a regular Github page specification of a file, then rewrite
+    If the URL is a regular GitHub page specification of a file, then rewrite
     the URL to point to the corresponding https://raw.githubusercontent.com.
     Non-Github URLs and raw.githubusercontent.com URLs themselves are simply returned unaltered.
 
@@ -222,7 +222,7 @@ def validate_url(url: str) -> Optional[str]:
     #     logger.error(f"validate_url(): JSON Resource " +
     #                  f"'{url}' expected to have a 'json' file extension?")
     else:
-        # Sanity check: rewrite 'regular' Github page endpoints to
+        # Sanity check: rewrite 'regular' GitHub page endpoints to
         # test_data_location JSON files, into 'raw' file endpoints
         # before attempting access to the resource
         test_data_location = rewrite_github_url(url)
@@ -263,7 +263,7 @@ def get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Opt
     """
     This method selects a default test_data_location url for use in test data / configuration retrieval.
 
-    This is an temporary heuristic solution for the SRI Testing framework to work around complexity in the new
+    This is a temporary heuristic solution for the SRI Testing framework to work around complexity in the new
     info.x-trapi.test_data_location data model, with its x-maturity indexed, possible multiple, test data sources.
 
     :param test_data_location: Optional[Union[str, List, Dict]]
@@ -924,7 +924,14 @@ def extract_component_test_metadata_from_registry(
         # We assume here that if the caller is being explicit about the TRAPI version, then they want to
         # validate their code against the latest release of that specific major.minor.patch SemVer release
         if trapi_version is not None:
-            if not (SemVer.from_string(latest[trapi_version]) == SemVer.from_string(latest[service_trapi_version])):
+            if not (
+                    SemVer.from_string(
+                        get_latest_version(trapi_version)
+                    ) ==
+                    SemVer.from_string(
+                        get_latest_version(service_trapi_version)
+                    )
+            ):
                 continue
 
         # Second, only process the 'latest' service TRAPI release, as you encounter them
