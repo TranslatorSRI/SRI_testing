@@ -479,12 +479,12 @@ def case_input_found_in_response(case: Dict, response: Dict, trapi_version: str)
     # Check for case 'subject_id' and 'object_id',
     # with expected categories, in nodes catalog
     nodes: Dict = knowledge_graph["nodes"]
-    subject_id = case["subject"] if "subject" in case else case["subject_id"]
+    subject_id = case["subject_id"] if "subject_id" in case else case["subject"]
     if not case_node_found("subject", subject_id, case, nodes):
         # 'subject' node not found?
         return False
 
-    object_id = case["object"] if "object" in case else case["object_id"]
+    object_id = case["object_id"] if "object_id" in case else case["object"]
     if not case_node_found("object", object_id, case, nodes):
         # 'object' node not found?
         return False

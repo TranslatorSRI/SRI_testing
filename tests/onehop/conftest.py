@@ -142,8 +142,8 @@ def _compile_recommendations(
         "subject_category": test_case["subject_category"],
         "object_category": test_case["object_category"],
         "predicate": test_case["predicate"],
-        "subject_id": test_case["subject_id"] if "subject" in test_case else test_case["subject"],
-        "object_id": test_case["object_id"] if "object" in test_case else test_case["object"]
+        "subject_id": test_case["subject_id"] if "subject_id" in test_case else test_case["subject"],
+        "object_id": test_case["object_id"] if "object_id" in test_case else test_case["object"]
     }
 
     if 'qualifiers' in test_case:

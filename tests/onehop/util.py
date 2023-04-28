@@ -254,9 +254,9 @@ def inverse_by_new_subject(request):
         "object_category": request['subject_category'],
         "predicate": transformed_predicate,
         "subject":
-            request['object_id'] if 'object_id' in request else request['object'],
+            request["object_id"] if "object_id" in request else request["object"],
         "object":
-            request['subject_id'] if 'subject_id' in request else request['subject']
+            request["subject_id"] if "subject_id" in request else request["subject"]
     })
 
     if 'qualifiers' in request:
