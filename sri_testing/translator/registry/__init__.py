@@ -893,18 +893,8 @@ def extract_component_test_metadata_from_registry(
        as filtered by the 'source' specification and availability of test data - for the (specified or inferred)
        target 'x-maturity' environment.
 
-    2. Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing.
-
-       If the 'trapi_version' argument is set (not 'None'), then use that version as the 'target' TRAPI release.
-
-       Note: that doesn't mean that the specified release specifically exists, just that it will be used to guide
-       the filtering process for the selection of the best service TRAPI version, in order of precedence, as follows:
-
-       1. If the service TRAPI version of the service is an exact match to the requested TRAPI version.
-       2. If the service TRAPI version is compatible with the TRAPI version (e.g.1.4.0-beta is 1.4.0 compatible).
-       3. If no service TRAPI version is found compatible to the requested version, return the latest available version.
-
-       If the 'trapi_version' argument is NOT set (i.e. is 'None'), then simply return the latest available version.
+    2. Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing
+       (see the assess_trapi_version() function for selection of service TRAPI version.
 
     :param registry_data:
         Dict, Translator SmartAPI Registry dataset
@@ -1030,6 +1020,8 @@ def extract_component_test_metadata_from_registry(
         capture_tag_value(service_metadata, service_id, "biolink_version", biolink_version)
         capture_tag_value(service_metadata, service_id, "trapi_version", service_trapi_version)
 
+    # return the selected service(s) uniquely filtered by
+    # source constraint, TRAPI version and x-maturity environment
     return {
         service_id: details
         for service_id, details in service_metadata.items()
