@@ -386,7 +386,7 @@ _ignored_resources: Set[str] = {
 
 
 @lru_cache(maxsize=1024)
-def live_trapi_endpoint(url: str) -> bool:
+def live_trapi_endpoint(url: str) -> Optional[Dict]:
     """
     Checks if TRAPI endpoint is accessible.
     Current implementation performs a GET on the
@@ -394,10 +394,11 @@ def live_trapi_endpoint(url: str) -> bool:
     to verify that a resource is 'alive'
 
     :param url: str, URL of TRAPI endpoint to be checked
-    :return: bool, True if endpoint is 'alive'; False otherwise
+    :return: Optional[Dict], Returns a Python dictionary version of the /meta_knowledge_graph
+                             JSON output  if endpoint is 'alive'; 'None' otherwise.
     """
     if not url:
-        return False
+        return None
 
     # We test TRAPI endpoints by a simple 'GET'
     # to its '/meta_knowledge_graph' endpoint
@@ -406,7 +407,10 @@ def live_trapi_endpoint(url: str) -> bool:
         request = requests.get(mkg_test_url)
         if request.status_code == 200:
             # Success! given url is deemed a 'live' TRAPI endpoint
-            return True
+            # TODO: since we are accessing this endpoint now, perhaps we can
+            #       harvest some of its metadata here, for validation purposes?
+            data: Optional[Dict] = request.json()
+            return data
         else:
             logger.error(
                 f"live_trapi_endpoint(): TRAPI endpoint '{url}' is inaccessible? " +
@@ -415,7 +419,18 @@ def live_trapi_endpoint(url: str) -> bool:
     except RequestException as re:
         logger.error(f"live_trapi_endpoint(): requests.get() exception {str(re)}?")
 
-    return False
+    return None
+
+
+def capture_kg_metadata(endpoint: str, data: Dict):
+    """
+    Parses and caches useful metadata from a specified TRAPI endpoint.
+    :param endpoint: str, TRAPI endpoint
+    :param data: Dict, JSON output from the /meta_knowledge_graph
+    :return: ??
+    """
+    # TODO: IMPLEMENT ME!
+    pass
 
 
 def select_endpoint(
@@ -485,11 +500,18 @@ def select_endpoint(
     url: Optional[str] = None
     if urls:
         for endpoint in urls:
-            if not check_access or live_trapi_endpoint(endpoint):
-                # Since they are all deemed 'functionally equivalent' by the Translator team, the first
-                # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
+            if not check_access:
+                # May be set for testing purposes
                 url = endpoint
                 break
+            else:
+                # Since they are all deemed 'functionally equivalent' by the Translator team, the first
+                # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
+                data: Optional[Dict] = live_trapi_endpoint(endpoint)
+                if data is not None:
+                    url = endpoint
+                    capture_kg_metadata(url, data)
+                    break
 
     if url:
         # Selected endpoint, if successfully resolved

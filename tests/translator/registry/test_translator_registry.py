@@ -95,18 +95,18 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
 
 
 @pytest.mark.parametrize(
-    "query",
+    "url,outcome",
     [
-        ("", False),
-        ("https://foobar.com", False),
+        ("", True),
+        ("https://foobar.com", True),
 
         # This particular endpoint is valid and online as of 1 December 2022
         # but may need to be revised in the future, as Translator resources evolve?
-        ("https://automat.renci.org/sri-reference-kg/1.3", True)
+        ("https://automat.renci.org/sri-reference-kg/1.3", False)
     ]
 )
-def test_live_trapi_endpoint(query: Tuple[str, bool]):
-    assert live_trapi_endpoint(query[0]) == query[1]
+def test_live_trapi_endpoint(url: str, outcome: bool):
+    assert (live_trapi_endpoint(url) is None) is outcome
 
 
 # def select_endpoint(
