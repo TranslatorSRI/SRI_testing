@@ -20,7 +20,7 @@ from sri_testing.translator.registry import (
     source_of_interest,
     validate_testable_resource,
     live_trapi_endpoint,
-    select_endpoint
+    select_endpoint, assess_trapi_version
 )
 
 logger = logging.getLogger(__name__)
@@ -512,6 +512,58 @@ def _wrap_infores(infores: str):
 )
 def test_source_of_interest(query: Tuple):
     assert source_of_interest(service=query[0], target_sources=query[1]) is query[2]
+
+
+def apply_assessment(test_sequence: List[Tuple[str, str]], trapi_version: Optional[str]):
+    selected_version: Dict[str, str] = dict()
+    for service, best in test_sequence:
+        assess_trapi_version("test-infores", service, trapi_version, selected_version)
+        if "test-infores" in selected_version:
+            assert selected_version["test-infores"] == best
+
+
+def test_assess_trapi_version():
+    """
+    Mimicking sequential insertion of service versions
+    """
+    # Selection sequence without 'target' trapi_version
+    sequence_without_ttv: List[Tuple[str, str]] = [
+        ("1.3.0", "1.3.0"),
+        ("1.2.0", "1.3.0"),
+        ("1.3.0-beta", "1.3.0"),
+        ("1.4.0-beta", "1.4.0-beta"),
+        ("1.4.0", "1.4.0"),
+        ("1.3.0-beta2", "1.4.0")
+    ]
+    apply_assessment(sequence_without_ttv, None)
+
+    # Selection sequence for 'target' trapi_version == 1.3.0 matching at least one service version
+    sequence_with_ttv_and_service_match: List[Tuple[str, str]] = [
+        ("1.2.0", "1.2.0"),
+        ("1.3.0-beta", "1.3.0-beta"),
+        ("1.4.0-beta", "1.3.0-beta"),
+        ("1.4.0", "1.3.0-beta"),
+        ("1.3.0", "1.3.0")
+    ]
+    apply_assessment(sequence_with_ttv_and_service_match, "1.3.0")
+
+    # Selection sequence for 'target' trapi_version == 1.4.0 matching at least one service version
+    sequence_with_ttv_and_service_match: List[Tuple[str, str]] = [
+        ("1.2.0", "1.2.0"),
+        ("1.3.0-beta", "1.3.0-beta"),
+        ("1.4.0-beta", "1.4.0-beta"),
+        ("1.4.0", "1.4.0"),
+        ("1.3.0", "1.4.0")
+    ]
+    apply_assessment(sequence_with_ttv_and_service_match, "1.4.0")
+
+    # Selection sequence for 'target' trapi_version == 1.4.0
+    sequence_with_ttv_but_without_service_match_to_target: List[Tuple[str, str]] = [
+        ("1.2.0", "1.2.0"),
+        ("1.3.0-beta", "1.3.0-beta"),
+        ("1.3.0", "1.3.0")
+    ]
+    apply_assessment(sequence_with_ttv_but_without_service_match_to_target, "1.4.0")
 
 
 def assert_tag(metadata: Dict, service: str, tag: str):

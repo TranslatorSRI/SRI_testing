@@ -831,6 +831,49 @@ def source_of_interest(service: Dict, target_sources: Set[str]) -> Optional[str]
 DEPLOYMENT_TYPES: List[str] = ['production', 'staging', 'testing', 'development']
 
 
+def assess_trapi_version(
+        infores: str,
+        service_version: str,
+        target_version: Optional[str],
+        selected_version: Dict[str, str]
+):
+    """
+    Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing.
+
+    If the 'trapi_version' argument IS set (i.e. is not 'None'), then use that version as the 'target' TRAPI release.
+
+    Note: that doesn't mean that the specified release actually exists, but just that it will be used to guide
+    the filtering process for the selection of the best service TRAPI version, in order of precedence, as follows:
+
+    1. If the service TRAPI version of the service is an exact or compatible match to a requested TRAPI version.
+       (i.e. 1.4.0-beta is compatible to a 1.4.0 target), then select it as a candidate.
+    2. If the 'trapi_version' argument IS NOT set (i.e. is 'None'), then select it as a candidate.
+    3. If the service version is a candidate, record it if it is the latest encountered version; otherwise, ignore it.
+
+    :param infores: str, infores of the observed service
+    :param service_version: str, currently observed service (SemVer) version
+    :param target_version: str, desired (SemVer) version
+    :param selected_version: Dict, catalog of selected (SemVer) versions, indexed by service infores
+    :return:
+    """
+    candidate_version: Optional[str] = None
+    if target_version is not None:
+        # 1. If the service TRAPI version of the service is an exact or compatible match
+        #    to the major, minor level of the requested TRAPI version.
+        #    (i.e. '1.4.1-beta' would be compatible to a '1.4.0' target), then select it.
+        if SemVer.from_string(target_version, core_fields=['major', 'minor'], ext_fields=[]) \
+                == SemVer.from_string(service_version, core_fields=['major', 'minor'], ext_fields=[]):
+            candidate_version = service_version
+    else:
+        # 2. If the 'trapi_version' argument IS NOT set (i.e. is 'None'), then select it as a candidate
+        candidate_version = service_version
+
+    if candidate_version is not None:
+        if infores not in selected_version or \
+                SemVer.from_string(candidate_version) >= SemVer.from_string(selected_version[infores]):
+            selected_version[infores] = candidate_version
+
+
 def extract_component_test_metadata_from_registry(
         registry_data: Dict,
         component_type: str,
@@ -841,22 +884,27 @@ def extract_component_test_metadata_from_registry(
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
 
-    Generally speaking, this method should only send back *one* specific service entry for each
-    unique (infores-defined) KP or ARA resource, for a given (user-specified) or inferred
-    ('latest') TRAPI version and 'x-maturity' environment.
+    Generally speaking, this method should only send back *one* specific service entry for each unique
+    (infores-defined) KP or ARA resource, for a given TRAPI version and 'x-maturity' environment.
 
     The rules for this may be expressed as follows, for a given 'infores' identity:
 
-    * if the caller of the method HAS set a 'trapi_version', then use the release as the validation 'target'.
-          Note: that doesn't mean that the specified release specifically exists, just that
-                it will be used in the filtering process for service resolution.
+    1. Retrieve all TRAPI service entry releases - retrieved and enumerated from the Translator SmartAPI Registry,
+       as filtered by the 'source' specification and availability of test data - for the (specified or inferred)
+       target 'x-maturity' environment.
 
-    * retrieve all available releases of service entries - as retrieved and enumerated from the
-      Translator SmartAPI Registry dataset, as filtered by the 'source' specification - for services
-      with available test data, for the (specified or inferred) target 'x-maturity' environment.
+    2. Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing.
 
-    * filter out the list, of x-maturity-constrained service releases, for the latest TRAPI version
-      compatible with (i.e. greater-than-or-equal to) the (specified or inferred) 'target' TRAPI release.
+       If the 'trapi_version' argument is set (not 'None'), then use that version as the 'target' TRAPI release.
+
+       Note: that doesn't mean that the specified release specifically exists, just that it will be used to guide
+       the filtering process for the selection of the best service TRAPI version, in order of precedence, as follows:
+
+       1. If the service TRAPI version of the service is an exact match to the requested TRAPI version.
+       2. If the service TRAPI version is compatible with the TRAPI version (e.g.1.4.0-beta is 1.4.0 compatible).
+       3. If no service TRAPI version is found compatible to the requested version, return the latest available version.
+
+       If the 'trapi_version' argument is NOT set (i.e. is 'None'), then simply return the latest available version.
 
     :param registry_data:
         Dict, Translator SmartAPI Registry dataset
@@ -890,8 +938,9 @@ def extract_component_test_metadata_from_registry(
             target_sources.add(infores)
 
     # this dictionary, indexed by service 'infores',
-    # will track the latest reported TRAPI release of the service
-    latest_service: Dict = dict()
+    # will track the selected TRAPI version
+    # for each distinct information resource
+    selected_service_version: Dict = dict()
 
     service_metadata: Dict[str, Dict[str, Optional[Union[str, Dict]]]] = dict()
 
@@ -919,31 +968,7 @@ def extract_component_test_metadata_from_registry(
             continue
 
         service_trapi_version = tag_value(service, "info.x-trapi.version")
-
-        # First, (optionally) check compatibility of the release against the 'target' TRAPI version
-        # We assume here that if the caller is being explicit about the TRAPI version, then they want to
-        # validate their code against the latest release of that specific major.minor.patch SemVer release
-        if trapi_version is not None:
-            if not (
-                    SemVer.from_string(
-                        get_latest_version(trapi_version)
-                    ) ==
-                    SemVer.from_string(
-                        get_latest_version(service_trapi_version)
-                    )
-            ):
-                continue
-
-        # Second, only process the 'latest' service TRAPI release, as you encounter them
-        if infores in latest_service:
-            if SemVer.from_string(latest_service[infores]) >= SemVer.from_string(service_trapi_version):
-                # a more recent TRAPI service was already seen
-                continue
-
-        # otherwise, if latest service for the infores was not yet known, or if
-        # the service currently being parsed is a more recent TRAPI release, then
-        # reset the latest service to the TRAPI version of the service just seen
-        latest_service[infores] = service_trapi_version
+        assess_trapi_version(infores, service_trapi_version, trapi_version, selected_service_version)
 
         # Once past the 'testable resources' metadata gauntlet,
         # the following parameters are assumed valid and non-empty
@@ -1008,7 +1033,7 @@ def extract_component_test_metadata_from_registry(
     return {
         service_id: details
         for service_id, details in service_metadata.items()
-        if details["trapi_version"] == latest_service[details["infores"]]
+        if details["trapi_version"] == selected_service_version.setdefault(details["infores"], None)
     }
 
 

@@ -967,7 +967,7 @@ test = ["flaky", "ipyparallel", "pre-commit", "pytest (>=7.0)", "pytest-asyncio"
 
 [[package]]
 name = "ipython"
-version = "8.12.0"
+version = "8.13.0"
 description = "IPython: Productive Interactive Computing"
 category = "main"
 optional = false
@@ -1953,7 +1953,7 @@ urllib3 = ">=1.16"
 
 [[package]]
 name = "neo4j"
-version = "4.4.10"
+version = "4.4.11"
 description = "Neo4j Bolt driver for Python"
 category = "main"
 optional = false
@@ -2829,7 +2829,7 @@ rdflib-jsonld = "0.6.1"
 
 [[package]]
 name = "reasoner-validator"
-version = "3.4.17"
+version = "3.4.18"
 description = "Validation tools for Reasoner API"
 category = "main"
 optional = false
@@ -3326,7 +3326,7 @@ url = ["furl (>=0.4.1)"]
 
 [[package]]
 name = "sssom"
-version = "0.3.29"
+version = "0.3.30"
 description = "Operations on SSSOM mapping tables"
 category = "main"
 optional = false
@@ -3694,7 +3694,7 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "463de775d29a72d0b0f1853ad923dfd3539867294591da33eb168bf020f2cffd"
+content-hash = "6b5c989f1606d3f7fa0f04833910f14b3200ce28ff4b0d27cdda029ebea76bfc"
 
 [metadata.files]
 aiofiles = [
@@ -4553,8 +4553,8 @@ ipykernel = [
     {file = "ipykernel-6.22.0.tar.gz", hash = "sha256:302558b81f1bc22dc259fb2a0c5c7cf2f4c0bdb21b50484348f7bafe7fb71421"},
 ]
 ipython = [
-    {file = "ipython-8.12.0-py3-none-any.whl", hash = "sha256:1c183bf61b148b00bcebfa5d9b39312733ae97f6dad90d7e9b4d86c8647f498c"},
-    {file = "ipython-8.12.0.tar.gz", hash = "sha256:a950236df04ad75b5bc7f816f9af3d74dc118fd42f2ff7e80e8e60ca1f182e2d"},
+    {file = "ipython-8.13.0-py3-none-any.whl", hash = "sha256:a0a8a30376cee8019c6e22bc0ab4320762f5f5e4d7abed0ea3ee4b95e3982ad5"},
+    {file = "ipython-8.13.0.tar.gz", hash = "sha256:8d56026b882958db8eab089654f0c045d1237622313a1506da136fb0cce4270f"},
 ]
 ipython-genutils = [
     {file = "ipython_genutils-0.2.0-py2.py3-none-any.whl", hash = "sha256:72dd37233799e619666c9f639a9da83c34013a73e8bbc79a7a6348d93c61fab8"},
@@ -5118,7 +5118,7 @@ ndex2 = [
     {file = "ndex2-3.5.1.tar.gz", hash = "sha256:e4bfecf0f75c4d1f22cf59f6f04af458defa82946d1baabec494553fd4936e92"},
 ]
 neo4j = [
-    {file = "neo4j-4.4.10.tar.gz", hash = "sha256:26db4f9c8f628e53bda62f15cf2a7bfac6e2073e962da761c7164b6b122fca44"},
+    {file = "neo4j-4.4.11.tar.gz", hash = "sha256:2fb4693d524e7661ed6b0ea5b4e3a6272dba2567809ecd1d63f1c896ebcfc241"},
 ]
 nest-asyncio = [
     {file = "nest_asyncio-1.5.6-py3-none-any.whl", hash = "sha256:b9a953fb40dceaa587d109609098db21900182b16440652454a146cffb06e8b8"},
@@ -5820,8 +5820,8 @@ rdflib-shim = [
     {file = "rdflib_shim-1.0.3.tar.gz", hash = "sha256:d955d11e2986aab42b6830ca56ac6bc9c893abd1d049a161c6de2f1b99d4fc0d"},
 ]
 reasoner-validator = [
-    {file = "reasoner_validator-3.4.17-py3-none-any.whl", hash = "sha256:e6c3fc1dd4dc51373b31e9c4e56ed9d0adc82fe10b0ffea54617b032756b7b32"},
-    {file = "reasoner_validator-3.4.17.tar.gz", hash = "sha256:141a575f7afc6e8cf85f5d1c83e1de91123f61c1eb4c02223996cc374c225ac1"},
+    {file = "reasoner_validator-3.4.18-py3-none-any.whl", hash = "sha256:6b1889e5bbf222616b9630cc6908510453609c8e436a394c13c8261da204c325"},
+    {file = "reasoner_validator-3.4.18.tar.gz", hash = "sha256:963f6911c8a3959e094d5cd14e13bc4825ec56c860568f098c654c291e8c200c"},
 ]
 recommonmark = [
     {file = "recommonmark-0.7.1-py2.py3-none-any.whl", hash = "sha256:1b1db69af0231efce3fa21b94ff627ea33dee7079a01dd0a7f8482c3da148b3f"},
@@ -6131,7 +6131,7 @@ sqlalchemy-utils = [
     {file = "SQLAlchemy_Utils-0.38.3-py3-none-any.whl", hash = "sha256:5c13b5d08adfaa85f3d4e8ec09a75136216fad41346980d02974a70a77988bf9"},
 ]
 sssom = [
-    {file = "sssom-0.3.29.tar.gz", hash = "sha256:e5cc8b4ed337278c21830cb938add582de4356b42fa2e0689bf6f4b66d64a215"},
+    {file = "sssom-0.3.30.tar.gz", hash = "sha256:6cf7b8bcdeb130df2e16cd3d758b11adc596b7a0d198bf3b27809a5aba1c2454"},
 ]
 sssom-schema = [
     {file = "sssom_schema-0.11.0-py3-none-any.whl", hash = "sha256:eca4ea0f1481330b79fd614faa4999ca7662cfdc60614c5abd6857558770969a"},
