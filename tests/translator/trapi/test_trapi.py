@@ -2,12 +2,12 @@
 Unit tests for the generic (shared) components of the TRAPI testing utilities
 """
 import logging
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 from copy import deepcopy
 import pytest
 
 from sri_testing.translator.trapi import generate_test_error_msg_prefix, constrain_trapi_request_to_kp, \
-    case_input_found_in_response, case_node_found
+    case_input_found_in_response, case_node_found, case_result_found, case_edge_bindings
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +179,11 @@ SAMPLE_KG_EDGES3 = deepcopy(SAMPLE_KG_EDGES)
 # KG 'object' node id made to differ from test input edge object id
 SAMPLE_KG_EDGES3["df87ff82"]["predicate"] = "biolink:interacts_with"
 
+SAMPLE_GOOD_EDGE_BINDING = {
+    # the edge binding key should be the query edge id
+    # bounded edge "id" is from knowledge graph
+    "ab": [{"id": "df87ff82"}]
+}
 
 SAMPLE_TRAPI_1_3_0_RESPONSE_1 = {
     "message": {
@@ -194,11 +199,7 @@ SAMPLE_TRAPI_1_3_0_RESPONSE_1 = {
                     "type-2 diabetes": [{"id": "MONDO:0005148"}],
                     "drug": [{"id": "CHEBI:6801"}]
                 },
-                "edge_bindings": {
-                    # the edge binding key should be the query edge id
-                    # bounded edge "id" is from knowledge graph
-                    "ab": [{"id": "df87ff82"}]
-                }
+                "edge_bindings": SAMPLE_GOOD_EDGE_BINDING
             }
         ]
     }
@@ -219,21 +220,21 @@ SAMPLE_INCOMPLETE_NODES = {
 SAMPLE_TRAPI_1_3_0_RESPONSE_4 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
 SAMPLE_TRAPI_1_3_0_RESPONSE_4["message"]["results"][0]["node_bindings"] = SAMPLE_INCOMPLETE_NODES
 
-SAMPLE_INCOMPLETE_EDGES_1 = {
+SAMPLE_INCOMPLETE_EDGE_BINDING_1 = {
     # the edge binding key should be the query edge id
     # bounded edge "id" is from knowledge graph
     "ab": [{"id": "non-test-edge-id"}]
 }
 SAMPLE_TRAPI_1_3_0_RESPONSE_5 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
-SAMPLE_TRAPI_1_3_0_RESPONSE_5["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGES_1
+SAMPLE_TRAPI_1_3_0_RESPONSE_5["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGE_BINDING_1
 
-SAMPLE_INCOMPLETE_EDGES_2 = {
+SAMPLE_INCOMPLETE_EDGE_BINDING_2 = {
     # the edge binding key should be the query edge id
     # bounded edge "id" is from knowledge graph
     "unknown-query-id": [{"id": "df87ff82"}]
 }
 SAMPLE_TRAPI_1_3_0_RESPONSE_6 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
-SAMPLE_TRAPI_1_3_0_RESPONSE_6["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGES_2
+SAMPLE_TRAPI_1_3_0_RESPONSE_6["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGE_BINDING_2
 
 SAMPLE_TRAPI_1_4_0_RESPONSE_1 = {
     "message": {
@@ -265,7 +266,109 @@ SAMPLE_TRAPI_1_4_0_RESPONSE_1 = {
 }
 
 SAMPLE_TRAPI_1_4_0_RESPONSE_2 = deepcopy(SAMPLE_TRAPI_1_4_0_RESPONSE_1)
-SAMPLE_TRAPI_1_4_0_RESPONSE_2["message"]["results"][0]["analyses"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGES_1
+SAMPLE_TRAPI_1_4_0_RESPONSE_2["message"]["results"][0]["analyses"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGE_BINDING_1
+
+
+@pytest.mark.parametrize(
+    "target_edge_id,data,outcome",
+    [
+        (
+            # query0 - Fully compliant edge binding
+            "df87ff82",                                   # target_edge_id
+            {"edge_bindings": SAMPLE_GOOD_EDGE_BINDING},  # data
+            True                                          # outcome
+        ),
+        (
+            # query1 - bounded edge "id" is not from knowledge graph
+            "df87ff82",
+            {"edge_bindings": SAMPLE_INCOMPLETE_EDGE_BINDING_1},
+            False
+        ),
+        (
+            # query2 - the edge binding key should be the query edge id 'ab'
+            "df87ff82",
+            {"edge_bindings": SAMPLE_INCOMPLETE_EDGE_BINDING_2},
+            False
+        )
+    ]
+)
+def test_case_edge_bindings(
+        target_edge_id: str,
+        data: Dict,
+        outcome: bool
+):
+    #     def case_edge_bindings(target_edge_id: str, data: Dict) -> bool:
+    #         """
+    #         Check if target query edge id and knowledge graph edge id are in specified edge_bindings.
+    #         :param target_edge_id:  str, expected knowledge edge identifier in a matching result
+    #         :param data: TRAPI version-specific Response context from which the 'edge_bindings' may be retrieved
+    #         :return: True, if found
+    #         """
+    assert case_edge_bindings(
+            target_edge_id=target_edge_id,
+            data=data
+    ) is outcome
+
+
+@pytest.mark.parametrize(
+    "subject_id,object_id,edge_id,results,trapi_version,outcome",
+    [
+        # (
+        #     # query0 - Empty 'nodes'
+        #     "subject",
+        #     "CHEBI:6801",     # node identifier
+        #     TEST_CASE,        # case
+        #     dict(),           # empty nodes
+        #     False             # outcome
+        # ),
+        # (
+        #     # query1 - Nodes catalog containing the target (subject) node with complete annotation
+        #     "subject",
+        #     "CHEBI:6801",     # valid node identifier
+        #     TEST_CASE,        # case
+        #     SAMPLE_KG_NODES,  # non-empty sample nodes catalog
+        #     True              # outcome
+        # ),
+        # (
+        #     # query2 - Nodes catalog containing the target (object) node with missing category
+        #     "object",
+        #     "MONDO:0005148",   # valid node identifier
+        #     TEST_CASE,         # case
+        #     SAMPLE_KG_NODES2,  # sample nodes catalog missing in 'MONDO:0005148'
+        #     False              # outcome
+        # ),
+        # (
+        #     # query3 - Nodes catalog containing the target (object) node with incorrect category
+        #     "subject",
+        #     "CHEBI:6801",     # valid node identifier
+        #     TEST_CASE2,       # case
+        #     SAMPLE_KG_NODES,  # good sample nodes catalog
+        #     False             # outcome
+        # )
+    ]
+)
+def test_case_result_found(
+        subject_id: str,
+        object_id: str,
+        edge_id: str,
+        results: List,
+        trapi_version: str,
+        outcome: bool
+):
+    #     Validate that test case S--P->O edge is found bound to the Results?
+    #     :param subject_id: str, subject node (CURIE) identifier
+    #     :param object_id:  str, subject node (CURIE) identifier
+    #     :param edge_id:  str, subject node (CURIE) identifier
+    #     :param results: List of (TRAPI-version specific) Result objects
+    #     :param trapi_version: str, target TRAPI version of the Response being validated
+    #     :return: bool, True if case S-P-O edge was found in the results
+    assert case_result_found(
+            subject_id=subject_id,
+            object_id=object_id,
+            edge_id=edge_id,
+            results=results,
+            trapi_version=trapi_version
+    ) is outcome
 
 
 @pytest.mark.parametrize(

@@ -245,6 +245,27 @@ def case_node_found(target: str, identifier: str, case: Dict, nodes: Dict) -> bo
     return False
 
 
+def case_edge_bindings(target_edge_id: str, data: Dict) -> bool:
+    """
+    Check if target query edge id and knowledge graph edge id are in specified edge_bindings.
+    :param target_edge_id:  str, expected knowledge edge identifier in a matching result
+    :param data: TRAPI version-specific Response context from which the 'edge_bindings' may be retrieved
+    :return: True, if found
+    """
+    edge_bindings: Dict = data["edge_bindings"]
+    for bound_query_id, edge in edge_bindings.items():
+        # The expected query identifier in this context is
+        # hard coded as 'ab' in the 'one_hop.util.py' model
+        if bound_query_id == "ab":
+            for binding_details in edge:
+                # TRAPI schema validation actually
+                # catches missing id's, but sanity check...
+                if "id" in binding_details:
+                    if target_edge_id == binding_details["id"]:
+                        return True
+    return False
+
+
 def case_result_found(
         subject_id: str,
         object_id: str,
@@ -271,26 +292,6 @@ def case_result_found(
 
     result_found: bool = False
     result: Dict
-
-    def case_edge_bindings(target_edge_id: str, data: Dict) -> bool:
-        """
-        Check if target query edge id and knowledge graph edge id are in specified edge_bindings.
-        :param target_edge_id:  str, expected knowledge edge identifier in a matching result
-        :param data: TRAPI version-specific Response context from which the 'edge_bindings' may be retrieved
-        :return: True, if found
-        """
-        edge_bindings: Dict = data["edge_bindings"]
-        for bound_query_id, edge in edge_bindings.items():
-            # The expected query identifier in this context is
-            # hard coded as 'ab' in the 'one_hop.util.py' model
-            if bound_query_id == "ab":
-                for binding_details in edge:
-                    # TRAPI schema validation actually
-                    # catches missing id's, but sanity check...
-                    if "id" in binding_details:
-                        if target_edge_id == binding_details["id"]:
-                            return True
-        return False
 
     for result in results:
 
