@@ -1610,7 +1610,7 @@ def test_get_one_specific_target_kp():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
-        assert "https://molepro-trapi.transltr.io/molepro/trapi/v1.3" in service["url"]
+        assert "https://translator.broadinstitute.org/molepro/trapi/v1.4" in service["url"]
 
 
 def test_get_specific_subset_of_target_kps():
