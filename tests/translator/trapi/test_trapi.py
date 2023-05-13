@@ -185,6 +185,17 @@ SAMPLE_GOOD_EDGE_BINDING = {
     "ab": [{"id": "df87ff82"}]
 }
 
+SAMPLE_GOOD_TRAPI_1_3_0_RESPONSE_RESULTS = [
+    {
+        "node_bindings": {
+            # node "id"'s in knowledge graph, in edge "id"
+            "type-2 diabetes": [{"id": "MONDO:0005148"}],
+            "drug": [{"id": "CHEBI:6801"}]
+        },
+        "edge_bindings": SAMPLE_GOOD_EDGE_BINDING
+    }
+]
+
 SAMPLE_TRAPI_1_3_0_RESPONSE_1 = {
     "message": {
         # we don't worry here about the query_graph for now
@@ -192,16 +203,7 @@ SAMPLE_TRAPI_1_3_0_RESPONSE_1 = {
             "nodes": SAMPLE_KG_NODES,
             "edges": SAMPLE_KG_EDGES
         },
-        "results": [
-            {
-                "node_bindings": {
-                    # node "id"'s in knowledge graph, in edge "id"
-                    "type-2 diabetes": [{"id": "MONDO:0005148"}],
-                    "drug": [{"id": "CHEBI:6801"}]
-                },
-                "edge_bindings": SAMPLE_GOOD_EDGE_BINDING
-            }
-        ]
+        "results": SAMPLE_GOOD_TRAPI_1_3_0_RESPONSE_RESULTS
     }
 }
 
@@ -228,13 +230,32 @@ SAMPLE_INCOMPLETE_EDGE_BINDING_1 = {
 SAMPLE_TRAPI_1_3_0_RESPONSE_5 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
 SAMPLE_TRAPI_1_3_0_RESPONSE_5["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGE_BINDING_1
 
-SAMPLE_INCOMPLETE_EDGE_BINDING_2 = {
+SAMPLE_INCOMPLETE_EDGE_BINDING_2: Dict[str, List[Dict[str, str]]] = {
     # the edge binding key should be the query edge id
     # bounded edge "id" is from knowledge graph
     "unknown-query-id": [{"id": "df87ff82"}]
 }
 SAMPLE_TRAPI_1_3_0_RESPONSE_6 = deepcopy(SAMPLE_TRAPI_1_3_0_RESPONSE_1)
 SAMPLE_TRAPI_1_3_0_RESPONSE_6["message"]["results"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGE_BINDING_2
+
+
+SAMPLE_GOOD_TRAPI_1_4_0_RESPONSE_RESULTS = [
+    {
+        "node_bindings": {
+            # node "id"'s in knowledge graph, in edge "id"
+            "type-2 diabetes": [{"id": "MONDO:0005148"}],
+            "drug": [{"id": "CHEBI:6801"}]
+        },
+        "analyses": [
+            {
+                "resource_id": "infores:molepro",
+                "edge_bindings": SAMPLE_GOOD_EDGE_BINDING,
+                "support_graphs": [],
+                "score": ".7"
+            },
+        ]
+    }
+]
 
 SAMPLE_TRAPI_1_4_0_RESPONSE_1 = {
     "message": {
@@ -297,13 +318,6 @@ def test_case_edge_bindings(
         data: Dict,
         outcome: bool
 ):
-    #     def case_edge_bindings(target_edge_id: str, data: Dict) -> bool:
-    #         """
-    #         Check if target query edge id and knowledge graph edge id are in specified edge_bindings.
-    #         :param target_edge_id:  str, expected knowledge edge identifier in a matching result
-    #         :param data: TRAPI version-specific Response context from which the 'edge_bindings' may be retrieved
-    #         :return: True, if found
-    #         """
     assert case_edge_bindings(
             target_edge_id=target_edge_id,
             data=data
@@ -313,38 +327,49 @@ def test_case_edge_bindings(
 @pytest.mark.parametrize(
     "subject_id,object_id,edge_id,results,trapi_version,outcome",
     [
-        # (
-        #     # query0 - Empty 'nodes'
-        #     "subject",
-        #     "CHEBI:6801",     # node identifier
-        #     TEST_CASE,        # case
-        #     dict(),           # empty nodes
-        #     False             # outcome
-        # ),
-        # (
-        #     # query1 - Nodes catalog containing the target (subject) node with complete annotation
-        #     "subject",
-        #     "CHEBI:6801",     # valid node identifier
-        #     TEST_CASE,        # case
-        #     SAMPLE_KG_NODES,  # non-empty sample nodes catalog
-        #     True              # outcome
-        # ),
-        # (
-        #     # query2 - Nodes catalog containing the target (object) node with missing category
-        #     "object",
-        #     "MONDO:0005148",   # valid node identifier
-        #     TEST_CASE,         # case
-        #     SAMPLE_KG_NODES2,  # sample nodes catalog missing in 'MONDO:0005148'
-        #     False              # outcome
-        # ),
-        # (
-        #     # query3 - Nodes catalog containing the target (object) node with incorrect category
-        #     "subject",
-        #     "CHEBI:6801",     # valid node identifier
-        #     TEST_CASE2,       # case
-        #     SAMPLE_KG_NODES,  # good sample nodes catalog
-        #     False             # outcome
-        # )
+        (   # Query0 - good TRAPI 1.3.0 Response Result
+            "CHEBI:6801",                              # subject_id
+            "MONDO:0005148",                           # object_id
+            "df87ff82",                                # edge_id
+            SAMPLE_GOOD_TRAPI_1_3_0_RESPONSE_RESULTS,  # results
+            "1.3.0",                                   # trapi_version
+            True                                       # outcome
+        ),
+        (   # Query1 - Subject ID not in result?
+            "CHEBI:1234",
+            "MONDO:0005148",
+            "df87ff82",
+            SAMPLE_GOOD_TRAPI_1_3_0_RESPONSE_RESULTS,
+            "1.3.0",
+            False
+        ),
+        (   # Query2 - Object ID not in result?
+            "CHEBI:6801",
+            "MONDO:1234567",
+            "df87ff82",
+            SAMPLE_GOOD_TRAPI_1_3_0_RESPONSE_RESULTS,
+            "1.3.0",
+            False
+        ),
+        (   # Query3 - edge_id not in result?
+            "CHEBI:6801",
+            "MONDO:0005148",
+            "not-right-edge-id",
+            SAMPLE_GOOD_TRAPI_1_3_0_RESPONSE_RESULTS,
+            "1.3.0",
+            False
+        ),
+        (   # Query4 - Subject ID not in result?
+            "CHEBI:6801",
+            "MONDO:0005148",
+            "df87ff82",
+            SAMPLE_GOOD_TRAPI_1_4_0_RESPONSE_RESULTS,
+            "1.4.0",
+            True
+        )
+        # The query 1-3 test identically in 1.4.0 so we don't repeat them here.
+        # The material difference is the context of the edge_bindings validation,
+        # but this difference is invisible at the unit testing level.
     ]
 )
 def test_case_result_found(
@@ -355,13 +380,6 @@ def test_case_result_found(
         trapi_version: str,
         outcome: bool
 ):
-    #     Validate that test case S--P->O edge is found bound to the Results?
-    #     :param subject_id: str, subject node (CURIE) identifier
-    #     :param object_id:  str, subject node (CURIE) identifier
-    #     :param edge_id:  str, subject node (CURIE) identifier
-    #     :param results: List of (TRAPI-version specific) Result objects
-    #     :param trapi_version: str, target TRAPI version of the Response being validated
-    #     :return: bool, True if case S-P-O edge was found in the results
     assert case_result_found(
             subject_id=subject_id,
             object_id=object_id,
