@@ -3,13 +3,14 @@ Configure one hop tests
 """
 from typing import Optional, Union, List, Set, Dict, Any, Tuple
 from collections import defaultdict
+from copy import deepcopy
 
 import logging
 
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
-from reasoner_validator.versioning import latest
+from reasoner_validator.versioning import get_latest_version
 
 from sri_testing.translator.registry import (
     get_remote_test_data_file,
@@ -29,7 +30,6 @@ from sri_testing.translator.sri.testing.onehops_test_runner import (
 )
 
 logger = logging.getLogger(__name__)
-
 
 # TODO: temporary circuit breaker for huge edge test data sets
 REASONABLE_NUMBER_OF_TEST_EDGES: int = 100
@@ -128,8 +128,8 @@ def _compile_recommendations(
     #             "subject_category": "biolink:Gene",
     #             "object_category": "biolink:CellularComponent",
     #             "predicate": "biolink:active_in",
-    #             "subject": "ZFIN:ZDB-GENE-060825-345",
-    #             "object": "GO:0042645"
+    #             "subject_id": "ZFIN:ZDB-GENE-060825-345",
+    #             "object_id": "GO:0042645"
     #           },
     #           "test": "inverse_by_new_subject"
     #         }
@@ -142,15 +142,21 @@ def _compile_recommendations(
         "subject_category": test_case["subject_category"],
         "object_category": test_case["object_category"],
         "predicate": test_case["predicate"],
-        "subject": test_case["subject"],
-        "object": test_case["object"]
+        "subject_id": test_case["subject_id"] if "subject_id" in test_case else test_case["subject"],
+        "object_id": test_case["object_id"] if "object_id" in test_case else test_case["object"]
     }
+
+    if 'qualifiers' in test_case:
+        test_data['qualifiers'] = deepcopy(test_case['qualifiers'])
+    if 'association' in test_case:
+        test_data['association'] = test_case["association"]
 
     # Validation messages are a dictionary with validation_code as keys and values which
     # are a (possibly empty) list of dictionaries with optional (variable key) parameters.
     # Leveraging function closure here to inject content into the recommendation_summary
     def _capture_messages(message_type: str, messages: Dict[str, Optional[List[Dict[str, str]]]]):
         for code, entries in messages.items():
+
             if code not in recommendation_summary[message_type]:
                 recommendation_summary[message_type][code] = list()
             item: Dict = {
@@ -213,7 +219,7 @@ def _tally_unit_test_result(test_case_summary: Dict, test_id: str, edge_num: int
 # 1. Test Summary:  summary statistics of entire test run, indexed by ARA and KP resources
 # 2. Resource Summary: ARA or KP level summary across all edges
 # 3. Edge Details: details of test results for one edge in a given resource test dataset
-# 4. Response: TRAPI JSON response message (may be huge; use file streaming to access!)
+# 4. Response: TRAPI JSON response message (maybe huge; use file streaming to access!)
 # 5. Recommendations: KP (or ARA/KP) non-redundant hierarchical summary of validation messages
 ##########################################################################################
 
@@ -222,8 +228,8 @@ RESOURCE_SUMMARY_FIELDS = [
     "subject_category",
     "object_category",
     "predicate",
-    "subject",
-    "object"
+    "subject_id",
+    "object_id"
 ]
 
 
@@ -263,7 +269,7 @@ def pytest_sessionfinish(session):
             unit_test_key=unit_test_key
         )
 
-        # Sanity check: missing 'url' or 'x_maturity is likely a logical bug in SRI Testing?
+        # Sanity check: missing 'url' or 'x_maturity' is likely a logical bug in SRI Testing?
         assert 'url' in test_case
         url: str = test_case['url']
 
@@ -595,13 +601,21 @@ def get_test_data_sources(
     # Access service metadata from the Translator SmartAPI Registry,
     # indexed using the "test_data_location" field as the unique key
     registry_data: Dict = get_the_registry_data()
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, component_type, source, x_maturity)
+    service_metadata = extract_component_test_metadata_from_registry(
+        registry_data=registry_data,
+        component_type=component_type,
+        source=source,
+        trapi_version=trapi_version,
+        x_maturity=x_maturity
+    )
 
-    # Possible CLI override of the metadata value of
-    # TRAPI and/or Biolink Model releases used for data validation
+    # Possible CLI override of the target value of
+    # TRAPI and Biolink Model releases used for data validation
+    # (coerce TRAPI to 'latest' in this case; keep Biolink version as stated)
+    # Otherwise, the service's declared version is not overwritten
     if trapi_version:
         for service_name in service_metadata.keys():
-            service_metadata[service_name]['trapi_version'] = latest.get(trapi_version)
+            service_metadata[service_name]['trapi_version'] = get_latest_version(trapi_version)
 
     if biolink_version:
         for service_name in service_metadata.keys():
@@ -815,10 +829,37 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
             for edge_i, edge in enumerate(test_data['edges']):
 
+                # TODO: temporary short-cut to prioritize qualified edges
+                if 'qualifiers' not in edge:
+                    continue
+
                 # We tag each edge internally with its
                 # sequence number, for later convenience
                 edge['idx'] = edge_i
+
+                # top level KP associated with the test data
+                # may be distinct from the underlying
+                # knowledge source being targeted by the test data
                 edge['kp_id'] = f"infores:{kp_id}"
+
+                # Test data may now have Biolink 3 'qualifier' TRAPI query constraints,
+                # i.e. something like the following:
+                #
+                # {
+                #     "subject_category": "biolink:SmallMolecule",
+                #     "object_category": "biolink:Disease",
+                #     "predicate": "biolink:treats",
+                #     "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
+                #     "object_id": "MESH:D001249"     # asthma
+                #     "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
+                #     "qualifiers": [
+                #          {
+                #               "qualifier_type_id": "biolink:causal_mechanism_qualifier"
+                #               "qualifier_value": "inhibition"
+                #          },
+                #          # ...other qualifier constraint type_id/value pairs?
+                #      ]
+                # }
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?
@@ -889,6 +930,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                     oh_util.inverse_by_new_subject,
                     oh_util.by_object,
                     oh_util.raise_subject_entity,
+                    oh_util.raise_object_entity,
                     oh_util.raise_object_by_subject,
                     oh_util.raise_predicate_by_subject
             ]

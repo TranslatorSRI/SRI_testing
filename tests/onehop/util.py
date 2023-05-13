@@ -14,9 +14,34 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
     If the look_up_subject is False (default) then the object id is not included, (lookup object
     by subject) and if the look_up_subject is True, then the subject id is not included (look up
     subject by object)"""
+
     trapi_version_tested = SemVer.from_string(edge['trapi_version'])
     if trapi_version_tested <= SemVer.from_string("1.1.0"):
-        return None, f"Legacy TRAPI version {edge['trapi_version']} unsupported by SRI Testing!"
+        return None, f"Legacy TRAPI version '{str(edge['trapi_version'])}' unsupported by SRI Testing!"
+
+    q_edge: Dict = {
+        "subject": "a",
+        "object": "b",
+        "predicates": [edge['predicate']]
+    }
+
+    # Build Biolink 3 compliant QEdge qualifier_constraints, if specified
+    if 'qualifiers' in edge:
+        # We don't validate the edge['qualifiers'] here.. let the TRAPI query catch any faulty qualifiers
+        qualifier_set: List = list()
+        qualifier: Dict
+        for qualifier in edge['qualifiers']:
+            if 'qualifier_type_id' in qualifier and 'qualifier_value' in qualifier:
+                qualifier_set.append(qualifier.copy())
+            else:
+                return None, f"Malformed 'qualifiers' specification: '{str(edge['qualifiers'])}'!"
+
+        if qualifier_set:
+            q_edge['qualifier_constraints'] = [{'qualifier_set': qualifier_set}]
+    if 'association' in edge:
+        # TODO: how do we leverage an 'association' here
+        #  to validate query (qualifiers)? Ask Sierra for advice?
+        pass
 
     query_graph: Dict = {
         "nodes": {
@@ -28,17 +53,16 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
             }
         },
         "edges": {
-            'ab': {
-                "subject": "a",
-                "object": "b",
-                "predicates": [edge['predicate']]
-            }
+            'ab': q_edge
         }
     }
     if look_up_subject:
-        query_graph['nodes']['b']['ids'] = [edge['object']]
+        object_id = edge['object_id'] if 'object_id' in edge else edge['object']
+        query_graph['nodes']['b']['ids'] = [object_id]
     else:
-        query_graph['nodes']['a']['ids'] = [edge['subject']]
+        subject_id = edge['subject_id'] if 'subject_id' in edge else edge['subject']
+        query_graph['nodes']['a']['ids'] = [subject_id]
+
     message: Dict = {
         "message": {
             "query_graph": query_graph,
@@ -68,6 +92,7 @@ def create_one_hop_message(edge, look_up_subject: bool = False) -> Tuple[Optiona
 # - inverse_by_new_subject
 # - by_object
 # - raise_subject_entity
+# - raise_object_entity
 # - raise_object_by_subject
 # - raise_predicate_by_subject
 #
@@ -141,12 +166,51 @@ class TestCode:
     description="Given a known triple, create a TRAPI message that looks up the object by the subject"
 )
 def by_subject(request):
-    """Given a known triple, create a TRAPI message that looks up the object by the subject"""
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
     message, errmsg = create_one_hop_message(request)
     if message:
         return message, 'object', 'b'
     else:
-        return None, "by_subject", errmsg
+        return None, f"by_subject|subject '{str(request['subject'])}'", errmsg
+
+
+def swap_qualifiers(qualifiers: List):
+    """
+    This method attempts to swap subject and
+    object qualifiers through rewriting their keys?
+
+    :param qualifiers: List, of Qualifiers whose node associations may need swapping.
+    :return: qualifiers with keys rewritten to swap node qualifiers (subject <=> object)
+    """
+    swapped_qualifiers: List = list()
+    qualifier: Dict
+    for qualifier in qualifiers:
+        qualifier_type_id: str = qualifier['qualifier_type_id']
+        if qualifier_type_id.find("subject") > -1:
+            qualifier_type_id = qualifier_type_id.replace("subject", "object", 1)
+        elif qualifier_type_id.find("object") > -1:
+            qualifier_type_id = qualifier_type_id.replace("object", "subject", 1)
+        swapped_qualifiers.append({
+            'qualifier_type_id': qualifier_type_id,
+            'qualifier_value': qualifier['qualifier_value']
+        })
+    return swapped_qualifiers
+
+
+def invert_association(association: str):
+    """
+    Inverts subject and object of an association (as feasible)
+    :param association: str, biolink:Association to be inverted
+    :return: str, inverted association (biolink curie)
+    """
+    # TODO: how do we 'invert' an 'association', for later
+    #       use in validating the swapped query (qualifiers)?
+    #       Ask Sierra/Chris M. for advice, if it not obvious how to do this...
+    return association  # stub - just return original association (probably wrong!)
 
 
 @TestCode(
@@ -156,10 +220,13 @@ def by_subject(request):
                 "then looks up the new object by the new subject (original object)"
 )
 def inverse_by_new_subject(request):
-    """Given a known triple, create a TRAPI message that inverts the predicate,
-       then looks up the new object by the new subject (original object)"""
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
-    context: str = f"inverse_by_new_subject(predicate: '{request['predicate']}')"
+    context: str = f"inverse_by_new_subject|predicate '{str(request['predicate'])}')"
     original_predicate_element = tk.get_element(request['predicate'])
     if not original_predicate_element:
         reason: str = "is an unknown element?"
@@ -186,16 +253,25 @@ def inverse_by_new_subject(request):
         "subject_category": request['object_category'],
         "object_category": request['subject_category'],
         "predicate": transformed_predicate,
-        "subject": request['object'],
-        "object": request['subject']
+        "subject":
+            request["object_id"] if "object_id" in request else request["object"],
+        "object":
+            request["subject_id"] if "subject_id" in request else request["subject"]
     })
+
+    if 'qualifiers' in request:
+        transformed_request['qualifiers'] = swap_qualifiers(request['qualifiers'])
+    if 'association' in request:
+        transformed_request['association'] = invert_association(request['association'])
+
     message, errmsg = create_one_hop_message(transformed_request)
+
     # We inverted the predicate, and will be querying by the new subject, so the output will be in node b
     # but, the entity we are looking for (now the object) was originally the subject because of the inversion.
     if message:
         return message, 'subject', 'b'
     else:
-        return None, "inverse_by_new_subject", errmsg
+        return None, context, errmsg
 
 
 @TestCode(
@@ -204,16 +280,25 @@ def inverse_by_new_subject(request):
     description="Given a known triple, create a TRAPI message that looks up the subject by the object"
 )
 def by_object(request):
-    """Given a known triple, create a TRAPI message that looks up the subject by the object"""
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
     message, errmsg = create_one_hop_message(request, look_up_subject=True)
     if message:
         return message, 'subject', 'a'
     else:
-        return None, "by_object", errmsg
+        return None, f"by_object|object '{str(request['object'])}'", errmsg
 
 
-def no_parent_error(unit_test_name: str, element: Dict, suffix: Optional[str] = None) -> Tuple[None, str, str]:
-    context: str = f"{unit_test_name}() test predicate {element['name']}"
+def no_parent_error(
+        unit_test_name: str,
+        element_type: str,
+        element: Dict,
+        suffix: Optional[str] = None
+) -> Tuple[None, str, str]:
+    context: str = f"{unit_test_name}|{element_type} '{str(element['name'])}'"
     reason: str = "has no 'is_a' parent"
     if 'mixin' in element and element['mixin']:
         reason += " and is a mixin"
@@ -226,37 +311,70 @@ def no_parent_error(unit_test_name: str, element: Dict, suffix: Optional[str] = 
     return None, context, reason
 
 
-@TestCode(
-    code="RSE",
-    unit_test_name="raise_subject_entity",
-    description="Given a known triple, create a TRAPI message that uses a parent instance " +
-                "of the original entity and looks up the object. This only works if a given " +
-                "instance (category) has an identifier (prefix) namespace bound to some kind " +
-                "of hierarchical class of instances (i.e. ontological structure)"
-)
-def raise_subject_entity(request):
+def raise_entity(request, target: str):
     """
-    Given a known triple, create a TRAPI message that uses
-    a parent instance of the original entity and looks up the object.
-    This only works if a given instance (category) has an identifier (prefix) namespace
-     bound to some kind of hierarchical class of instances (i.e. ontological structure)
+    Generic method - parameterized by association edge node target (either "subject" or "object") -
+    that, given a known triple, creates a TRAPI message that uses a parent instance of the original entity
+    to query for its association partner node. This only works if a given entity id namespace is listed in
+    the 'id_prefix' list of the entity category and specifies some kind of hierarchical ontology of terms"
+
+    :param request: test case edge data
+    :param target: target context for ontological 'raising': either "subject" or "object"
+    :return:
     """
-    subject_cat = request['subject_category']
-    subject = request['subject']
-    parent_subject = ontology_kp.get_parent(subject, subject_cat, biolink_version=request['biolink_version'])
-    if parent_subject is None:
+    # Sanity check!
+    assert target in ["subject", "object"]
+
+    category = request[f"{target}_category"]
+    entity = request[f"{target}_id"] if f"{target}_id" in request else request[target]
+    parent_entity = ontology_kp.get_parent(entity, category, biolink_version=request['biolink_version'])
+    if parent_entity is None:
         return no_parent_error(
-            "raise_subject_entity",
-            {'name': f"{subject}[{subject_cat}]"},
+            unit_test_name=f"raise_{target}_entity",
+            element_type=target,
+            element={'name': f"{entity}[{category}]"},
             suffix=" since it is either not an ontology term or does not map onto a parent ontology term."
         )
     mod_request = deepcopy(request)
-    mod_request['subject'] = parent_subject
+    mod_request[target] = parent_entity
     message, errmsg = create_one_hop_message(mod_request)
     if message:
-        return message, 'object', 'b'
+        # query the opposing association node partner here
+        return message, "subject" if target == "object" else "object", 'a'
     else:
-        return None, "raise_subject_entity", errmsg
+        return None, f"raise_{target}_entity|parent entity '{str(parent_entity)}'", errmsg
+
+
+@TestCode(
+    code="RSE",
+    unit_test_name="raise_subject_entity",
+    description="Given a known triple, creates a TRAPI message that uses a parent instance of the original subject " +
+                "to query for its object node. This only works if a given subject entity id namespace is listed " +
+                "in the 'id_prefix' list of the category and specifies some kind of hierarchical ontology of terms."
+)
+def raise_subject_entity(request):
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
+    return raise_entity(request, "subject")
+
+
+@TestCode(
+    code="ROE",
+    unit_test_name="raise_object_entity",
+    description="Given a known triple, creates a TRAPI message that uses a parent instance of the original object " +
+                "to query for its subject node. This only works if a given object entity id namespace is listed " +
+                "in the 'id_prefix' list of the category and specifies some kind of hierarchical ontology of terms."
+)
+def raise_object_entity(request):
+    """
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
+    """
+    return raise_entity(request, "object")
 
 
 @TestCode(
@@ -267,8 +385,9 @@ def raise_subject_entity(request):
 )
 def raise_object_by_subject(request):
     """
-    Given a known triple, create a TRAPI message that uses the parent
-    of the original object category and looks up the object by the subject
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
     """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
     original_object_element = tk.get_element(request['object_category'])
@@ -280,7 +399,11 @@ def raise_object_by_subject(request):
         original_object_element['is_a'] = None
     if original_object_element['is_a'] is None:
         # This element may be a mixin or abstract, without any parent?
-        return no_parent_error("raise_object_by_subject", original_object_element)
+        return no_parent_error(
+            "raise_object_by_subject",
+            "object category",
+            original_object_element
+        )
     transformed_request = request.copy()  # there's no depth to request, so it's ok
     parent = tk.get_parent(original_object_element['name'])
     transformed_request['object_category'] = utils.format_element(tk.get_element(parent))
@@ -288,7 +411,7 @@ def raise_object_by_subject(request):
     if message:
         return message, 'object', 'b'
     else:
-        return None, "raise_object_by_subject", errmsg
+        return None, f"raise_object_by_subject|object_category '{str(request['object_category'])}'", errmsg
 
 
 @TestCode(
@@ -299,11 +422,13 @@ def raise_object_by_subject(request):
 )
 def raise_predicate_by_subject(request):
     """
-    Given a known triple, create a TRAPI message that uses the parent
-    of the original predicate and looks up the object by the subject
+    :param request: test case with test edge data used to construct unit test TRAPI query.
+    :return: Tuple, (trapi_request, output_element, output_node_binding);
+             if trapi_request is None, then error details returned in two other tuple elements
     """
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
     transformed_request = request.copy()  # there's no depth to request, so it's ok
+
     if request['predicate'] != 'biolink:related_to':
         original_predicate_element = tk.get_element(request['predicate'])
         if original_predicate_element:
@@ -314,11 +439,15 @@ def raise_predicate_by_subject(request):
             original_predicate_element['is_a'] = None
         if original_predicate_element['is_a'] is None:
             # This element may be a mixin or abstract, without any parent?
-            return no_parent_error("raise_predicate_by_subject", original_predicate_element)
-        parent = tk.get_parent(original_predicate_element['name'])
-        transformed_request['predicate'] = utils.format_element(tk.get_element(parent))
+            return no_parent_error(
+                "raise_predicate_by_subject",
+                "predicate",
+                original_predicate_element
+            )
+        transformed_request['predicate'] = tk.get_parent(original_predicate_element['name'], formatted=True)
+
     message, errmsg = create_one_hop_message(transformed_request)
     if message:
         return message, 'object', 'b'
     else:
-        return None, "raise_predicate_by_subject", errmsg
+        return None, f"raise_predicate_by_subject|predicate '{str(request['predicate'])}'", errmsg

@@ -20,7 +20,7 @@ from sri_testing.translator.registry import (
     source_of_interest,
     validate_testable_resource,
     live_trapi_endpoint,
-    select_endpoint
+    select_endpoint, assess_trapi_version
 )
 
 logger = logging.getLogger(__name__)
@@ -95,18 +95,18 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
 
 
 @pytest.mark.parametrize(
-    "query",
+    "url,outcome",
     [
-        ("", False),
-        ("https://foobar.com", False),
+        ("", True),
+        ("https://foobar.com", True),
 
         # This particular endpoint is valid and online as of 1 December 2022
         # but may need to be revised in the future, as Translator resources evolve?
-        ("https://automat.renci.org/sri-reference-kg/1.3", True)
+        ("https://automat.renci.org/sri-reference-kg/1.3", False)
     ]
 )
-def test_live_trapi_endpoint(query: Tuple[str, bool]):
-    assert live_trapi_endpoint(query[0]) == query[1]
+def test_live_trapi_endpoint(url: str, outcome: bool):
+    assert (live_trapi_endpoint(url) is None) is outcome
 
 
 # def select_endpoint(
@@ -512,6 +512,58 @@ def _wrap_infores(infores: str):
 )
 def test_source_of_interest(query: Tuple):
     assert source_of_interest(service=query[0], target_sources=query[1]) is query[2]
+
+
+def apply_assessment(test_sequence: List[Tuple[str, str]], trapi_version: Optional[str]):
+    selected_version: Dict[str, str] = dict()
+    for service, best in test_sequence:
+        assess_trapi_version("test-infores", service, trapi_version, selected_version)
+        if "test-infores" in selected_version:
+            assert selected_version["test-infores"] == best
+
+
+def test_assess_trapi_version():
+    """
+    Mimicking sequential insertion of service versions
+    """
+    # Selection sequence without 'target' trapi_version
+    sequence_without_ttv: List[Tuple[str, str]] = [
+        ("1.3.0", "1.3.0"),
+        ("1.2.0", "1.3.0"),
+        ("1.3.0-beta", "1.3.0"),
+        ("1.4.0-beta", "1.4.0-beta"),
+        ("1.4.0", "1.4.0"),
+        ("1.3.0-beta2", "1.4.0")
+    ]
+    apply_assessment(sequence_without_ttv, None)
+
+    # Selection sequence for 'target' trapi_version == 1.3.0 matching at least one service version
+    sequence_with_ttv_and_service_match: List[Tuple[str, str]] = [
+        ("1.2.0", "1.2.0"),
+        ("1.3.0-beta", "1.3.0-beta"),
+        ("1.4.0-beta", "1.3.0-beta"),
+        ("1.4.0", "1.3.0-beta"),
+        ("1.3.0", "1.3.0")
+    ]
+    apply_assessment(sequence_with_ttv_and_service_match, "1.3.0")
+
+    # Selection sequence for 'target' trapi_version == 1.4.0 matching at least one service version
+    sequence_with_ttv_and_service_match: List[Tuple[str, str]] = [
+        ("1.2.0", "1.2.0"),
+        ("1.3.0-beta", "1.3.0-beta"),
+        ("1.4.0-beta", "1.4.0-beta"),
+        ("1.4.0", "1.4.0"),
+        ("1.3.0", "1.4.0")
+    ]
+    apply_assessment(sequence_with_ttv_and_service_match, "1.4.0")
+
+    # Selection sequence for 'target' trapi_version == 1.4.0
+    sequence_with_ttv_but_without_service_match_to_target: List[Tuple[str, str]] = [
+        ("1.2.0", "1.2.0"),
+        ("1.3.0-beta", "1.3.0-beta"),
+        ("1.3.0", "1.3.0")
+    ]
+    apply_assessment(sequence_with_ttv_but_without_service_match_to_target, "1.4.0")
 
 
 def assert_tag(metadata: Dict, service: str, tag: str):
@@ -1553,22 +1605,26 @@ def test_get_translator_kp_test_data_metadata():
 
 def test_get_one_specific_target_kp():
     registry_data: Dict = get_the_registry_data()
-    # we filter on the 'sri-reference-kg' since it is used both in the mock and real registry?
+    # we filter on the 'molepro' since it is used both in the mock and real registry?
     service_metadata = extract_component_test_metadata_from_registry(registry_data, "KP", source="molepro")
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
-        assert "https://molepro-trapi.transltr.io/molepro/trapi/v1.3" in service["url"]
+        assert "https://translator.broadinstitute.org/molepro/trapi/v1.4" in service["url"]
 
 
-def test_get_specific_set_of_target_kp():
+def test_get_specific_subset_of_target_kps():
     registry_data: Dict = get_the_registry_data()
-    # Since we filter on the RENCI 'automat-*' since it is used both in the mock and real registry?
     service_metadata = \
-        extract_component_test_metadata_from_registry(registry_data, "KP", source="automat-*", x_maturity="development")
+        extract_component_test_metadata_from_registry(
+            registry_data, "KP",
+            source="automat-*",
+            x_maturity="development"
+        )
     assert len(service_metadata) >= 1, "We're expecting at least one source KP here!"
     for service in service_metadata.values():
         print(service["infores"], file=stderr)
+        assert service["x_maturity"] == "development"
         assert service["infores"].startswith("automat-")
         assert service["url"].startswith("https://automat.renci.org/")
 

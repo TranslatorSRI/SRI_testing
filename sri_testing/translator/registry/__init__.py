@@ -7,7 +7,7 @@ from datetime import datetime
 
 import requests
 import yaml
-from reasoner_validator.versioning import SemVer
+from reasoner_validator.versioning import SemVer, get_latest_version
 
 from requests.exceptions import RequestException
 
@@ -189,7 +189,7 @@ def capture_tag_value(service_metadata: Dict, resource: str, tag: str, value: st
 
 def rewrite_github_url(url: str) -> str:
     """
-    If the URL is a regular Github page specification of a file, then rewrite
+    If the URL is a regular GitHub page specification of a file, then rewrite
     the URL to point to the corresponding https://raw.githubusercontent.com.
     Non-Github URLs and raw.githubusercontent.com URLs themselves are simply returned unaltered.
 
@@ -222,7 +222,7 @@ def validate_url(url: str) -> Optional[str]:
     #     logger.error(f"validate_url(): JSON Resource " +
     #                  f"'{url}' expected to have a 'json' file extension?")
     else:
-        # Sanity check: rewrite 'regular' Github page endpoints to
+        # Sanity check: rewrite 'regular' GitHub page endpoints to
         # test_data_location JSON files, into 'raw' file endpoints
         # before attempting access to the resource
         test_data_location = rewrite_github_url(url)
@@ -263,7 +263,7 @@ def get_default_url(test_data_location: Optional[Union[str, List, Dict]]) -> Opt
     """
     This method selects a default test_data_location url for use in test data / configuration retrieval.
 
-    This is an temporary heuristic solution for the SRI Testing framework to work around complexity in the new
+    This is a temporary heuristic solution for the SRI Testing framework to work around complexity in the new
     info.x-trapi.test_data_location data model, with its x-maturity indexed, possible multiple, test data sources.
 
     :param test_data_location: Optional[Union[str, List, Dict]]
@@ -386,7 +386,7 @@ _ignored_resources: Set[str] = {
 
 
 @lru_cache(maxsize=1024)
-def live_trapi_endpoint(url: str) -> bool:
+def live_trapi_endpoint(url: str) -> Optional[Dict]:
     """
     Checks if TRAPI endpoint is accessible.
     Current implementation performs a GET on the
@@ -394,10 +394,11 @@ def live_trapi_endpoint(url: str) -> bool:
     to verify that a resource is 'alive'
 
     :param url: str, URL of TRAPI endpoint to be checked
-    :return: bool, True if endpoint is 'alive'; False otherwise
+    :return: Optional[Dict], Returns a Python dictionary version of the /meta_knowledge_graph
+                             JSON output  if endpoint is 'alive'; 'None' otherwise.
     """
     if not url:
-        return False
+        return None
 
     # We test TRAPI endpoints by a simple 'GET'
     # to its '/meta_knowledge_graph' endpoint
@@ -406,7 +407,10 @@ def live_trapi_endpoint(url: str) -> bool:
         request = requests.get(mkg_test_url)
         if request.status_code == 200:
             # Success! given url is deemed a 'live' TRAPI endpoint
-            return True
+            # TODO: since we are accessing this endpoint now, perhaps we can
+            #       harvest some of its metadata here, for validation purposes?
+            data: Optional[Dict] = request.json()
+            return data
         else:
             logger.error(
                 f"live_trapi_endpoint(): TRAPI endpoint '{url}' is inaccessible? " +
@@ -415,7 +419,18 @@ def live_trapi_endpoint(url: str) -> bool:
     except RequestException as re:
         logger.error(f"live_trapi_endpoint(): requests.get() exception {str(re)}?")
 
-    return False
+    return None
+
+
+def capture_kg_metadata(endpoint: str, data: Dict):
+    """
+    Parses and caches useful metadata from a specified TRAPI endpoint.
+    :param endpoint: str, TRAPI endpoint
+    :param data: Dict, JSON output from the /meta_knowledge_graph
+    :return: ??
+    """
+    # TODO: IMPLEMENT ME!
+    pass
 
 
 def select_endpoint(
@@ -485,11 +500,18 @@ def select_endpoint(
     url: Optional[str] = None
     if urls:
         for endpoint in urls:
-            if not check_access or live_trapi_endpoint(endpoint):
-                # Since they are all deemed 'functionally equivalent' by the Translator team, the first
-                # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
+            if not check_access:
+                # May be set for testing purposes
                 url = endpoint
                 break
+            else:
+                # Since they are all deemed 'functionally equivalent' by the Translator team, the first
+                # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
+                data: Optional[Dict] = live_trapi_endpoint(endpoint)
+                if data is not None:
+                    url = endpoint
+                    capture_kg_metadata(url, data)
+                    break
 
     if url:
         # Selected endpoint, if successfully resolved
@@ -831,14 +853,70 @@ def source_of_interest(service: Dict, target_sources: Set[str]) -> Optional[str]
 DEPLOYMENT_TYPES: List[str] = ['production', 'staging', 'testing', 'development']
 
 
+def assess_trapi_version(
+        infores: str,
+        service_version: str,
+        target_version: Optional[str],
+        selected_version: Dict[str, str]
+):
+    """
+    Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing.
+
+    If the 'trapi_version' argument IS set (i.e. is not 'None'), then use that version as the 'target' TRAPI release.
+
+    Note: that doesn't mean that the specified release actually exists, but just that it will be used to guide
+    the filtering process for the selection of the best service TRAPI version, in order of precedence, as follows:
+
+    1. If the service TRAPI version of the service is an exact or compatible match to a requested TRAPI version.
+       (i.e. 1.4.0-beta is compatible to a 1.4.0 target), then select it as a candidate.
+    2. If the 'trapi_version' argument IS NOT set (i.e. is 'None'), then select it as a candidate.
+    3. If the service version is a candidate, record it if it is the latest encountered version; otherwise, ignore it.
+
+    :param infores: str, infores of the observed service
+    :param service_version: str, currently observed service (SemVer) version
+    :param target_version: str, desired (SemVer) version
+    :param selected_version: Dict, catalog of selected (SemVer) versions, indexed by service infores
+    :return:
+    """
+    candidate_version: Optional[str] = None
+    if target_version is not None:
+        # 1. If the service TRAPI version of the service is an exact or compatible match
+        #    to the major, minor level of the requested TRAPI version.
+        #    (i.e. '1.4.1-beta' would be compatible to a '1.4.0' target), then select it.
+        if SemVer.from_string(target_version, core_fields=['major', 'minor'], ext_fields=[]) \
+                == SemVer.from_string(service_version, core_fields=['major', 'minor'], ext_fields=[]):
+            candidate_version = service_version
+    else:
+        # 2. If the 'trapi_version' argument IS NOT set (i.e. is 'None'), then select it as a candidate
+        candidate_version = service_version
+
+    if candidate_version is not None:
+        if infores not in selected_version or \
+                SemVer.from_string(candidate_version) >= SemVer.from_string(selected_version[infores]):
+            selected_version[infores] = candidate_version
+
+
 def extract_component_test_metadata_from_registry(
         registry_data: Dict,
         component_type: str,
         source: Optional[str] = None,
+        trapi_version: Optional[str] = None,
         x_maturity: Optional[str] = None
 ) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
+
+    Generally speaking, this method should only send back *one* specific service entry for each unique
+    (infores-defined) KP or ARA resource, for a given TRAPI version and 'x-maturity' environment.
+
+    The rules for this may be expressed as follows, for a given 'infores' identity:
+
+    1. Retrieve all TRAPI service entry releases - retrieved and enumerated from the Translator SmartAPI Registry,
+       as filtered by the 'source' specification and availability of test data - for the (specified or inferred)
+       target 'x-maturity' environment.
+
+    2. Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing
+       (see the assess_trapi_version() function for selection of service TRAPI version.
 
     :param registry_data:
         Dict, Translator SmartAPI Registry dataset
@@ -851,7 +929,8 @@ def extract_component_test_metadata_from_registry(
                                   as a wildcard match to the infores name being filtered.
                                   Note that all identifiers here should be the reference (object) id's
                                   of the Infores CURIE of the target resource.
-    :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
+    :param trapi_version: Optional[str], target TRAPI version for test run (system chooses 'latest', if not specified)
+    :param x_maturity: Optional[str], 'x_maturity' environment target for test run (system chooses, if not specified)
 
     :return: Dict[str, Dict[str,  Optional[str]]] of metadata, indexed by 'test_data_location'
     """
@@ -864,10 +943,16 @@ def extract_component_test_metadata_from_registry(
     #       Or pre-process the target_sources into a list of 2-tuple patterns to match?
     target_sources: Set[str] = set()
     if source:
-        # if specified, 'source' may be a comma separated list of sources...
+        # if specified, 'source' may be a comma separated list of
+        # (possibly wild card pattern matching) source strings...
         for infores in source.split(","):
             infores = infores.strip()
             target_sources.add(infores)
+
+    # this dictionary, indexed by service 'infores',
+    # will track the selected TRAPI version
+    # for each distinct information resource
+    selected_service_version: Dict = dict()
 
     service_metadata: Dict[str, Dict[str, Optional[Union[str, Dict]]]] = dict()
 
@@ -878,7 +963,9 @@ def extract_component_test_metadata_from_registry(
         if not (component and component == component_type):
             continue
 
-        # Filter on target sources of interest
+        # Retrieve all available releases of service entries - as retrieved and enumerated from the
+        # Translator SmartAPI Registry dataset, as filtered by the 'source' specification - for services
+        # with available test data, for the (specified or inferred) target 'x-maturity' environment.
         infores: Optional[str] = source_of_interest(service=service, target_sources=target_sources)
         if not infores:
             # silently ignore any resource whose InfoRes CURIE
@@ -888,8 +975,12 @@ def extract_component_test_metadata_from_registry(
 
         resource_metadata: Optional[Dict[str, Any]] = \
             validate_testable_resource(index, service, component, x_maturity)
+
         if not resource_metadata:
             continue
+
+        service_trapi_version = tag_value(service, "info.x-trapi.version")
+        assess_trapi_version(infores, service_trapi_version, trapi_version, selected_service_version)
 
         # Once past the 'testable resources' metadata gauntlet,
         # the following parameters are assumed valid and non-empty
@@ -909,7 +1000,6 @@ def extract_component_test_metadata_from_registry(
 
         # Grab additional service metadata, then store it all
         service_version = tag_value(service, "info.version")
-        trapi_version = tag_value(service, "info.x-trapi.version")
         biolink_version = tag_value(service, "info.x-translator.biolink-version")
 
         # TODO: temporary hack to deal with resources which are somewhat sloppy or erroneous in their declaration
@@ -918,7 +1008,7 @@ def extract_component_test_metadata_from_registry(
             biolink_version = MINIMUM_BIOLINK_VERSION
 
         # Index services by (infores, trapi_version, biolink_version)
-        service_id: str = f"{infores},{trapi_version},{biolink_version}"
+        service_id: str = f"{infores},{service_trapi_version},{biolink_version}"
 
         if service_id not in _service_catalog:
             _service_catalog[service_id] = list()
@@ -950,9 +1040,15 @@ def extract_component_test_metadata_from_registry(
         capture_tag_value(service_metadata, service_id, "infores", infores)
         capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)
         capture_tag_value(service_metadata, service_id, "biolink_version", biolink_version)
-        capture_tag_value(service_metadata, service_id, "trapi_version", trapi_version)
+        capture_tag_value(service_metadata, service_id, "trapi_version", service_trapi_version)
 
-    return service_metadata
+    # return the selected service(s) uniquely filtered by
+    # source constraint, TRAPI version and x-maturity environment
+    return {
+        service_id: details
+        for service_id, details in service_metadata.items()
+        if details["trapi_version"] == selected_service_version.setdefault(details["infores"], None)
+    }
 
 
 # Singleton reading of the Registry Data
