@@ -4,30 +4,30 @@ Configure one hop tests
 from typing import Optional, Union, List, Set, Dict, Any, Tuple
 from collections import defaultdict
 
-import logging
-
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
-from reasoner_validator.versioning import latest
+from reasoner_validator.versioning import get_latest_version
 
-from translator.registry import (
+from sri_testing.translator.registry import (
     get_remote_test_data_file,
     get_the_registry_data,
     extract_component_test_metadata_from_registry
 )
 
-from translator.trapi import generate_edge_id, UnitTestReport
+from sri_testing.translator.trapi import generate_edge_id, UnitTestReport
+from sri_testing.translator.sri.testing.onehops_test_runner import (
+    OneHopTestHarness,
+    parse_unit_test_name
+)
 
 from tests.onehop import util as oh_util
 from tests.onehop.util import (
     get_unit_test_codes, get_unit_test_list
 )
-from translator.sri.testing.onehops_test_runner import (
-    OneHopTestHarness,
-    parse_unit_test_name
-)
 
+
+import logging
 logger = logging.getLogger(__name__)
 
 
@@ -146,9 +146,8 @@ def _compile_recommendations(
     # Validation messages are list of dictionary objects with
     # one 'code' key and optional (variable key) parameters
     # Leveraging function closure here...
-    def _capture_messages(message_type: str, messages: List):
-        for entry in messages:
-            code: str = entry.pop('code')
+    def _capture_messages(message_type: str, messages: Dict):
+        for code, entry in messages.items():
             if code not in recommendation_summary[message_type]:
                 recommendation_summary[message_type][code] = list()
             item: Dict = {
@@ -211,7 +210,7 @@ def _tally_unit_test_result(test_case_summary: Dict, test_id: str, edge_num: int
 # 1. Test Summary:  summary statistics of entire test run, indexed by ARA and KP resources
 # 2. Resource Summary: ARA or KP level summary across all edges
 # 3. Edge Details: details of test results for one edge in a given resource test dataset
-# 4. Response: TRAPI JSON response message (may be huge; use file streaming to access!)
+# 4. Response: TRAPI JSON response message (perhaps huge; use file streaming to access!)
 # 5. Recommendations: KP (or ARA/KP) non-redundant hierarchical summary of validation messages
 ##########################################################################################
 
@@ -261,7 +260,7 @@ def pytest_sessionfinish(session):
             unit_test_key=unit_test_key
         )
 
-        # Sanity check: missing 'url' or 'x_maturity is likely a logical bug in SRI Testing?
+        # Sanity check: missing 'url' or 'x_maturity' is likely a logical bug in SRI Testing?
         assert 'url' in test_case
         url: str = test_case['url']
 
@@ -536,7 +535,7 @@ def pytest_addoption(parser):
         "--trapi_version", action="store", default=None,
         help='TRAPI API version to use for validation, overriding' +
              ' Translator SmartAPI Registry property value ' +
-             '(Default: latest public release or ).'
+             '(Default: latest public release).'
     )
     # Override the Translator SmartAPI Registry published
     # 'x-translator' Biolink Model release property value of the target resources.
@@ -544,7 +543,7 @@ def pytest_addoption(parser):
         "--biolink_version", action="store", default=None,
         help='Biolink Model version to use for validation, overriding' +
              ' Translator SmartAPI Registry property value ' +
-             '(Default: latest public release or ).'
+             '(Default: latest public release).'
     )
     parser.addoption(
         "--kp_id", action="store", default=None,  # 'test_triples/KP',
@@ -608,7 +607,7 @@ def get_test_data_sources(
     # TRAPI and/or Biolink Model releases used for data validation
     if trapi_version:
         for service_name in service_metadata.keys():
-            service_metadata[service_name]['trapi_version'] = latest.get(trapi_version)
+            service_metadata[service_name]['trapi_version'] = get_latest_version(trapi_version)
 
     if biolink_version:
         for service_name in service_metadata.keys():
