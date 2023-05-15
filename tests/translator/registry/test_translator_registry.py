@@ -30,6 +30,7 @@ DEFAULT_M_M_TRAPI = "1.4"
 DEF_M_M_P_TRAPI = "1.4.0"
 
 TEST_KP_BASEURL = "https://translator.broadinstitute.org/molepro/trapi/v"
+TEST_DATA_URL = "https://github.com/broadinstitute/molecular-data-provider/blob/master/test/data/MolePro-test-data.json"
 
 
 def test_get_testable_resources_from_registry():
@@ -313,26 +314,78 @@ def test_select_endpoint(query: Tuple):
 
 
 @pytest.mark.parametrize(
-    "query",
+    "server_urls,test_data_location,outcome,endpoint,x_maturity,test_data",
     [
-        (   # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
-            # 1 December 2022, but may need to be revised in the future, as Translator resources evolve?
-            {
-                'development': [f"https://automat.renci.org/sri-reference-kg/{DEFAULT_M_M_TRAPI}"],
+        (   # Query 0 - resolvable endpoint for a defined 'x-maturity'
+            # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
+            # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
+            {   # server_url
+                'development': [f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}'],
             },
-            {
-                'default': f"https://automat.renci.org/sri-reference-kg/{DEFAULT_M_M_TRAPI}/sri_testing_data"
+            {   # test_data_location
+                'development': TEST_DATA_URL
             },
-            (
-                f"https://automat.renci.org/sri-reference-kg/{DEFAULT_M_M_TRAPI}",
-                "development",
-                f"https://automat.renci.org/sri-reference-kg/{DEFAULT_M_M_TRAPI}/sri_testing_data"
-            )
-        )
+            True,           # outcome
+            f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}',  # endpoint
+            "development",  # x_maturity
+            TEST_DATA_URL   # test_data
+        ),
+        (   # Query 1 - resolvable endpoint test data resolved from a default
+            # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
+            # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
+            {   # server_url
+                'development': [f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}'],
+            },
+            {   # test_data_location
+                'default': TEST_DATA_URL
+            },
+            True,           # outcome
+            f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}',  # endpoint
+            "development",  # x_maturity
+            TEST_DATA_URL   # test_data
+        ),
+        (   # Query 2 - unresolvable endpoint test data - no available test data for the specified 'x-maturity'?
+            {  # server_url
+                'development': [f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}'],
+            },
+            {  # test_data_location
+                'testing': TEST_DATA_URL
+            },
+            False,  # outcome
+            "",
+            "",
+            ""
+        ),
+        (   # Query 3 - unresolvable since TRAPI 1.2 endpoint is no longer live for the specified 'x-maturity'?
+            {  # server_url
+                'development': [f'{TEST_KP_BASEURL}1.2'],  # ancient defunct endpoint
+            },
+            {  # test_data_location
+                'default': TEST_DATA_URL
+            },
+            False,  # outcome
+            "",
+            "",
+            ""
+        ),
     ]
 )
-def test_select_endpoint_with_checking(query: Tuple):
-    assert select_endpoint(query[0], query[1]) == query[2]
+def test_select_endpoint_with_checking(
+        server_urls: Dict[str, List[str]],
+        test_data_location: Optional[Union[str, List, Dict]],
+        outcome: bool,
+        endpoint: str,
+        x_maturity: str,
+        test_data: Union[str, List[str]]
+):
+    endpoint_details = select_endpoint(server_urls, test_data_location)
+    if outcome:
+        assert endpoint_details is not None
+        assert endpoint_details[0] == endpoint
+        assert endpoint_details[1] == x_maturity
+        assert endpoint_details[2] == test_data
+    else:
+        assert endpoint_details is None
 
 
 @pytest.mark.parametrize(
