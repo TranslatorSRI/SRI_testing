@@ -24,13 +24,17 @@ from sri_testing.translator.registry import (
 logger = logging.getLogger(__name__)
 
 # Current default major.minor TRAPI SemVer version"
-DEFAULT_M_M_TRAPI = "1.4"
+DEF_M_M_TRAPI = "1.4"
 
 # Current default major.minor.patch TRAPI SemVer version"
 DEF_M_M_P_TRAPI = "1.4.0"
 
 TEST_KP_BASEURL = "https://translator.broadinstitute.org/molepro/trapi/v"
-TEST_DATA_URL = "https://github.com/broadinstitute/molecular-data-provider/blob/master/test/data/MolePro-test-data.json"
+KP_TEST_DATA_URL = "https://github.com/broadinstitute/molecular-data-provider/blob/" +\
+                   "master/test/data/MolePro-test-data.json"
+
+TEST_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
+ARA_TEST_DATA_URL = ""
 
 
 def test_get_testable_resources_from_registry():
@@ -124,7 +128,7 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
 
         # This particular endpoint is valid and online as of 15 May 2023
         # but may need to be revised in the future, as Translator resources evolve?
-        (f"{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}", True)
+        (f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}", True)
     ]
 )
 def test_live_trapi_endpoint(url: str, outcome: bool):
@@ -319,37 +323,37 @@ def test_select_endpoint(query: Tuple):
         (   # Query 0 - resolvable endpoint for a defined 'x-maturity'
             # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
             # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
-            {   # server_url
-                'development': [f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}'],
+                {   # server_url
+                'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
-            {   # test_data_location
-                'development': TEST_DATA_URL
+                {   # test_data_location
+                'development': KP_TEST_DATA_URL
             },
-            True,           # outcome
-            f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}',  # endpoint
+                True,  # outcome
+            f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
             "development",  # x_maturity
-            TEST_DATA_URL   # test_data
+                KP_TEST_DATA_URL   # test_data
         ),
         (   # Query 1 - resolvable endpoint test data resolved from a default
             # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
             # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
-            {   # server_url
-                'development': [f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}'],
+                {   # server_url
+                'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
-            {   # test_data_location
-                'default': TEST_DATA_URL
+                {   # test_data_location
+                'default': KP_TEST_DATA_URL
             },
-            True,           # outcome
-            f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}',  # endpoint
+                True,  # outcome
+            f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
             "development",  # x_maturity
-            TEST_DATA_URL   # test_data
+                KP_TEST_DATA_URL   # test_data
         ),
         (   # Query 2 - unresolvable endpoint test data - no available test data for the specified 'x-maturity'?
             {  # server_url
-                'development': [f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}'],
+                'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
             {  # test_data_location
-                'testing': TEST_DATA_URL
+                'testing': KP_TEST_DATA_URL
             },
             False,  # outcome
             "",
@@ -361,7 +365,7 @@ def test_select_endpoint(query: Tuple):
                 'development': [f'{TEST_KP_BASEURL}1.2'],  # ancient defunct endpoint
             },
             {  # test_data_location
-                'default': TEST_DATA_URL
+                'default': KP_TEST_DATA_URL
             },
             False,  # outcome
             "",
@@ -598,7 +602,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
     "query",
     [
         (  # Query 0 - Valid 'hits' entry with non-empty 'info.x-trapi.test_data_location'
-                {
+            {
                 "hits": [
                     {
                         'info': {
@@ -609,7 +613,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                             },
                             'description': 'Molecular Data Provider for NCATS Biomedical Translator',
                             'title': 'MolePro',
-                            'version': f'{DEFAULT_M_M_TRAPI}.0.0',
+                            'version': f'{DEF_M_M_TRAPI}.0.0',
                             'x-translator': {
                                 'biolink-version': '3.2.0',
                                 'component': 'KP',
@@ -625,22 +629,22 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                         'servers': [
                             {
                                 'description': 'TRAPI production service for MolePro',
-                                'url': f'https://molepro-trapi.transltr.io/molepro/trapi/v{DEFAULT_M_M_TRAPI}',
+                                'url': f'https://molepro-trapi.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'production'
                             },
                             {
                                 'description': 'TRAPI test service for MolePro',
-                                'url': f'https://molepro-trapi.test.transltr.io/molepro/trapi/v{DEFAULT_M_M_TRAPI}',
+                                'url': f'https://molepro-trapi.test.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'testing'
                             },
                             {
                                 'description': 'TRAPI staging service for MolePro',
-                                'url': f'https://molepro-trapi.ci.transltr.io/molepro/trapi/v{DEFAULT_M_M_TRAPI}',
+                                'url': f'https://molepro-trapi.ci.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'staging'
                             },
                             {
                                 'description': 'TRAPI development service for MolePro',
-                                'url': f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}',
+                                'url': f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',
                                 'x-maturity': 'development'
                             }
                         ],
@@ -648,7 +652,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                 ]
             },
             f'molepro,{DEF_M_M_P_TRAPI},3.2.0',  # KP test_data_location, converted to Github raw data link
-            f'{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}'  # 'production' endpoint url preferred for testing?
+            f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'  # 'production' endpoint url preferred for testing?
         ),
         (   # Query 1 - Empty "hits" List
             {
@@ -755,7 +759,7 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                             'contact': {
                                 'email': 'edeutsch@systemsbiology.org'
                             },
-                            'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint for the NCATS Biomedical Translator Reasoner',
+                            'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint for the NCATS Biomedical Translator Reasoner',
                             'license': {
                                 'name': 'Apache 2.0',
                                 'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
@@ -778,28 +782,28 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                         },
                         'servers': [
                             {
-                                'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                                'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                                'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'production'
                             }, {
-                                'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                                'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                                'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'testing'
                             }, {
-                                'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                                'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                                'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'staging'
                             }, {
-                                'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                                'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                                'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'development'
                             },
                         ],
                     }
                 ]
             },
-            f'arax,{DEFAULT_M_M_TRAPI}.0,2.2.11',
-            f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}'
+            f'arax,{DEF_M_M_P_TRAPI},2.2.11',
+            f'{ARA_TEST_DATA_URL}{DEF_M_M_TRAPI}'
         )
     ]
 )
@@ -832,14 +836,14 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}"  # expected testable endpoint (only 'development' available)
+            f"https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}"  # expected testable endpoint (only 'development' available)
         ),
         (
             {  # query 2. missing service 'title' - won't return any resource_metadata
@@ -856,8 +860,8 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
                 ],
@@ -880,8 +884,8 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
                 ],
@@ -939,8 +943,8 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
                 ],
@@ -963,30 +967,30 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}"  # expected 'url' is 'production'
+            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is 'production'
         ),
         (
             {   # query 8. testable, simple single testdata URL; 'staging' endpoint has greatest precedence
@@ -1003,19 +1007,19 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     }
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}"  # expected 'url' is 'staging'
+            f"https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is 'staging'
         ),
         (
             {   # query 9. testable, list of URLs, uses only first one; 'production' endpoint prioritized
@@ -1035,30 +1039,30 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}"  # expected 'url' is 'production' with unclassified list of data urls
+            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is 'production' with unclassified list of data urls
         ),
         (
             {   # query 10. testable, x-maturity dictionary with default; 'production' endpoint prioritized
@@ -1078,30 +1082,30 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}"  # expected 'url' is the 'production' since it can use 'default' data
+            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is the 'production' since it can use 'default' data
         ),
         (
             {   # query 11. testable, x-maturity dictionary with 'testing' x-maturity
@@ -1122,30 +1126,30 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}"  # expected 'url' is the 'testing' endpoint
+            f"https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is the 'testing' endpoint
         ),
         (
             {   # query 12. testable, x-maturity dictionary with 'testing' x-maturity but without default;
@@ -1166,18 +1170,18 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
@@ -1226,8 +1230,8 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
                 ],
@@ -1250,8 +1254,8 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
                 ],
@@ -1309,8 +1313,8 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
                 ],
@@ -1333,23 +1337,23 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
@@ -1373,13 +1377,13 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     }
                 ],
@@ -1405,23 +1409,23 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': 'https://arax.test.transltr.io/api/arax/v{CURRENT_DEFAULT_MAJOR_MINOR_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
@@ -1448,23 +1452,23 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
                 ],
@@ -1491,23 +1495,23 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
@@ -1535,18 +1539,18 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEFAULT_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}',
+                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
 
@@ -1606,7 +1610,7 @@ def test_get_one_specific_target_kp():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
-        assert f"{TEST_KP_BASEURL}{DEFAULT_M_M_TRAPI}" in service["url"]
+        assert f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}" in service["url"]
 
 
 def test_get_translator_ara_test_data_metadata():
@@ -1625,7 +1629,7 @@ def test_get_one_specific_target_ara():
         assert service["infores"] == "arax"
         # the 'url' setting should be a list that includes urls from
         # the default 'production' x-maturity servers list
-        assert f"https://arax.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}" in service["url"]
+        assert f"https://arax.transltr.io/api/arax/v{DEF_M_M_TRAPI}" in service["url"]
         assert service["x_maturity"] == "production"
 
 
@@ -1641,4 +1645,4 @@ def test_get_one_specific_target_x_maturity_in_a_target_ara():
         assert service["x_maturity"] == "testing"
         # the 'url' setting should be a list that includes urls from
         # the explicitly requested 'testing' x-maturity servers list
-        assert f"https://arax.test.transltr.io/api/arax/v{DEFAULT_M_M_TRAPI}" in service["url"]
+        assert f"https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}" in service["url"]

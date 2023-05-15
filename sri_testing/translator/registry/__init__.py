@@ -433,6 +433,24 @@ def capture_kg_metadata(endpoint: str, data: Dict):
     pass
 
 
+def select_accessible_endpoint(urls: Optional[List[str]], check_access: bool) -> str:
+    url: Optional[str] = None
+    for endpoint in urls:
+        if not check_access:
+            # May be set for testing purposes
+            url = endpoint
+            break
+        else:
+            # Since they are all deemed 'functionally equivalent' by the Translator team, the first
+            # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
+            data: Optional[Dict] = live_trapi_endpoint(endpoint)
+            if data is not None:
+                url = endpoint
+                capture_kg_metadata(url, data)
+                break
+    return url
+
+
 def select_endpoint(
         server_urls: Dict[str, List[str]],
         test_data_location: Optional[Union[str, List, Dict]],
@@ -457,22 +475,20 @@ def select_endpoint(
     # Check the possible target testing environments
     # in an ad hoc hardcoded of the 'precedence/rank'
     # ordering of the DEPLOYMENT_TYPES list
-    urls: Optional[List[str]] = None
-    x_maturity: Optional[str] = None
     test_data: Optional[Union[str, List[str]]] = None
-    for environment in DEPLOYMENT_TYPES:
-        if environment in server_urls:
+    for x_maturity in DEPLOYMENT_TYPES:
+        if x_maturity in server_urls:
             # If available, filter environments against 'x-maturity'
             # tagged 'test_data_location' values targeted for testing
             if isinstance(test_data_location, Dict):
-                if environment not in test_data_location:
+                if x_maturity not in test_data_location:
                     continue
 
                 # Otherwise,  'test_data_location' specification is
                 # available for the given x-maturity key and
                 # successfully matched one of the selected 'x-maturity',
                 # one of the DEPLOYMENT_TYPES or the 'default' url?
-                test_data = test_data_location[environment]
+                test_data = test_data_location[x_maturity]
             else:
                 # Otherwise, the test_data_location is a simple string or list of strings thus
                 # no discrimination in the test_data_location(s) concerning target
@@ -480,44 +496,35 @@ def select_endpoint(
                 # x-maturity server endpoint found in the servers block
                 test_data = test_data_location
 
-            urls = server_urls[environment]
-            x_maturity = environment
-            break
+            # server endpoints with test data found
+            # for a given x-maturity environment
+            urls = server_urls[x_maturity]
+            url: str = select_accessible_endpoint(urls, check_access)
+            if url:
+                # Return selected endpoint, fully resolved
+                # with associated available test data
+                return url, x_maturity, test_data
 
-    if not urls and isinstance(test_data_location, Dict) and 'default' in test_data_location:
-        # The first time around, we couldn't align with an *explicitly*
-        # equivalent x-maturity object-model specified test data location.
-        # So we repeat the ordered search for available x-maturity endpoints,
-        # now using any suitable 'default' test data set which is available
-        for environment in DEPLOYMENT_TYPES:
-            if environment in server_urls:
-                urls = server_urls[environment]
-                x_maturity = environment
-                test_data = test_data_location['default']
-                break
+    # If the first time around we couldn't align with an *explicitly*
+    # equivalent x-maturity object-model specified test data location,
+    # then we repeat the ordered search for available 'x-maturity' endpoints,
+    # now using any suitable 'default' test data set which is available
+    if not test_data and isinstance(test_data_location, Dict) and 'default' in test_data_location:
+        test_data = test_data_location['default']
 
-    # ... Now, resolve one of the available endpoints
-    url: Optional[str] = None
-    if urls:
-        for endpoint in urls:
-            if not check_access:
-                # May be set for testing purposes
-                url = endpoint
-                break
-            else:
-                # Since they are all deemed 'functionally equivalent' by the Translator team, the first
-                # 'live' endpoint, within the given x-maturity set, is selected as usable for testing.
-                data: Optional[Dict] = live_trapi_endpoint(endpoint)
-                if data is not None:
-                    url = endpoint
-                    capture_kg_metadata(url, data)
-                    break
+    if test_data:
+        # 'default' test data available...
+        # Re-iterate through available x-maturity environments, by order of precedence
+        for x_maturity in DEPLOYMENT_TYPES:
+            if x_maturity in server_urls:
+                urls = server_urls[x_maturity]
+                url: str = select_accessible_endpoint(urls, check_access)
+                if url:
+                    # Selected endpoint, if successfully resolved
+                    return url, x_maturity, test_data
 
-    if url:
-        # Selected endpoint, if successfully resolved
-        return url, x_maturity, test_data
-    else:
-        return None
+    # default is failure
+    return None
 
 
 def validate_servers(
