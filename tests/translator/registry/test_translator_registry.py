@@ -5,7 +5,7 @@ from typing import Optional, Union, Tuple, Dict, List
 import logging
 import pytest
 
-from translator.registry import (
+from sri_testing.translator.registry import (
     get_default_url,
     rewrite_github_url,
     query_smart_api,

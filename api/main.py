@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from reasoner_validator.report import CodeDictionary
 
 from reasoner_validator.versioning import (
-    latest,
+    get_latest_version,
     SemVer,
     SemVerError,
     SemVerUnderspecified
@@ -236,7 +236,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
             if not _is_valid_version(trapi_version):
                 errors.append(f"'trapi_version' parameter '{trapi_version}' is not a valid SemVer string!")
             else:
-                trapi_version = latest.get(test_parameters.trapi_version)
+                trapi_version = get_latest_version(test_parameters.trapi_version)
 
         if test_parameters.biolink_version:
             biolink_version = test_parameters.biolink_version
