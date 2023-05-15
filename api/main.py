@@ -25,7 +25,7 @@ from reasoner_validator.versioning import (
 )
 
 from tests.onehop.util import get_unit_test_definitions
-from translator.sri.testing.onehops_test_runner import (
+from sri_testing.translator.sri.testing.onehops_test_runner import (
     OneHopTestHarness,
     DEFAULT_WORKER_TIMEOUT
 )
@@ -71,32 +71,38 @@ class ResourceRegistry(BaseModel):
     ARAs: Dict[str, List[str]]
 
 
+# Treat the registry catalog as an initialized singleton, to enhance application performance
+the_resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
+        OneHopTestHarness.testable_resources_catalog_from_registry()
+
+
 @app.get(
     "/registry",
     tags=['report'],
-    response_model=ResourceRegistry,
+    response_model=Union[ResourceRegistry, str],
     summary="Retrieve the list of testable resources (KPs and ARAs) published in the Translator SmartAPI Registry."
 )
-async def get_resources_from_registry() -> ResourceRegistry:
+async def get_resources_from_registry(refresh: bool = False) -> Union[ResourceRegistry, str]:
     """
     Returns a list of ARA and KP available for testing from the Translator SmartAPI Registry.
     Note that only Translator resources with their **info.x-trapi.test_data_location** properties set are reported.
 
-    - 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available KPs and ARAs,vkeyed with the
-      reference ('object') id's of InfoRes CURIES and values are lists of testable x-maturity environments
+    - 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available KPs and ARAs, keyed with the
+      reference ('object') id's of InfoRes CURIES and where values are lists of testable x-maturity environments
     \f
     :return: ResourceRegistry, inventory of available KPs and ARAs with the testable x-maturity environment types.
     """
-    resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
-        OneHopTestHarness.testable_resources_catalog_from_registry()
+    global the_resources
+    if refresh:
+        the_resources = OneHopTestHarness.testable_resources_catalog_from_registry()
 
     message: str
-    if resources:
+    if the_resources is not None:
         message = "Translator resources found!"
+        return ResourceRegistry(message=message, KPs=the_resources[0], ARAs=the_resources[1])
     else:
         message = "Translator SmartAPI Registry currently offline?"
-
-    return ResourceRegistry(message=message, KPs=resources[0], ARAs=resources[1])
+        return message
 
 
 ###########################################################
@@ -114,16 +120,6 @@ class TestRunParameters(BaseModel):
     # # Only use first edge from each KP file
     # one: bool = False
     #
-    # # 'REGISTRY', directory or file from which to retrieve triples.
-    # # (Default: 'REGISTRY', which triggers the use of metadata, in KP entries
-    # # from the Translator SmartAPI Registry, to configure the tests).
-    # triple_source: Optional[str] = 'REGISTRY'
-    #
-    # # 'REGISTRY', directory or file from which to retrieve ARA Config.
-    # # (Default: 'REGISTRY', which triggers the use of metadata, in ARA entries
-    # # from the Translator SmartAPI Registry, to configure the tests).
-    # ara_source: Optional[str] = 'REGISTRY'
-
     # (Optional) reference (object) identifier of the ARA InfoRes CURIE
     # designating an ARA which is the target of validation in the new test run.
     ara_id: Optional[str] = None
@@ -164,17 +160,6 @@ class TestRunParameters(BaseModel):
 class TestRunSession(BaseModel):
 
     test_run_id: str
-
-    # TODO: user specified TRAPI version...
-    #       we should somehow try to report the
-    #       actual version used by the system
-    # "trapi_version": trapi_version,
-
-    # TODO: user specified Biolink Model version...
-    #       we should somehow try to report the
-    #       actual version used by the system
-    # "biolink_version": biolink_version
-
     errors: Optional[List[str]] = None
 
 
@@ -205,16 +190,14 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
         Note that 'kp_id' may be a comma delimited list of strings, in which case, any or all of the indicated KP
         identifiers are included in the test run, with or without an ARA identifier, interpreted as follows:
 
-    *Case 1* - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource(s)
-
-    *Case 2* - non-empty ara_id, non-empty kp_id == return the one specific KP(s) tested via the specified ARA
-
-    *Case 3* - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration file
-
-    *Case 4* - empty ara_id and kp_id, validate all Registry KPs and ARAs (long-running validation! Be careful now!)
+    *Case 1* - non-empty kp_id, empty ara_id: just return  summary of specified KP resource(s) for all ARAs calling KPs.
+    *Case 2* - non-empty kp_id, ara_id == 'SKIP': only just test the specified KP resource(s) (without calling ARAs).
+    *Case 3* - non-empty ara_id, non-empty kp_id: return the one specific KP(s) tested via the specified ARA
+    *Case 4* - non-empty ara_id, empty kp_id: validate against all the KPs specified by the ARA configuration file
+    *Case 5* - empty ara_id and kp_id: validate all Registry KPs and ARAs (long-running validation! Be careful now!)
 
     The **'ara_id'** and **'kp_id'** may be a scalar string, or a comma-delimited set of strings.
-    If the 'source' string includes a single asterix ('\*'), it is treated as a wildcard match to the
+    If the 'source' string includes a single asterix ('\\*'), it is treated as a wildcard match to the
     infores identifier being filtered. Note that all identifiers here should be the reference (object)
     identifiers of the Infores CURIE of the target resource(s).
 

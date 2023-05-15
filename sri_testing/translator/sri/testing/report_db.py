@@ -1,5 +1,5 @@
 
-from typing import Dict, Optional, List, IO, Generator, Callable, Mapping
+from typing import Dict, Optional, List, IO, Generator, Callable
 from sys import stderr
 from os import environ, makedirs, listdir
 from os.path import sep, normpath, exists

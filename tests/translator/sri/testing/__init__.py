@@ -1,7 +1,7 @@
 from typing import Dict
 
-from translator.sri.testing.report_db import TestReportDatabase, TestReport
-from translator.sri.testing.onehops_test_runner import OneHopTestHarness
+from sri_testing.translator.sri.testing.report_db import TestReportDatabase, TestReport
+from sri_testing.translator.sri.testing.onehops_test_runner import OneHopTestHarness
 
 # For early testing of the Unit test, test data is not deleted when DEBUG is True;
 # however, this interferes with idempotency of the tests (i.e. data must be manually deleted from the test database)

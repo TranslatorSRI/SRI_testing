@@ -1,7 +1,7 @@
 from os.path import sep
 from datetime import datetime
 from tests.onehop import TEST_RESULTS_DB, ONEHOP_TEST_DIRECTORY
-from translator.sri.testing.report_db import TestReportDatabase, TestReport
+from sri_testing.translator.sri.testing.report_db import TestReportDatabase, TestReport
 
 TEST_DATABASE = "test-database"
 

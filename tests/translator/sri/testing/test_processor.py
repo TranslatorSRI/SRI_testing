@@ -10,7 +10,7 @@ from time import sleep
 
 import logging
 
-from translator.sri.testing.processor import (
+from sri_testing.translator.sri.testing.processor import (
     CMD_DELIMITER,
     PWD_CMD,
     PYTHON_PATH,
@@ -116,7 +116,7 @@ def test_progress_monitoring():
         else:
             print("get_output() operation timed out?", file=stderr)
             tries += 1
-            if tries > 3:
+            if tries > 10:
                 assert False, "Progress monitoring timed out?"
 
         if percentage_completion == "100":

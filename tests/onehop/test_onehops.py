@@ -7,6 +7,7 @@ Existing KP Unit Tests (defined in onehop.util module):
 - inverse_by_new_subject
 - by_object
 - raise_subject_entity
+- raise_object_entity
 - raise_object_by_subject
 - raise_predicate_by_subject
 
@@ -16,7 +17,7 @@ from typing import List, Dict
 import pytest
 
 from tests.onehop.util import in_excluded_tests
-from translator.trapi import execute_trapi_lookup, UnitTestReport
+from sri_testing.translator.trapi import execute_trapi_lookup, UnitTestReport
 from tests.onehop import util as oh_util
 
 import logging
@@ -29,7 +30,7 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
     """
     Wrapper to propagate in Pytest, any skipped test edges.
 
-    :param scope: str, 'KP" or 'ARA'
+    :param scope: str, 'KP' or 'ARA'
     :param test: the particular unit test being skipped
     :param test_case: input edge data unit test case
     :param test_report: UnitTestReport wrapper for reporting test status
@@ -60,12 +61,12 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
 
 @pytest.mark.asyncio
 async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
-    """Generic Test for TRAPI KPs. The kp_trapi_case fixture is created in conftest.py by looking at the test_triples
-    These get successively fed to test_TRAPI.  This function is further parameterized by trapi_creator, which knows
-    how to take an input edge and create some kind of TRAPI query from it.  For instance, by_subject removes the object,
-    while raise_object_by_subject removes the object and replaces the object category with its biolink parent.
-    This approach will need modification if there turn out to be particular elements we want to test for different
-    creators.
+    """Generic Test for TRAPI KPs. The kp_trapi_case fixture is created in conftest.py by looking at KP test triples
+    These get successively fed into test_trapi_kps.  This function is further parameterized by trapi_creator, which
+    knows how to take an input edge and create some kind of TRAPI query from it.  For instance, by_subject removes
+    the object, while raise_object_by_subject removes the object and replaces the object category with its
+    biolink parent. This approach will need modification if there turn out to be particular elements we want
+    to test for different creators.
     """
     results_bag.location = kp_trapi_case['ks_test_data_location']
     results_bag.case = kp_trapi_case
@@ -113,14 +114,15 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         oh_util.by_object,
         oh_util.inverse_by_new_subject,
         oh_util.raise_subject_entity,
+        oh_util.raise_object_entity,
         oh_util.raise_object_by_subject,
         oh_util.raise_predicate_by_subject
     ]
 )
 async def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
-    """Generic Test for ARA TRAPI.  It does the same thing as the KP TRAPI, calling an ARA that should be pulling
-    data from the KP.
-    Then it performs a check on the result to make sure that the provenance is correct.
+    """Generic Test for ARA TRAPI.  It does the same thing as the test_trapi_kps, calling an ARA
+    that should be pulling data from various KPs. Then it also performs a check on the result to make sure
+    that the provenance is correct.
     """
     results_bag.location = ara_trapi_case['ara_test_config_location']
     results_bag.case = ara_trapi_case

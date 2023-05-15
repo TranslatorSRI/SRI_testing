@@ -81,6 +81,7 @@
       <span v-if="id !== null && loading === false" :key="`${id}_versions`">
         <span class="subheading"><strong>BioLink:&nbsp;</strong></span><span>{{biolink_range.join(', ')}}</span>&nbsp;
         <span class="subheading"><strong>TRAPI:&nbsp;</strong></span><span>{{trapi_range.join(', ')}}</span>&nbsp;
+        <span class="subheading"><strong>x-maturity:&nbsp;</strong></span><span>{{x_maturity_range.join(', ')}}</span>&nbsp;
       </span>
       <v-row>
 
@@ -166,6 +167,7 @@
                     <h3>{{ resource_key }}</h3>&nbsp;
                     <v-chip small><strong>BioLink:&nbsp;</strong> {{ _stats_summary[resource_key].biolink_version }}</v-chip>
                     <v-chip small><strong>TRAPI:&nbsp;</strong> {{ _stats_summary[resource_key].trapi_version }}</v-chip>
+                    <v-chip small><strong>x-maturity:&nbsp;</strong> {{ _stats_summary[resource_key].x_maturity }}</v-chip>
                   </v-chip-group><br>
 
                   <v-row no-gutter>
@@ -692,6 +694,14 @@ export default {
             }
             return _(biolink_versions).uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values();
         },
+        x_maturity_range() {
+            let x_maturities = [];
+            if (!!this.stats_summary && !_.isEmpty(this.stats_summary)) {
+                x_maturities.push(...Object.entries(this.stats_summary.KP).map(([_, entry]) => entry.x_maturity));
+                x_maturities.push(...Object.entries(this.stats_summary.ARA).flatMap(([_, entry]) => Object.entries(entry.kps).map(([_, entry]) => entry.x_maturity)));
+            }
+            return _(x_maturities).uniq().omitBy(_.isUndefined).omitBy(_.isNull).sort().values();
+        },
         all_categories() {
             if (!!this.id && !!this.index) {
                 return this.getAllCategories(this.id, this.index)
@@ -839,7 +849,7 @@ export default {
 
           let cleaned_recommendations = {};
           for (let resource of Object.keys(_.cloneDeep(recommendations))) {
-            cleaned_recommendations[resource] = _.omit(recommendations[resource], ['trapi_version', 'biolink_version', 'document_key']);
+            cleaned_recommendations[resource] = _.omit(recommendations[resource], ['trapi_version', 'biolink_version', 'x_maturity', 'document_key']);
           }
 
           let unique_recommendations = {};

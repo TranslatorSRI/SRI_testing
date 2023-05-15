@@ -3,8 +3,7 @@ import requests
 import json
 from requests.exceptions import JSONDecodeError
 
-from biothings_explorer.smartapi_kg.dataload import load_specs
-# from biothings_explorer.smartapi_kg import MetaKG
+from sri_testing.translator.registry import load_specs
 
 
 def get_team(spec):
