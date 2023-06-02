@@ -47,7 +47,7 @@ def test_get_testable_resources_from_registry():
 
     assert len(resources) > 0, "No testable resources in the Registry?"
     assert len(resources[0]) > 0, "No testable resources in the Registry?"
-    assert "sri-reference-kg" in resources[0]
+    assert "automat-sri-reference-kg" in resources[0]
     assert len(resources[1]) > 0, "No testable resources in the Registry?"
     assert "arax" in resources[1]
 
@@ -629,7 +629,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                         'servers': [
                             {
                                 'description': 'TRAPI production service for MolePro',
-                                'url': f'https://molepro-trapi.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
+                                'url': f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}",
                                 'x-maturity': 'production'
                             },
                             {
@@ -795,7 +795,7 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                                 'x-maturity': 'staging'
                             }, {
                                 'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                                'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
+                                'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                                 'x-maturity': 'development'
                             },
                         ],

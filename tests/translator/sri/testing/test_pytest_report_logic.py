@@ -66,6 +66,7 @@ def _report_outcome(
         percentage_completed = OneHopTestHarness(session_id).get_status()
 
     if expecting_report:
+        logger.info(f"{percentage_completed} % completed!")
         assert percentage_completed == 100.0, f"OneHopTestHarness status retrieval failed after {max_tries} tries?"
 
     summary: Optional[str] = None
@@ -136,7 +137,8 @@ def test_run_onehop_tests_one_only():
     )
     _report_outcome(
         "test_run_onehop_tests_one_only",
-        session_id=onehop_test.get_test_run_id()
+        session_id=onehop_test.get_test_run_id(),
+        max_tries=5
     )
 
 
