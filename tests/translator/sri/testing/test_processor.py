@@ -95,7 +95,7 @@ def test_progress_monitoring():
     wp.run_command(f"{PYTHON_PATH} {MOCK_WORKER}")
 
     done: bool = False
-    percentage_completion: str = "0"
+    percentage_completion: float = 0.0
     tries: int = 0
 
     while not done:
@@ -103,23 +103,19 @@ def test_progress_monitoring():
         print("\nChecking progress...", file=stderr)
         sleep(1)
 
-        next_pc: Optional[str] = None
-        for line in wp.get_output():
-            pc = PERCENTAGE_COMPLETION_SUFFIX_PATTERN.search(line)
-            if pc and pc.group():
-                next_pc = pc["percentage_completion"]
+        next_pc: Optional[float] = None
+        for next_pc in wp.get_output():
+            if next_pc:
+                tries = 0
+                percentage_completion = next_pc
+                print(f"{next_pc}% complete!", file=stderr)
+            else:
+                print("get_output() operation timed out?", file=stderr)
+                tries += 1
+                if tries > 10:
+                    assert False, "Progress monitoring timed out?"
 
-        if next_pc:
-            tries = 0
-            percentage_completion = next_pc
-            print(f"{next_pc}% complete!", file=stderr)
-        else:
-            print("get_output() operation timed out?", file=stderr)
-            tries += 1
-            if tries > 10:
-                assert False, "Progress monitoring timed out?"
-
-        if percentage_completion == "100":
+        if percentage_completion == 100.0:
             done = True
 
     print("test_progress_monitoring() test completed successfully!", file=stderr)
