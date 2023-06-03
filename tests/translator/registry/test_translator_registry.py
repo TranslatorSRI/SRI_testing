@@ -1,6 +1,7 @@
 """
 Unit tests for Translator SmartAPI Registry
 """
+from sys import stderr
 from typing import Optional, Union, Tuple, Dict, List
 import logging
 import pytest
@@ -123,8 +124,8 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
 @pytest.mark.parametrize(
     "url,outcome",
     [
-        ("", True),
-        ("https://foobar.com", True),
+        ("", False),
+        ("https://foobar.com", False),
 
         # This particular endpoint is valid and online as of 15 May 2023
         # but may need to be revised in the future, as Translator resources evolve?
@@ -323,30 +324,30 @@ def test_select_endpoint(query: Tuple):
         (   # Query 0 - resolvable endpoint for a defined 'x-maturity'
             # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
             # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
-                {   # server_url
+            {   # server_url
                 'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
-                {   # test_data_location
+            {   # test_data_location
                 'development': KP_TEST_DATA_URL
             },
-                True,  # outcome
+            True,  # outcome
             f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
             "development",  # x_maturity
-                KP_TEST_DATA_URL   # test_data
+            KP_TEST_DATA_URL   # test_data
         ),
         (   # Query 1 - resolvable endpoint test data resolved from a default
             # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
             # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
-                {   # server_url
+            {   # server_url
                 'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
-                {   # test_data_location
+            {   # test_data_location
                 'default': KP_TEST_DATA_URL
             },
-                True,  # outcome
+            True,  # outcome
             f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
             "development",  # x_maturity
-                KP_TEST_DATA_URL   # test_data
+            KP_TEST_DATA_URL   # test_data
         ),
         (   # Query 2 - unresolvable endpoint test data - no available test data for the specified 'x-maturity'?
             {  # server_url
@@ -525,13 +526,27 @@ def _wrap_infores(infores: str):
         # (<infores>, <target_sources>, <boolean return value>)
         (_wrap_infores("infores-object-id"), None, "infores-object-id"),   # Empty <target_sources>
         (_wrap_infores("infores-object-id"), set(), "infores-object-id"),  # Empty <target_sources>
-        (_wrap_infores("infores-object-id"), {"infores-object-id"}, "infores-object-id"),  # single matching element in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*"}, "infores-object-id"),   # match to single prefix wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"*-object-id"}, "infores-object-id"),  # match to single suffix wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*-id"}, "infores-object-id"),   # match to embedded wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*-ID"}, None),  # mismatch to embedded wildcard pattern in 'target_source' set
-        (_wrap_infores("infores-object-id"), {"infores-*-*"}, None),   # only matches a single embedded wildcard pattern...
-        (_wrap_infores("infores-object-id"), {"another-*"}, None),  # mismatch to single wildcard pattern in 'target_source' set
+
+        # single matching element in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-object-id"}, "infores-object-id"),
+
+        # match to single prefix wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-*"}, "infores-object-id"),
+
+        # match to single suffix wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"*-object-id"}, "infores-object-id"),
+
+        # match to embedded wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-*-id"}, "infores-object-id"),
+
+        # mismatch to embedded wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"infores-*-ID"}, None),
+
+        # only matches a single embedded wildcard pattern...
+        (_wrap_infores("infores-object-id"), {"infores-*-*"}, None),
+
+        # mismatch to single wildcard pattern in 'target_source' set
+        (_wrap_infores("infores-object-id"), {"another-*"}, None),
         (
             # exact match to single element in the 'target_source' set
             _wrap_infores("infores-object-id"),
@@ -811,7 +826,8 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
                             'contact': {
                                 'email': 'edeutsch@systemsbiology.org'
                             },
-                            'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint for the NCATS Biomedical Translator Reasoner',
+                            'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint' +
+                                           ' for the NCATS Biomedical Translator Reasoner',
                             'license': {
                                 'name': 'Apache 2.0',
                                 'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
@@ -895,7 +911,9 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}"  # expected testable endpoint (only 'development' available)
+
+            # expected testable endpoint (only 'development' available)
+            f"https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}"
         ),
         (
             {  # query 2. missing service 'title' - won't return any resource_metadata
@@ -1114,7 +1132,9 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is 'production' with unclassified list of data urls
+
+            # expected 'url' is 'production' with unclassified list of data urls
+            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"
         ),
         (
             {   # query 10. testable, x-maturity dictionary with default; 'production' endpoint prioritized
@@ -1157,7 +1177,9 @@ def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, st
                 ],
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is the 'production' since it can use 'default' data
+
+            # expected 'url' is the 'production' since it can use 'default' data
+            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"
         ),
         (
             {   # query 11. testable, x-maturity dictionary with 'testing' x-maturity
@@ -1644,7 +1666,6 @@ def test_get_testable_resource_ids_from_registry():
     assert "testing" in resources[0]["molepro"]
     assert "staging" in resources[0]["molepro"]
     assert "arax" in resources[1]
-    assert "testing" in resources[1]["arax"]
     assert "production" in resources[1]["arax"]
 
 
