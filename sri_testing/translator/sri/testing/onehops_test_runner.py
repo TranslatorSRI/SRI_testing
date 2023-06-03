@@ -8,13 +8,13 @@ import re
 from sri_testing.translator.registry import get_the_registry_data, get_testable_resources_from_registry
 from sri_testing.translator.sri.testing.processor import CMD_DELIMITER, WorkerTask
 
-from tests.onehop import ONEHOP_TEST_DIRECTORY
-
 from sri_testing.translator.sri.testing.report_db import (
     TestReport,
     TestReportDatabase,
     get_test_report_database
 )
+
+from tests.onehop import ONEHOP_TEST_DIRECTORY
 
 import logging
 logger = logging.getLogger()
@@ -221,11 +221,11 @@ class OneHopTestHarness:
         Run the SRT Testing test harness as a worker process.
         :param ara_id: Optional[str], identifier of the ARA resource(s) whose KP test results are being accessed
         :param kp_id: Optional[str], identifier of the KP resource(s) whose test results are being accessed.
-          - *Case 1* - non-empty kp_id, empty ara_id: return summary of specified KP resource(s) for ARAs calling them.
-          - *Case 2* - non-empty kp_id, ara_id == 'SKIP': only test the specified KP resource(s) (without calling ARAs).
-          - *Case 3* - non-empty ara_id, non-empty kp_id: return the one specific KP(s) tested via the specified ARA
-          - *Case 4* - non-empty ara_id, empty kp_id: validate against all KPs specified by the ARA configuration file
-        - *Case 5* - empty ara_id and kp_id: validate all Registry KPs and ARAs (long-running validation! Careful now!)
+            - Case 1 - non-empty ara_id, non-empty kp_id == return the one specific KP tested via the specified ARA
+            - Case 2 - non-empty kp_id, empty ara_id == just return the summary of the specified KP resource
+            - Case 3 - non-empty ara_id, empty kp_id == validate against all the KPs specified by the ARA configuration
+            - Case 4 - empty ara_id and kp_id, all Registry KPs and ARAs (long-running validation! Be careful now!)
+
         :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)
@@ -604,12 +604,13 @@ class OneHopTestHarness:
     @classmethod
     def testable_resources_catalog_from_registry(cls) -> Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]]:
         """
-        Retrieve inventory of testable resources from the Translator SmartAPI Registry.
+        Retrieve inventory of testable resources from the Tranlator SmartAPI Registry.
 
         :return: Optional 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available
                  KPs and ARAs,  with keys from reference ('object') id's of InfoRes CURIES and values that
                  are lists of testable x-maturity environment tags. Return None if Registry is inaccessible.
         """
+
         registry_data: Optional[Dict] = get_the_registry_data()
 
         if not registry_data:

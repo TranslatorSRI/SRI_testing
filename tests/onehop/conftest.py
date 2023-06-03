@@ -5,8 +5,6 @@ from typing import Optional, Union, List, Set, Dict, Any, Tuple
 from collections import defaultdict
 from copy import deepcopy
 
-import logging
-
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
@@ -19,16 +17,18 @@ from sri_testing.translator.registry import (
 )
 
 from sri_testing.translator.trapi import generate_edge_id, UnitTestReport
-
-from tests.onehop import util as oh_util
-from tests.onehop.util import (
-    get_unit_test_codes, get_unit_test_list
-)
 from sri_testing.translator.sri.testing.onehops_test_runner import (
     OneHopTestHarness,
     parse_unit_test_name
 )
 
+from tests.onehop import util as oh_util
+from tests.onehop.util import (
+    get_unit_test_codes, get_unit_test_list
+)
+
+
+import logging
 logger = logging.getLogger(__name__)
 
 # TODO: temporary circuit breaker for huge edge test data sets
@@ -116,14 +116,12 @@ def _compile_recommendations(
     #     "errors": {
     #       "error.edge.predicate.unknown": [
     #         {
-    #           "messages":
-    #             [
-    #               {
-    #                 "context": "Query Graph",
-    #                 "edge_id": "a--['biolink:has_active_component']->b",
-    #                 "predicate": "biolink:has_active_component"
-    #               }
-    #             ],
+    #           "message": {
+    #             "context": "Query Graph",
+    #             "edge_id": "a--['biolink:has_active_component']->b",
+    #             "predicate": "biolink:has_active_component",
+    #             "code": "error.edge.predicate.unknown"
+    #           },
     #           "test_data": {
     #             "subject_category": "biolink:Gene",
     #             "object_category": "biolink:CellularComponent",
@@ -136,8 +134,7 @@ def _compile_recommendations(
     #       ],
     # ...
     #    }
-    # Hard missing key error exception will be thrown here if test_case dictionary lacks keys...
-    # This is probably OK since it likely represents a logical bug to be fixed in the code.
+    # TODO: what if test_case lacks some of the keys?
     test_data: Dict = {
         "subject_category": test_case["subject_category"],
         "object_category": test_case["object_category"],
@@ -156,11 +153,10 @@ def _compile_recommendations(
     # Leveraging function closure here to inject content into the recommendation_summary
     def _capture_messages(message_type: str, messages: Dict[str, Optional[List[Dict[str, str]]]]):
         for code, entries in messages.items():
-
             if code not in recommendation_summary[message_type]:
                 recommendation_summary[message_type][code] = list()
             item: Dict = {
-                "messages": entries if entries else [],
+                "message": entries,
                 "test_data": test_data,
                 "test": test_id
             }
@@ -219,7 +215,7 @@ def _tally_unit_test_result(test_case_summary: Dict, test_id: str, edge_num: int
 # 1. Test Summary:  summary statistics of entire test run, indexed by ARA and KP resources
 # 2. Resource Summary: ARA or KP level summary across all edges
 # 3. Edge Details: details of test results for one edge in a given resource test dataset
-# 4. Response: TRAPI JSON response message (maybe huge; use file streaming to access!)
+# 4. Response: TRAPI JSON response message (perhaps huge; use file streaming to access!)
 # 5. Recommendations: KP (or ARA/KP) non-redundant hierarchical summary of validation messages
 ##########################################################################################
 
@@ -360,6 +356,8 @@ def pytest_sessionfinish(session):
         # Tally up the number of test results of a given 'status' across 'test_id' unit test categories
         _tally_unit_test_result(case_summary, test_id, edge_num, details['status'])
 
+        # TODO: merge case details here into a Cartesian product table of edges
+        #       and unit test id's for a given resource indexed by ARA and KP
         idx: str = str(test_case['idx'])
 
         if idx not in resource_summary['test_edges']:
@@ -542,7 +540,7 @@ def pytest_addoption(parser):
         "--trapi_version", action="store", default=None,
         help='TRAPI API version to use for validation, overriding' +
              ' Translator SmartAPI Registry property value ' +
-             '(Default: Translator SmartAPI Registry recorded release).'
+             '(Default: latest public release).'
     )
     # Override the Translator SmartAPI Registry published
     # 'x-translator' Biolink Model release property value of the target resources.
@@ -550,14 +548,14 @@ def pytest_addoption(parser):
         "--biolink_version", action="store", default=None,
         help='Biolink Model version to use for validation, overriding' +
              ' Translator SmartAPI Registry property value ' +
-             '(Default: Translator SmartAPI Registry recorded release).'
+             '(Default: latest public release).'
     )
     parser.addoption(
-        "--kp_id", action="store", default=None,
-        help='(Possibly list of) Knowledge Provider identifier ("KP") sources targeted for testing (Default: None).'
+        "--kp_id", action="store", default=None,  # 'test_triples/KP',
+        help='Knowledge Provider identifier ("KP") targeted for testing (Default: None).'
     )
     parser.addoption(
-        "--ara_id", action="store", default=None,
+        "--ara_id", action="store", default=None,  # 'test_triples/ARA',
         help='Autonomous Relay Agent ("ARA") targeted for testing (Default: None).'
     )
     parser.addoption(
@@ -588,7 +586,14 @@ def get_test_data_sources(
     """
     Retrieves a dictionary of metadata of 'component_type', indexed by 'source' identifier.
 
-    :param source: Optional[str], 'ara_id' or 'kp_id' source of test configuration data in the registry.
+    If the 'source' is specified to be the string 'REGISTRY', then
+    this dictionary is populated from the Translator SmartAPI Registry,
+    using published 'test_data_location' values as keys.
+
+    Otherwise, a local file source of the metadata is assumed,
+    using the local data file name as a key (these should be unique).
+
+    :param source: Optional[str], ara_id or kp_id source of test configuration data in the registry.
                                   Take 'all' of the given component type if the source is None
 
     :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
@@ -653,9 +658,9 @@ def load_test_data_sources(
 
         if 'infores' not in test_data:
             if source_id:
-                test_data['infores'] = source_id  # default 'infores' is from component being tested
+                test_data['infores'] = source_id  # default infores is from component being tested
             else:
-                logger.warning(f"Test data missing 'infores': {str(test_data)[0:20]}...Skipping!")
+                logger.warning(f"Test data missing infores: {str(test_data)[0:20]}...Skipping!")
                 continue
 
         # Registry metadata resource endpoint 'url' values now
@@ -691,12 +696,8 @@ def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict
     if x_maturity and x_maturity.lower() not in ["production", "staging", "testing", "development"]:
         x_maturity = None
 
-    if ara_id:
-        if not isinstance(ara_id, str):
-            logger.error(f"get_ara_metadata(): the ARA identifier specifier '{ara_id}' is not a string?")
-            return dict()  # skip validation of the ARA
-        if ara_id.upper() == "SKIP":
-            return dict()  # no ARA's to validate
+    if ara_id == "SKIP":
+        return dict()  # no ARA's to validate
 
     # Note: the ARA's trapi_version and biolink_version may be overridden here
     return get_test_data_sources(
@@ -812,6 +813,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
             logger.error(err_msg)
             continue
 
+        # TODO: see below about echoing the edge input data to the Pytest stdout
         print(f"### Start of Test Input Edges for KP '{kp_id}' ###")
 
         sources: Dict = kpjson['sources']

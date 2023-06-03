@@ -38,7 +38,7 @@ Every test run only tests **_one_** endpoint within **_one_** **`x-maturity`** e
 
 For each KP, we need a file with one triple of each type that the KP can provide. Here is an example:
 
-```
+```json
 { 
     #
     # Deprecated: the original 'url' field is deprecated and now ignored.
@@ -181,7 +181,7 @@ The KP test edge format is [being extended to specify Biolink version 3 qualifie
 
 For each ARA, we want to ensure that it is able to extract information correctly from the KPs.  To do this, we need to know which KPs each ARA interacts with.  Here is an example:
 
-```
+```json
 {
     
     #
@@ -271,6 +271,14 @@ pytest -vv test_onehops.py --ara_id=<ara infores reference> --kp_id=<kp infores 
 e.g.
 ```
 pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro
+```
+
+## Translator X-Maturity Environments
+
+To constrain testing to one specific x-maturity environment (say, 'testing'), use the **`--x_maturity`** directive:
+
+```
+pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro --x_maturity=testing
 ```
 
 ### Testing Fixed Sets of KP or ARA Services
