@@ -14,8 +14,7 @@ from sri_testing.translator.sri.testing.processor import (
     CMD_DELIMITER,
     PWD_CMD,
     PYTHON_PATH,
-    WorkerTask,
-    PERCENTAGE_COMPLETION_SUFFIX_PATTERN
+    WorkerTask
 )
 from tests.onehop import ONEHOP_TEST_DIRECTORY
 
