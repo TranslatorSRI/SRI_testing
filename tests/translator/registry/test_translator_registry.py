@@ -7,6 +7,7 @@ import logging
 import pytest
 
 from sri_testing.translator.registry import (
+    MOCK_REGISTRY,
     get_default_url,
     rewrite_github_url,
     query_smart_api,
@@ -19,7 +20,8 @@ from sri_testing.translator.registry import (
     source_of_interest,
     validate_testable_resource,
     live_trapi_endpoint,
-    select_endpoint, assess_trapi_version
+    select_endpoint,
+    assess_trapi_version
 )
 
 logger = logging.getLogger(__name__)
@@ -72,36 +74,32 @@ DEVELOPMENT_KP_SERVER = {
 KP_SERVERS_BLOCK = [PRODUCTION_KP_SERVER, STAGING_KP_SERVER, TESTING_KP_SERVER, DEVELOPMENT_KP_SERVER]
 
 
-ARA_INFORES = "aragorn"
-# PRODUCTION_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
-# STAGING_ARA_BASEURL = "https://aragorn.ci.transltr.io/robokop"
-# TESTING_ARA_BASEURL = "https://arax.test.transltr.io/api/arax/v"
-# DEVELOPMENT_ARA_BASEURL = "https://aragorn.renci.org/aragorn"
-ARA_TEST_DATA_URL = "https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/" +\
-                    "main/tests/translator/registry/ARAX_Lite.json"
+ARA_INFORES = "biothings-explorer"
+ARA_TEST_DATA_URL = "https://raw.githubusercontent.com/NCATS-Tangerine/translator-api-registry/" +\
+                    "master/biothings_explorer/sri-test-bte-ara.json"
 
-PRODUCTION_ARA_SERVER_URL = "https://aragorn.transltr.io/aragorn"
+PRODUCTION_ARA_SERVER_URL = "https://bte.transltr.io/v1"
 PRODUCTION_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
     'url': PRODUCTION_ARA_SERVER_URL,
     'x-maturity': 'production'
 }
 
-STAGING_ARA_SERVER_URL = "https://aragorn.ci.transltr.io/aragorn"
+STAGING_ARA_SERVER_URL = "https://bte.ci.transltr.io/v1"
 STAGING_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
     'url': STAGING_ARA_SERVER_URL,
     'x-maturity': 'staging'
 }
 
-TESTING_ARA_SERVER_URL = "https://aragorn.test.transltr.io/aragorn"
+TESTING_ARA_SERVER_URL = "https://bte.test.transltr.io/v1"
 TESTING_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
     'url': TESTING_ARA_SERVER_URL,
     'x-maturity': 'testing'
 }
 
-DEVELOPMENT_ARA_SERVER_URL = "https://aragorn.renci.org/aragorn"
+DEVELOPMENT_ARA_SERVER_URL = "https://explanatory-agent.azurewebsites.net/v1.3/"
 DEVELOPMENT_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
     'url': DEVELOPMENT_ARA_SERVER_URL,
@@ -120,9 +118,9 @@ def test_get_testable_resources_from_registry():
         get_testable_resources_from_registry(registry_data)
 
     assert len(resources) > 0, "No testable resources in the Registry?"
-    assert len(resources[0]) > 0, "No testable resources in the Registry?"
+    assert len(resources[0]) > 0, "No testable KP resources in the Registry?"
     assert "automat-sri-reference-kg" in resources[0]
-    assert len(resources[1]) > 0, "No testable resources in the Registry?"
+    assert len(resources[1]) > 0, "No testable ARA resources in the Registry?"
     assert "arax" in resources[1]
 
 
@@ -1032,7 +1030,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'servers': ARA_SERVERS_BLOCK
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is 'production'
+            PRODUCTION_ARA_SERVER_URL  # expected 'url' is 'production'
         ),
         (
             {   # query 8. testable, simple single testdata URL; 'staging' endpoint has greatest precedence
@@ -1045,21 +1043,10 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    }
-                ],
+                'servers': [ DEVELOPMENT_ARA_SERVER, STAGING_ARA_SERVER ]
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is 'staging'
+            STAGING_ARA_SERVER_URL  # expected 'url' is 'staging'
         ),
         (
             {   # query 9. testable, list of URLs, uses only first one; 'production' endpoint prioritized
@@ -1076,34 +1063,12 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         ]
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'testing'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'production'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    },
-
-                ],
+                'servers': ARA_SERVERS_BLOCK
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
 
-            # expected 'url' is 'production' with unclassified list of data urls
-            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"
+            # expected 'url' is currently 'staging' with unclassified list of data urls
+            STAGING_ARA_SERVER_URL
         ),
         (
             {   # query 10. testable, x-maturity dictionary with default; 'production' endpoint prioritized
@@ -1120,34 +1085,12 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         }
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'testing'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'production'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    },
-
-                ],
+                'servers': ARA_SERVERS_BLOCK
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
 
-            # expected 'url' is the 'production' since it can use 'default' data
-            f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"
+            # expected 'url' is currently 'staging' since it can use 'default' data
+            STAGING_ARA_SERVER_URL
         ),
         (
             {   # query 11. testable, x-maturity dictionary with 'testing' x-maturity
@@ -1165,32 +1108,10 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         }
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'testing'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'production'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    },
-
-                ],
+                'servers': ARA_SERVERS_BLOCK
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            f"https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is the 'testing' endpoint
+            TESTING_ARA_SERVER_URL  # expected 'url' is the 'testing' endpoint
         ),
         (
             {   # query 12. testable, x-maturity dictionary with 'testing' x-maturity but without default;
@@ -1208,24 +1129,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         }
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'production'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    },
-
-                ],
+                'servers': [PRODUCTION_ARA_SERVER,STAGING_ARA_SERVER,DEVELOPMENT_ARA_SERVER]
             },      # service
             False,  # True if expecting that resource_metadata is not None; False otherwise
             ""      # expected 'url'
@@ -1268,15 +1172,9 @@ def test_validate_testable_resource(query: Tuple):
                             'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    }
-                ],
+                'servers': [DEVELOPMENT_ARA_SERVER]
             },  # service
-            "arax",
+            ARA_INFORES,
             ["development"]  # expected testable endpoint (only 'development' available)
         ),
         (
@@ -1292,13 +1190,7 @@ def test_validate_testable_resource(query: Tuple):
                             'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    }
-                ],
+                'servers': [DEVELOPMENT_ARA_SERVER]
             },
             None,
             [""]
@@ -1351,13 +1243,7 @@ def test_validate_testable_resource(query: Tuple):
                         #     'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    }
-                ],
+                'servers': [DEVELOPMENT_ARA_SERVER]
             },
             None,
             [""]
@@ -1375,29 +1261,7 @@ def test_validate_testable_resource(query: Tuple):
                             'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'testing'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'production'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    },
-
-                ],
+                'servers': ARA_SERVERS_BLOCK
             },
             ARA_INFORES,
             ["production", "staging", "testing", "development"]
@@ -1415,18 +1279,7 @@ def test_validate_testable_resource(query: Tuple):
                             'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    }
-                ],
+                'servers': [STAGING_ARA_SERVER,DEVELOPMENT_ARA_SERVER]
             },
             ARA_INFORES,
             ["staging", "development"]
@@ -1447,29 +1300,7 @@ def test_validate_testable_resource(query: Tuple):
                         ]
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-                        'url': 'https://arax.test.transltr.io/api/arax/v{CURRENT_DEFAULT_MAJOR_MINOR_TRAPI}',
-                        'x-maturity': 'testing'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'production'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    },
-
-                ],
+                'servers': ARA_SERVERS_BLOCK
             },
             ARA_INFORES,
             ["production", "staging", "testing", "development"]
@@ -1616,28 +1447,30 @@ def test_get_translator_ara_test_data_metadata():
         "No 'ARA' services found with a 'test_data_location' value in the Translator SmartAPI Registry?"
 
 
+@pytest.mark.skipif(MOCK_REGISTRY, reason="Test needs the REAL Registry")
 def test_get_one_specific_target_ara():
     registry_data: Dict = get_the_registry_data()
-    # we filter on the 'arax' since it is used both in the mock and real registry?
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, "ARA", source="arax")
+    # we filter on the 'aragon' but this only passes with the REAL registry?
+    service_metadata = extract_component_test_metadata_from_registry(registry_data, "ARA", source=ARA_INFORES)
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
     for service in service_metadata.values():
-        assert service["infores"] == "arax"
+        assert service["infores"] == ARA_INFORES
         # the 'url' setting should be a list that includes urls from
-        # the default 'production' x-maturity servers list
-        assert PRODUCTION_ARA_SERVER_URL in service["url"]
-        assert service["x_maturity"] == "production"
+        # currently the default 'staging' x-maturity servers list
+        assert STAGING_ARA_SERVER_URL in service["url"]
+        assert service["x_maturity"] == "staging"
 
 
+@pytest.mark.skipif(MOCK_REGISTRY, reason="Test needs the REAL Registry")
 def test_get_one_specific_target_x_maturity_in_a_target_ara():
     registry_data: Dict = get_the_registry_data()
-    # we filter on the 'arax' since it is used both in the mock and real registry?
+    # we filter on the 'aragorn' but this only passes with the REAL registry?
     service_metadata = extract_component_test_metadata_from_registry(
         registry_data, "ARA", source=ARA_INFORES, x_maturity="testing"
     )
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
     for service in service_metadata.values():
-        assert service["infores"] == "arax"
+        assert service["infores"] == ARA_INFORES
         assert service["x_maturity"] == "testing"
         # the 'url' setting should be a list that includes urls from
         # the explicitly requested 'testing' x-maturity servers list
