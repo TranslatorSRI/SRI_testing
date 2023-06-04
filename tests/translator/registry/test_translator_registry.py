@@ -30,12 +30,73 @@ DEF_M_M_TRAPI = "1.4"
 # Current default major.minor.patch TRAPI SemVer version"
 DEF_M_M_P_TRAPI = "1.4.0"
 
+KP_INFORES = "molepro"
 TEST_KP_BASEURL = "https://translator.broadinstitute.org/molepro/trapi/v"
 KP_TEST_DATA_URL = "https://github.com/broadinstitute/molecular-data-provider/blob/" +\
                    "master/test/data/MolePro-test-data.json"
+KP_TEST_DATA_NORMALIZED = "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider/" +\
+                          "master/test/data/MolePro-test-data.json"
+KP_SERVER_BLOCK = [
+    {
+        'description': 'TRAPI production service for MolePro',
+        'url': f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}",
+        'x-maturity': 'production'
+    },
+    {
+        'description': 'TRAPI test service for MolePro',
+        'url': f'https://molepro-trapi.test.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
+        'x-maturity': 'testing'
+    },
+    {
+        'description': 'TRAPI staging service for MolePro',
+        'url': f'https://molepro-trapi.ci.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
+        'x-maturity': 'staging'
+    },
+    {
+        'description': 'TRAPI development service for MolePro',
+        'url': f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',
+        'x-maturity': 'development'
+    }
+]
 
-TEST_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
-ARA_TEST_DATA_URL = ""
+
+ARA_INFORES = "arax"
+PRODUCTION_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
+STAGING_ARA_BASEURL = "https://arax.ci.transltr.io/api/arax/v"
+TESTING_ARA_BASEURL = "https://arax.test.transltr.io/api/arax/v"
+DEVELOPMENT_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
+ARA_TEST_DATA_URL = "https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/" +\
+                    "main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json"
+
+PRODUCTION_ARA_SERVER_URL = f"{PRODUCTION_ARA_BASEURL}{DEF_M_M_TRAPI}"
+PRODUCTION_ARA_SERVER = {
+    'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
+    'url': PRODUCTION_ARA_SERVER_URL,
+    'x-maturity': 'production'
+}
+
+STAGING_ARA_SERVER_URL = f"{STAGING_ARA_BASEURL}{DEF_M_M_TRAPI}"
+STAGING_ARA_SERVER = {
+    'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+    'url': STAGING_ARA_SERVER_URL,
+    'x-maturity': 'staging'
+}
+
+TESTING_ARA_SERVER_URL = f"{TESTING_ARA_BASEURL}{DEF_M_M_TRAPI}"
+TESTING_ARA_SERVER = {
+    'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+    'url': TESTING_ARA_SERVER_URL,
+    'x-maturity': 'testing'
+}
+
+DEVELOPMENT_ARA_SERVER_URL = f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}"
+DEVELOPMENT_ARA_SERVER = {
+    'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
+    'url': DEVELOPMENT_ARA_SERVER_URL,
+    'x-maturity': 'development'
+}
+
+ARA_SERVER_BLOCK = [ PRODUCTION_ARA_SERVER, STAGING_ARA_SERVER, TESTING_ARA_SERVER, DEVELOPMENT_ARA_SERVER ]
 
 
 def test_get_testable_resources_from_registry():
@@ -62,10 +123,8 @@ def test_get_testable_resources_from_registry():
         (dict(), None),
         ("http://test_data", "http://test_data"),
         (
-            "https://github.com/broadinstitute/molecular-data-provider/blob" +
-            "/master/test/data/MolePro-test-data.json",
-            "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider" +
-            "/master/test/data/MolePro-test-data.json"
+            KP_TEST_DATA_URL,
+            KP_TEST_DATA_NORMALIZED
         ),
         (
             [
@@ -76,15 +135,13 @@ def test_get_testable_resources_from_registry():
         ),
         (
             {
-                'default': "https://github.com/broadinstitute/molecular-data-provider" +
-                           "/blob/master/test/data/MolePro-test-data.json",
+                'default': KP_TEST_DATA_URL,
                 'production': "http://production_test_data",
                 'staging': "http://staging_test_data",
                 'testing': "http://testing_test_data",
                 'development': "http://development_test_data",
             },
-            "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider" +
-            "/master/test/data/MolePro-test-data.json"
+            KP_TEST_DATA_NORMALIZED
         ),
         (
             {
@@ -697,32 +754,11 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                                 'version': DEF_M_M_P_TRAPI
                             }
                         },
-                        'servers': [
-                            {
-                                'description': 'TRAPI production service for MolePro',
-                                'url': f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}",
-                                'x-maturity': 'production'
-                            },
-                            {
-                                'description': 'TRAPI test service for MolePro',
-                                'url': f'https://molepro-trapi.test.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
-                                'x-maturity': 'testing'
-                            },
-                            {
-                                'description': 'TRAPI staging service for MolePro',
-                                'url': f'https://molepro-trapi.ci.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
-                                'x-maturity': 'staging'
-                            },
-                            {
-                                'description': 'TRAPI development service for MolePro',
-                                'url': f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',
-                                'x-maturity': 'development'
-                            }
-                        ],
+                        'servers': KP_SERVER_BLOCK
                     }
                 ]
             },
-            f'molepro,{DEF_M_M_P_TRAPI},3.2.0',  # KP test_data_location, converted to Github raw data link
+            f'molepro,{DEF_M_M_P_TRAPI},3.2.0,production',  # KP test_data_location, converted to Github raw data link
             # 'staging' endpoint url preferred for testing, as of 18 May 2023 (TODO: not stable, will likely change!)
             f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}"
         ),
@@ -831,7 +867,7 @@ def test_extract_kp_test_data_metadata_from_registry(metadata: Dict, service_id:
                             'contact': {
                                 'email': 'edeutsch@systemsbiology.org'
                             },
-                            'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint' +
+                            'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint' +
                                            ' for the NCATS Biomedical Translator Reasoner',
                             'license': {
                                 'name': 'Apache 2.0',
@@ -843,40 +879,20 @@ def test_extract_kp_test_data_metadata_from_registry(metadata: Dict, service_id:
                             'x-translator': {
                                 'biolink-version': '3.2.0',
                                 'component': 'ARA',
-                                'infores': 'infores:arax',
+                                'infores': f"infores:{ARA_INFORES}",
                                 'team': ['Expander Agent']
                             },
                             'x-trapi': {
-                                'test_data_location':
-                                    'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                    'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                                'test_data_location': ARA_TEST_DATA_URL,
                                 'version': f"{DEF_M_M_P_TRAPI}"
                             }
                         },
-                        'servers': [
-                            {
-                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                                'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                                'x-maturity': 'production'
-                            }, {
-                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-                                'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                                'x-maturity': 'testing'
-                            }, {
-                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                                'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                                'x-maturity': 'staging'
-                            }, {
-                                'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                                'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                                'x-maturity': 'development'
-                            },
-                        ],
+                        'servers': ARA_SERVER_BLOCK
                     }
                 ]
             },
-            f'arax,{DEF_M_M_P_TRAPI},2.2.11',
-            f'{ARA_TEST_DATA_URL}{DEF_M_M_TRAPI}'
+            f'{ARA_INFORES},{DEF_M_M_P_TRAPI},2.2.11,production',
+            f'{PRODUCTION_ARA_BASEURL}{DEF_M_M_TRAPI}'
         )
     ]
 )
@@ -899,18 +915,16 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}",
                         'x-maturity': 'development'
                     }
                 ],
@@ -918,25 +932,23 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
             True,    # True if expecting that resource_metadata is not None; False otherwise
 
             # expected testable endpoint (only 'development' available)
-            f"https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}"
+            f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}"
         ),
         (
             {  # query 2. missing service 'title' - won't return any resource_metadata
                 'info': {
                     # 'title': f'ARAX Translator Reasoner - TRAPI {CURRENT_DEFAULT_MAJOR_MINOR_PATCH_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'url': f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}",
                         'x-maturity': 'development'
                     }
                 ],
@@ -949,17 +961,15 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        # 'infores': 'infores:arax',
+                        # 'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location':ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
@@ -973,12 +983,10 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 }
             },      # service
@@ -990,12 +998,10 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [],
@@ -1008,17 +1014,15 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        # 'infores': 'infores:arax',
+                        # 'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        # 'test_data_location':
-                        #     'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                        #     'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        # 'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
@@ -1032,32 +1036,30 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1072,22 +1074,20 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     }
@@ -1101,12 +1101,11 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': [
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json',
+                            ARA_TEST_DATA_URL,
                             'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
                             'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
                         ]
@@ -1114,22 +1113,22 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1146,35 +1145,34 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': {
                             "default": {
-                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json'
+                                'url': ARA_TEST_DATA_URL
                             }
                         }
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1192,35 +1190,34 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': {
                             "testing": {
-                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                                'url': ARA_TEST_DATA_URL
                             }
                         }
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1236,30 +1233,29 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': {
                             "testing": {
-                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                                'url': ARA_TEST_DATA_URL
                             }
                         }
                     }
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1299,7 +1295,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location':
@@ -1309,7 +1305,7 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
@@ -1323,7 +1319,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        # 'infores': 'infores:arax',
+                        # 'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location':
@@ -1333,7 +1329,7 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
@@ -1347,7 +1343,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location':
@@ -1364,7 +1360,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location':
@@ -1382,7 +1378,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        # 'infores': 'infores:arax',
+                        # 'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         # 'test_data_location':
@@ -1392,7 +1388,7 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     }
@@ -1406,7 +1402,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location':
@@ -1416,22 +1412,22 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1446,7 +1442,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location':
@@ -1456,12 +1452,12 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     }
@@ -1475,7 +1471,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': [
@@ -1488,22 +1484,22 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': 'https://arax.test.transltr.io/api/arax/v{CURRENT_DEFAULT_MAJOR_MINOR_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1518,7 +1514,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': {
@@ -1531,22 +1527,22 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1561,7 +1557,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': {
@@ -1574,22 +1570,22 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
                         'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'testing'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1605,7 +1601,7 @@ def test_validate_testable_resource(query: Tuple):
                 'info': {
                     'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
-                        'infores': 'infores:arax',
+                        'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': {
@@ -1618,17 +1614,17 @@ def test_validate_testable_resource(query: Tuple):
                 },
                 'servers': [
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - development',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
                         'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'development'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - production',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
                         'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'production'
                     },
                     {
-                        'description': f'ARAX TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
                         'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
                         'x-maturity': 'staging'
                     },
@@ -1684,11 +1680,14 @@ def test_get_translator_kp_test_data_metadata():
 def test_get_one_specific_target_kp():
     registry_data: Dict = get_the_registry_data()
     # we filter on the 'molepro' since it is used both in the mock and real registry?
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, "KP", source="molepro")
+    service_metadata = extract_component_test_metadata_from_registry(
+        registry_data, "KP", source="molepro", trapi_version="1.4.0"
+    )
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
-        assert f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}" in service["url"]
+        assert service["x_maturity"] == "staging"
+        assert f"https://molepro-trapi.ci.transltr.io/molepro/trapi/v1.4" in service["url"]
 
 
 def test_get_specific_subset_of_target_kps():
@@ -1697,14 +1696,14 @@ def test_get_specific_subset_of_target_kps():
         extract_component_test_metadata_from_registry(
             registry_data, "KP",
             source="automat-*",
-            x_maturity="development"
+            x_maturity="staging"
         )
     assert len(service_metadata) >= 1, "We're expecting at least one source KP here!"
     for service in service_metadata.values():
         print(service["infores"], file=stderr)
-        assert service["x_maturity"] == "development"
+        assert service["x_maturity"] == "staging"
         assert service["infores"].startswith("automat-")
-        assert service["url"].startswith("https://automat.renci.org/")
+        assert service["url"].startswith("https://automat.ci.transltr.io/")
 
 
 def test_get_translator_ara_test_data_metadata():
