@@ -724,7 +724,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
             },
             f'molepro,{DEF_M_M_P_TRAPI},3.2.0',  # KP test_data_location, converted to Github raw data link
             # 'staging' endpoint url preferred for testing, as of 18 May 2023 (TODO: not stable, will likely change!)
-            f'https://molepro-trapi.ci.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}'
+            f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}"
         ),
         (   # Query 1 - Empty "hits" List
             {

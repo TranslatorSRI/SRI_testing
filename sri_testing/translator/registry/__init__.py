@@ -1024,7 +1024,9 @@ def extract_component_test_metadata_from_registry(
             )
             continue
 
-        entry_id: RegistryEntryId = RegistryEntryId(service_title, service_version, trapi_version, biolink_version)
+        entry_id: RegistryEntryId = RegistryEntryId(
+            service_title, service_version, selected_service_version[infores], biolink_version
+        )
 
         _service_catalog[service_id].append(entry_id)
 
