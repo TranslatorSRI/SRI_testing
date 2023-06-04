@@ -272,7 +272,9 @@ def test_live_trapi_endpoint(url: str, outcome: bool):
                 "http://development_test_data"
             )
         ),
-        (   # Query 11 - full server_urls for x-maturity; JSON object text_data_location with one x-maturity + default
+        (   # Query 11 - full server_urls for x-maturity; JSON object
+            #            text_data_location with one x-maturity + default
+            #            Since a production url can pick up the default test data, it wins(?)
             {
                 'testing': ["http://testing_endpoint"],
                 'development': ["http://development_endpoint"],
@@ -284,9 +286,9 @@ def test_live_trapi_endpoint(url: str, outcome: bool):
                 'development': "http://development_test_data"
             },
             (
-                "http://development_endpoint",
-                "development",
-                "http://development_test_data"
+                "http://production_endpoint",
+                "production",
+                "http://default_test_data"
             )
         ),
         (   # Query 12 - full server_urls for x-maturity;
