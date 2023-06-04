@@ -639,34 +639,36 @@ def assert_tag(metadata: Dict, service: str, tag: str):
 
 
 def shared_test_extract_component_test_data_metadata_from_registry(
-        query: Tuple[Dict, str, str],
+        metadata: Dict,
+        service_id: str,
+        service_url: str,
         component_type: str
 ):
     assert component_type in ["KP", "ARA"]
     service_metadata: Dict[str, Dict[str,  Optional[str]]] = \
-        extract_component_test_metadata_from_registry(query[0], component_type=component_type)
+        extract_component_test_metadata_from_registry(metadata, component_type=component_type)
 
     # Test expectation of missing 'test_data_location' key => expected missing metadata
-    if not query[1]:
+    if not service_id:
         assert len(service_metadata) == 0, f"Expecting empty {component_type} service metadata result?"
     else:
         assert len(service_metadata) != 0, f"Expecting a non-empty {component_type} service metadata result?"
 
-        assert query[1] in service_metadata, \
-            f"Missing test_data_location '{query[1]}' expected in {component_type} '{service_metadata}' dictionary?"
+        assert service_id in service_metadata, \
+            f"Missing test_data_location '{service_id}' expected in {component_type} '{service_metadata}' dictionary?"
 
-        assert_tag(service_metadata, query[1], "url")
-        assert query[2] in service_metadata[query[1]]['url']
-        assert_tag(service_metadata, query[1], "service_title")
-        assert_tag(service_metadata, query[1], "service_version")
-        assert_tag(service_metadata, query[1], "infores")
-        assert_tag(service_metadata, query[1], "biolink_version")
-        assert_tag(service_metadata, query[1], "trapi_version")
+        assert_tag(service_metadata, service_id, "url")
+        assert service_url in service_metadata[service_id]['url']
+        assert_tag(service_metadata, service_id, "service_title")
+        assert_tag(service_metadata, service_id, "service_version")
+        assert_tag(service_metadata, service_id, "infores")
+        assert_tag(service_metadata, service_id, "biolink_version")
+        assert_tag(service_metadata, service_id, "trapi_version")
 
 
 # extract_kp_test_data_metadata_from_registry(registry_data) -> Dict[str, str]
 @pytest.mark.parametrize(
-    "query",
+    "metadata,service_id,service_url",
     [
         (  # Query 0 - Valid 'hits' entry with non-empty 'info.x-trapi.test_data_location'
             {
@@ -719,7 +721,8 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                 ]
             },
             f'molepro,{DEF_M_M_P_TRAPI},3.2.0',  # KP test_data_location, converted to Github raw data link
-            f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'  # 'production' endpoint url preferred for testing?
+            # 'staging' endpoint url preferred for testing, as of 18 May 2023 (TODO: not stable, will likely change!)
+            f'https://molepro-trapi.ci.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}'
         ),
         (   # Query 1 - Empty "hits" List
             {
@@ -810,13 +813,13 @@ def shared_test_extract_component_test_data_metadata_from_registry(
         )
     ]
 )
-def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str]):
-    shared_test_extract_component_test_data_metadata_from_registry(query, "KP")
+def test_extract_kp_test_data_metadata_from_registry(metadata: Dict, service_id: str, service_url: str):
+    shared_test_extract_component_test_data_metadata_from_registry(metadata, service_id, service_url, "KP")
 
 
 # extract_kp_test_data_metadata_from_registry(registry_data) -> Dict[str, str]
 @pytest.mark.parametrize(
-    "query",
+    "metadata,service_id,service_url",
     [
         (  # Query 0 - Valid 'hits' ARA entry with non-empty 'info.x-trapi.test_data_location'
             {
@@ -875,8 +878,8 @@ def test_extract_kp_test_data_metadata_from_registry(query: Tuple[Dict, str, str
         )
     ]
 )
-def test_extract_ara_test_data_metadata_from_registry(query: Tuple[Dict, str, str]):
-    shared_test_extract_component_test_data_metadata_from_registry(query, "ARA")
+def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id: str, service_url: str):
+    shared_test_extract_component_test_data_metadata_from_registry(metadata, service_id, service_url, "ARA")
 
 
 # validate_testable_resource(index, service, component) -> Optional[Dict[str, Union[str, List, Dict]]]
