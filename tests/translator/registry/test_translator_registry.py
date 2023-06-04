@@ -31,65 +31,77 @@ DEF_M_M_TRAPI = "1.4"
 DEF_M_M_P_TRAPI = "1.4.0"
 
 KP_INFORES = "molepro"
-TEST_KP_BASEURL = "https://translator.broadinstitute.org/molepro/trapi/v"
 KP_TEST_DATA_URL = "https://github.com/broadinstitute/molecular-data-provider/blob/" +\
                    "master/test/data/MolePro-test-data.json"
 KP_TEST_DATA_NORMALIZED = "https://raw.githubusercontent.com/broadinstitute/molecular-data-provider/" +\
                           "master/test/data/MolePro-test-data.json"
-KP_SERVER_BLOCK = [
-    {
-        'description': 'TRAPI production service for MolePro',
-        'url': f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}",
-        'x-maturity': 'production'
-    },
-    {
-        'description': 'TRAPI test service for MolePro',
-        'url': f'https://molepro-trapi.test.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
-        'x-maturity': 'testing'
-    },
-    {
-        'description': 'TRAPI staging service for MolePro',
-        'url': f'https://molepro-trapi.ci.transltr.io/molepro/trapi/v{DEF_M_M_TRAPI}',
-        'x-maturity': 'staging'
-    },
-    {
-        'description': 'TRAPI development service for MolePro',
-        'url': f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',
-        'x-maturity': 'development'
-    }
-]
+
+PRODUCTION_KP_BASEURL = "https://molepro-trapi.transltr.io/molepro/trapi/v"
+STAGING_KP_BASEURL = "https://molepro-trapi.ci.transltr.io/molepro/trapi/v"
+TESTING_KP_BASEURL = "https://molepro-trapi.test.transltr.io/molepro/trapi/v"
+DEVELOPMENT_KP_BASEURL = "https://translator.broadinstitute.org/molepro/trapi/v"
+
+PRODUCTION_KP_SERVER_URL = f"{PRODUCTION_KP_BASEURL}{DEF_M_M_TRAPI}"
+PRODUCTION_KP_SERVER = {
+    'description': f'KP TRAPI {DEF_M_M_TRAPI} endpoint - production',
+    'url': PRODUCTION_KP_SERVER_URL,
+    'x-maturity': 'production'
+}
+
+STAGING_KP_SERVER_URL = f"{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}"
+STAGING_KP_SERVER = {
+    'description': f'KP TRAPI {DEF_M_M_TRAPI} endpoint - testing',
+    'url': STAGING_KP_SERVER_URL,
+    'x-maturity': 'staging'
+}
+
+TESTING_KP_SERVER_URL = f"{TESTING_KP_BASEURL}{DEF_M_M_TRAPI}"
+TESTING_KP_SERVER = {
+    'description': f'KP TRAPI {DEF_M_M_TRAPI} endpoint - staging',
+    'url': TESTING_KP_SERVER_URL,
+    'x-maturity': 'testing'
+}
+
+DEVELOPMENT_KP_SERVER_URL = f"{DEVELOPMENT_KP_BASEURL}{DEF_M_M_TRAPI}"
+DEVELOPMENT_KP_SERVER = {
+    'description': f'KP TRAPI {DEF_M_M_TRAPI} endpoint - development',
+    'url': DEVELOPMENT_KP_SERVER_URL,
+    'x-maturity': 'development'
+}
+
+KP_SERVERS_BLOCK = [PRODUCTION_KP_SERVER, STAGING_KP_SERVER, TESTING_KP_SERVER, DEVELOPMENT_KP_SERVER]
 
 
-ARA_INFORES = "arax"
-PRODUCTION_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
-STAGING_ARA_BASEURL = "https://arax.ci.transltr.io/api/arax/v"
-TESTING_ARA_BASEURL = "https://arax.test.transltr.io/api/arax/v"
-DEVELOPMENT_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
+ARA_INFORES = "aragorn"
+# PRODUCTION_ARA_BASEURL = "https://arax.ncats.io/api/arax/v"
+# STAGING_ARA_BASEURL = "https://aragorn.ci.transltr.io/robokop"
+# TESTING_ARA_BASEURL = "https://arax.test.transltr.io/api/arax/v"
+# DEVELOPMENT_ARA_BASEURL = "https://aragorn.renci.org/aragorn"
 ARA_TEST_DATA_URL = "https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/" +\
-                    "main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json"
+                    "main/tests/translator/registry/ARAX_Lite.json"
 
-PRODUCTION_ARA_SERVER_URL = f"{PRODUCTION_ARA_BASEURL}{DEF_M_M_TRAPI}"
+PRODUCTION_ARA_SERVER_URL = "https://aragorn.transltr.io/aragorn"
 PRODUCTION_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
     'url': PRODUCTION_ARA_SERVER_URL,
     'x-maturity': 'production'
 }
 
-STAGING_ARA_SERVER_URL = f"{STAGING_ARA_BASEURL}{DEF_M_M_TRAPI}"
+STAGING_ARA_SERVER_URL = "https://aragorn.ci.transltr.io/aragorn"
 STAGING_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
     'url': STAGING_ARA_SERVER_URL,
     'x-maturity': 'staging'
 }
 
-TESTING_ARA_SERVER_URL = f"{TESTING_ARA_BASEURL}{DEF_M_M_TRAPI}"
+TESTING_ARA_SERVER_URL = "https://aragorn.test.transltr.io/aragorn"
 TESTING_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
     'url': TESTING_ARA_SERVER_URL,
     'x-maturity': 'testing'
 }
 
-DEVELOPMENT_ARA_SERVER_URL = f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}"
+DEVELOPMENT_ARA_SERVER_URL = "https://aragorn.renci.org/aragorn"
 DEVELOPMENT_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
     'url': DEVELOPMENT_ARA_SERVER_URL,
@@ -186,7 +198,7 @@ def test_get_default_url(query: Tuple[Optional[Union[str, List, Dict]], str]):
 
         # This particular endpoint is valid and online as of 15 May 2023
         # but may need to be revised in the future, as Translator resources evolve?
-        (f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}", True)
+        (f"{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}", True)
     ]
 )
 def test_live_trapi_endpoint(url: str, outcome: bool):
@@ -384,13 +396,13 @@ def test_select_endpoint(query: Tuple):
             # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
             # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
             {   # server_url
-                'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
+                'development': [f'{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
             {   # test_data_location
                 'development': KP_TEST_DATA_URL
             },
             True,  # outcome
-            f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
+            f'{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
             "development",  # x_maturity
             KP_TEST_DATA_URL   # test_data
         ),
@@ -398,19 +410,19 @@ def test_select_endpoint(query: Tuple):
             # These particular test details are valid and the indicated TRAPI endpoint 'alive' as of
             # 15 May 2023, but may need to be revised in the future, as Translator resources evolve?
             {   # server_url
-                'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
+                'development': [f'{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
             {   # test_data_location
                 'default': KP_TEST_DATA_URL
             },
             True,  # outcome
-            f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
+            f'{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}',  # endpoint
             "development",  # x_maturity
             KP_TEST_DATA_URL   # test_data
         ),
         (   # Query 2 - unresolvable endpoint test data - no available test data for the specified 'x-maturity'?
             {  # server_url
-                'development': [f'{TEST_KP_BASEURL}{DEF_M_M_TRAPI}'],
+                'development': [f'{PRODUCTION_KP_BASEURL}{DEF_M_M_TRAPI}'],
             },
             {  # test_data_location
                 'testing': KP_TEST_DATA_URL
@@ -422,7 +434,7 @@ def test_select_endpoint(query: Tuple):
         ),
         (   # Query 3 - unresolvable since TRAPI 1.2 endpoint is no longer live for the specified 'x-maturity'?
             {  # server_url
-                'development': [f'{TEST_KP_BASEURL}1.2'],  # ancient defunct endpoint
+                'development': [f'{PRODUCTION_KP_BASEURL}1.2'],  # ancient defunct endpoint
             },
             {  # test_data_location
                 'default': KP_TEST_DATA_URL
@@ -745,22 +757,21 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                             'x-translator': {
                                 'biolink-version': '3.2.0',
                                 'component': 'KP',
-                                'infores': 'infores:molepro',
+                                'infores': f"infores:{KP_INFORES}",
                                 'team': ['Molecular Data Provider']
                             },
                             'x-trapi': {
-                                'test_data_location': 'https://github.com/broadinstitute/molecular-data-provider' +
-                                                      '/blob/master/test/data/MolePro-test-data.json',
+                                'test_data_location': KP_TEST_DATA_URL,
                                 'version': DEF_M_M_P_TRAPI
                             }
                         },
-                        'servers': KP_SERVER_BLOCK
+                        'servers': KP_SERVERS_BLOCK
                     }
                 ]
             },
-            f'molepro,{DEF_M_M_P_TRAPI},3.2.0,production',  # KP test_data_location, converted to Github raw data link
+            f'molepro,{DEF_M_M_P_TRAPI},3.2.0,staging',  # KP test_data_location, converted to Github raw data link
             # 'staging' endpoint url preferred for testing, as of 18 May 2023 (TODO: not stable, will likely change!)
-            f"{TEST_KP_BASEURL}{DEF_M_M_TRAPI}"
+            f"{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}"
         ),
         (   # Query 1 - Empty "hits" List
             {
@@ -892,7 +903,7 @@ def test_extract_kp_test_data_metadata_from_registry(metadata: Dict, service_id:
                 ]
             },
             f'{ARA_INFORES},{DEF_M_M_P_TRAPI},2.2.11,production',
-            f'{PRODUCTION_ARA_BASEURL}{DEF_M_M_TRAPI}'
+            PRODUCTION_ARA_SERVER_URL
         )
     ]
 )
@@ -921,18 +932,12 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}",
-                        'x-maturity': 'development'
-                    }
-                ],
+                'servers': [DEVELOPMENT_ARA_SERVER]
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
 
             # expected testable endpoint (only 'development' available)
-            f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}"
+            DEVELOPMENT_ARA_SERVER_URL
         ),
         (
             {  # query 2. missing service 'title' - won't return any resource_metadata
@@ -945,13 +950,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f"{DEVELOPMENT_ARA_BASEURL}{DEF_M_M_TRAPI}",
-                        'x-maturity': 'development'
-                    }
-                ],
+                'servers': [DEVELOPMENT_ARA_SERVER]
             },      # service
             False,  # True if expecting that resource_metadata is not None; False otherwise
             ""      # expected 'url'
@@ -967,13 +966,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    }
-                ],
+                'servers': [DEVELOPMENT_ARA_SERVER]
             },      # service
             False,  # True if expecting that resource_metadata is not None; False otherwise
             ""      # expected 'url'
@@ -1020,13 +1013,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         # 'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    }
-                ],
+                'servers': [DEVELOPMENT_ARA_SERVER]
             },      # service
             False,  # True if expecting that resource_metadata is not None; False otherwise
             ""      # expected 'url'
@@ -1042,29 +1029,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
-                        'url': f'https://arax.ncats.io/beta/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'development'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-                        'url': f'https://arax.test.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'testing'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - production',
-                        'url': f'https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'production'
-                    },
-                    {
-                        'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
-                        'url': f'https://arax.ci.transltr.io/api/arax/v{DEF_M_M_TRAPI}',
-                        'x-maturity': 'staging'
-                    },
-
-                ],
+                'servers': ARA_SERVERS_BLOCK
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
             f"https://arax.ncats.io/api/arax/v{DEF_M_M_TRAPI}"  # expected 'url' is 'production'
