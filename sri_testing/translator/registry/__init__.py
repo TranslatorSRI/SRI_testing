@@ -367,6 +367,7 @@ class RegistryEntryId(NamedTuple):
     service_version: str
     trapi_version: str
     biolink_version: str
+    x_maturity: str
 
 
 # here, we track Registry duplications of KP and ARA services
@@ -853,7 +854,7 @@ def assess_trapi_version(
         infores: str,
         service_version: str,
         target_version: Optional[str],
-        selected_version: Dict[str, str]
+        selected_service_version: Dict[str, str]
 ):
     """
     Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing.
@@ -871,7 +872,7 @@ def assess_trapi_version(
     :param infores: str, infores of the observed service
     :param service_version: str, currently observed service (SemVer) version
     :param target_version: str, desired (SemVer) version
-    :param selected_version: Dict, catalog of selected (SemVer) versions, indexed by service infores
+    :param selected_service_version: Dict, catalog of selected (SemVer) versions, indexed by service infores
     :return:
     """
     candidate_version: Optional[str] = None
@@ -887,9 +888,9 @@ def assess_trapi_version(
         candidate_version = service_version
 
     if candidate_version is not None:
-        if infores not in selected_version or \
-                SemVer.from_string(candidate_version) >= SemVer.from_string(selected_version[infores]):
-            selected_version[infores] = candidate_version
+        if infores not in selected_service_version or \
+                SemVer.from_string(candidate_version) >= SemVer.from_string(selected_service_version[infores]):
+            selected_service_version[infores] = candidate_version
 
 
 def extract_component_test_metadata_from_registry(
@@ -969,14 +970,19 @@ def extract_component_test_metadata_from_registry(
             # of exact match to a specified non-empty target source
             continue
 
+        # Filter early for TRAPI version
+        service_trapi_version = tag_value(service, "info.x-trapi.version")
+        assess_trapi_version(infores, service_trapi_version, trapi_version, selected_service_version)
+
+        # Current service doesn't have appropriate trapi_version, so skip the service
+        if infores not in selected_service_version:
+            continue
+
         resource_metadata: Optional[Dict[str, Any]] = \
             validate_testable_resource(index, service, component, x_maturity)
 
         if not resource_metadata:
             continue
-
-        service_trapi_version = tag_value(service, "info.x-trapi.version")
-        assess_trapi_version(infores, service_trapi_version, trapi_version, selected_service_version)
 
         # Once past the 'testable resources' metadata gauntlet,
         # the following parameters are assumed valid and non-empty
@@ -1004,14 +1010,14 @@ def extract_component_test_metadata_from_registry(
             biolink_version = MINIMUM_BIOLINK_VERSION
 
         # Index services by (infores, trapi_version, biolink_version)
-        service_id: str = f"{infores},{service_trapi_version},{biolink_version}"
+        service_id: str = f"{infores},{service_trapi_version},{biolink_version},{x_maturity}"
 
         if service_id not in _service_catalog:
             _service_catalog[service_id] = list()
         else:
             logger.warning(
                 f"Infores '{infores}' appears duplicated among {component} Registry entries. " +
-                f"The new entry reports a service version '{str(service_version)}', " +
+                f"The new '{x_maturity}' entry reports a service version '{str(service_version)}', " +
                 f"TRAPI version '{str(trapi_version)}' and Biolink Version '{str(biolink_version)}'."
             )
 
@@ -1024,9 +1030,14 @@ def extract_component_test_metadata_from_registry(
             )
             continue
 
-        entry_id: RegistryEntryId = RegistryEntryId(
-            service_title, service_version, selected_service_version[infores], biolink_version
-        )
+        entry_id: RegistryEntryId = \
+            RegistryEntryId(
+                service_title,
+                service_version,
+                selected_service_version[infores],
+                biolink_version,
+                x_maturity
+            )
 
         _service_catalog[service_id].append(entry_id)
 
