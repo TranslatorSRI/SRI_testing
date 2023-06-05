@@ -15,7 +15,7 @@ The project has two top level folders:
 
 # Getting Started
 
-The tests are recommended to be run using Python 3.9 or better. 
+The tests are run using Python 3.10 or better. 
 
 If not running inside a Docker container, the creation of a virtual environment is recommended.
 
@@ -35,9 +35,9 @@ cd SRI_testing
 poetry install  
 ```
 
-## Run the Tests
+## Running the Available One Hop Tests
 
-Simply run available [tests](tests) using Pytest, within your favorite modality (i.e. terminal, favorite IDE, etc.).
+See the [One Hop tests](./tests/onehop/README.md) documnetation to run the available within your favorite modality (i.e. terminal, favorite IDE, etc.).
 
 # SRI Testing as a Web Service
 
