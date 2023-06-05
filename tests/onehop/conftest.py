@@ -654,6 +654,7 @@ def load_test_data_sources(
         test_data = get_remote_test_data_file(test_data_url)
 
         if not test_data:
+            logger.warning(f"Test Data source '{test_data_url}' has no test data?")
             continue
 
         if 'infores' not in test_data:
