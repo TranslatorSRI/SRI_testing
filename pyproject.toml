@@ -51,6 +51,9 @@ httpx = "^0.23.0"
 orjson = "3.8.10"
 aiofiles = "^22.1.0"
 pymongo = "^4.2.0"
+fastapi = ">=0.68.0,<0.69.0"
+pydantic = ">=1.8.0,<2.0.0"
+uvicorn = ">=0.15.0,<0.16.0"
 
 # reasoner-validator should pull in many dependencies
 # also used by SRI Testing, including BMT (which adds some more)
