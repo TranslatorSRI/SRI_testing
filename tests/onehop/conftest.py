@@ -709,14 +709,14 @@ def get_ara_metadata(metafunc, trapi_version, biolink_version) -> Dict[str, Dict
     )
 
 
-def id_parts(identifier: str) -> Optional[Tuple[str, str, str]]:
-    id_part = identifier.split(',')
-    if len(id_part) != 3:
+def id_parts(identifier: str) -> Optional[Tuple[str, str, str, str]]:
+    parts = identifier.split(',')
+    if len(parts) != 4:
         logger.error(f"Source id '{identifier}' is invalid?")
         return None
 
-    ara_id, trapi_version, biolink_version = id_part
-    return ara_id, trapi_version, biolink_version
+    ara_id, trapi_version, biolink_version, x_maturity = parts
+    return ara_id, trapi_version, biolink_version, x_maturity
 
 
 def get_kp_metadata(
@@ -753,7 +753,7 @@ def get_kp_metadata(
         for ara_release, metadata in ara_metadata.items():
 
             ara_id: Optional[str]
-            ara_id, trapi_version, biolink_version = id_parts(ara_release)
+            ara_id, trapi_version, biolink_version, x_maturity = id_parts(ara_release)
             arajson: Dict = load_test_data_sources(metadata, source_id=ara_id)
             if not arajson:
                 # valid test data file not found?
@@ -795,7 +795,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
         kp_id: Optional[str]
 
-        kp_id, trapi_version, biolink_version = id_parts(kp_release)
+        kp_id, trapi_version, biolink_version, x_maturity = id_parts(kp_release)
 
         kpjson: Dict = load_test_data_sources(metadata, source_id=kp_id)
 
@@ -964,7 +964,7 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
     for ara_release, metadata in ara_metadata.items():
 
         ara_id: Optional[str]
-        ara_id, trapi_version, biolink_version = id_parts(ara_release)
+        ara_id, trapi_version, biolink_version, x_maturity = id_parts(ara_release)
         arajson: Dict = load_test_data_sources(metadata, source_id=ara_id)
         if not arajson:
             # valid test data file not found?
