@@ -8,8 +8,8 @@ The web service has a single POST endpoint `/validate` taking a simple JSON requ
 
 ```json
 {
-  "trapi_version": "1.0",
-  "biolink_version": "2.2.16",
+  "trapi_version": "1.4.0",
+  "biolink_version": "3.2.0",
   "message": "<TRAPI JSON message blob...>"
 }
 ```
