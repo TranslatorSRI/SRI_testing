@@ -854,7 +854,7 @@ def assess_trapi_version(
         infores: str,
         service_version: str,
         target_version: Optional[str],
-        selected_service_version: Dict[str, str]
+        selected_service_trapi_version: Dict[str, str]
 ):
     """
     Among the set of service entry releases returned, select and return the 'best' TRAPI version for use in testing.
@@ -872,7 +872,7 @@ def assess_trapi_version(
     :param infores: str, infores of the observed service
     :param service_version: str, currently observed service (SemVer) version
     :param target_version: str, desired (SemVer) version
-    :param selected_service_version: Dict, catalog of selected (SemVer) versions, indexed by service infores
+    :param selected_service_trapi_version: Dict, catalog of selected (SemVer) versions, indexed by service infores
     :return:
     """
     candidate_version: Optional[str] = None
@@ -884,21 +884,22 @@ def assess_trapi_version(
                 == SemVer.from_string(service_version, core_fields=['major', 'minor'], ext_fields=[]):
             candidate_version = service_version
     else:
-        # 2. If the 'trapi_version' argument IS NOT set (i.e. is 'None'), then select it as a candidate
+        # 2. If the 'trapi_version' argument IS NOT set (i.e. is 'None'),
+        #    then select the specified service version as a candidate
         candidate_version = service_version
 
     if candidate_version is not None:
-        if infores not in selected_service_version or \
-                SemVer.from_string(candidate_version) >= SemVer.from_string(selected_service_version[infores]):
-            selected_service_version[infores] = candidate_version
+        if infores not in selected_service_trapi_version or \
+                SemVer.from_string(candidate_version) >= SemVer.from_string(selected_service_trapi_version[infores]):
+            selected_service_trapi_version[infores] = candidate_version
 
 
 def extract_component_test_metadata_from_registry(
         registry_data: Dict,
-        component_type: str,
-        source: Optional[str] = None,
-        trapi_version: Optional[str] = None,
-        x_maturity: Optional[str] = None
+        target_component_type: str,
+        target_source: Optional[str] = None,
+        target_trapi_version: Optional[str] = None,
+        target_x_maturity: Optional[str] = None
 ) -> Dict[str, Dict[str, Optional[Union[str, Dict]]]]:
     """
     Extract metadata from a registry data dictionary, for all components of a specified type.
@@ -918,38 +919,38 @@ def extract_component_test_metadata_from_registry(
     :param registry_data:
         Dict, Translator SmartAPI Registry dataset
         from which specific component_type metadata will be extracted.
-    :param component_type: str, value 'KP' or 'ARA'
-    :param source: Optional[str], ara_id or kp_id(s) source(s) of test configuration data in the registry.
+    :param target_component_type: str, value 'KP' or 'ARA'
+    :param target_source: Optional[str], ara_id or kp_id(s) source(s) of test configuration data in the registry.
                                   Return 'all' resources of the given component type if the source is None.
                                   The 'source' may be a scalar string, or a comma-delimited set of strings.
                                   If the 'source' string includes a single asterix ('*'), it is treated
                                   as a wildcard match to the infores name being filtered.
                                   Note that all identifiers here should be the reference (object) id's
                                   of the Infores CURIE of the target resource.
-    :param trapi_version: Optional[str], target TRAPI version for test run (system chooses 'latest', if not specified)
-    :param x_maturity: Optional[str], 'x_maturity' environment target for test run (system chooses, if not specified)
+    :param target_trapi_version: Optional[str], target TRAPI version for test run (system chooses 'latest', if not specified)
+    :param target_x_maturity: Optional[str], 'x_maturity' environment target for test run (system chooses, if not specified)
 
     :return: Dict[str, Dict[str,  Optional[str]]] of metadata, indexed by 'test_data_location'
     """
 
     # Sanity check...
-    assert component_type in ["KP", "ARA"]
+    assert target_component_type in ["KP", "ARA"]
 
     # TODO: is there a way to translate target_sources into a compiled
     #       regex pattern, for more efficient screening of infores (below)?
     #       Or pre-process the target_sources into a list of 2-tuple patterns to match?
     target_sources: Set[str] = set()
-    if source:
+    if target_source:
         # if specified, 'source' may be a comma separated list of
         # (possibly wild card pattern matching) source strings...
-        for infores in source.split(","):
+        for infores in target_source.split(","):
             infores = infores.strip()
             target_sources.add(infores)
 
     # this dictionary, indexed by service 'infores',
     # will track the selected TRAPI version
     # for each distinct information resource
-    selected_service_version: Dict = dict()
+    selected_service_trapi_version: Dict = dict()
 
     service_metadata: Dict[str, Dict[str, Optional[Union[str, Dict]]]] = dict()
 
@@ -957,7 +958,7 @@ def extract_component_test_metadata_from_registry(
 
         # We are only interested in services belonging to a given category of components
         component = tag_value(service, "info.x-translator.component")
-        if not (component and component == component_type):
+        if not (component and component == target_component_type):
             continue
 
         # Retrieve all available releases of service entries - as retrieved and enumerated from the
@@ -972,14 +973,14 @@ def extract_component_test_metadata_from_registry(
 
         # Filter early for TRAPI version
         service_trapi_version = tag_value(service, "info.x-trapi.version")
-        assess_trapi_version(infores, service_trapi_version, trapi_version, selected_service_version)
+        assess_trapi_version(infores, service_trapi_version, target_trapi_version, selected_service_trapi_version)
 
         # Current service doesn't have appropriate trapi_version, so skip the service
-        if infores not in selected_service_version:
+        if infores not in selected_service_trapi_version:
             continue
 
         resource_metadata: Optional[Dict[str, Any]] = \
-            validate_testable_resource(index, service, component, x_maturity)
+            validate_testable_resource(index, service, component, target_x_maturity)
 
         if not resource_metadata:
             continue
@@ -991,7 +992,7 @@ def extract_component_test_metadata_from_registry(
         # this 'url' is the service endpoint in the
         # specified 'x_maturity' environment
         url: str = resource_metadata['url']
-        x_maturity: str = resource_metadata['x_maturity']
+        service_x_maturity: str = resource_metadata['x_maturity']
 
         # The 'test_data_location' also has url's but these are now expressed
         # in a polymorphic manner: Optional[Dict[str, Union[str, List, Dict]]].
@@ -1010,15 +1011,15 @@ def extract_component_test_metadata_from_registry(
             biolink_version = MINIMUM_BIOLINK_VERSION
 
         # Index services by (infores, trapi_version, biolink_version)
-        service_id: str = f"{infores},{service_trapi_version},{biolink_version},{x_maturity}"
+        service_id: str = f"{infores},{service_trapi_version},{biolink_version},{service_x_maturity}"
 
         if service_id not in _service_catalog:
             _service_catalog[service_id] = list()
         else:
             logger.warning(
                 f"Infores '{infores}' appears duplicated among {component} Registry entries. " +
-                f"The new '{x_maturity}' entry reports a service version '{str(service_version)}', " +
-                f"TRAPI version '{str(trapi_version)}' and Biolink Version '{str(biolink_version)}'."
+                f"The new '{service_x_maturity}' entry reports a service version '{str(service_version)}', " +
+                f"TRAPI version '{str(target_trapi_version)}' and Biolink Version '{str(biolink_version)}'."
             )
 
         if service_id not in service_metadata:
@@ -1034,18 +1035,18 @@ def extract_component_test_metadata_from_registry(
             RegistryEntryId(
                 service_title,
                 service_version,
-                selected_service_version[infores],
+                selected_service_trapi_version[infores],
                 biolink_version,
-                x_maturity
+                service_x_maturity
             )
 
         _service_catalog[service_id].append(entry_id)
 
         capture_tag_value(service_metadata, service_id, "url", url)
-        capture_tag_value(service_metadata, service_id, "x_maturity", x_maturity)
+        capture_tag_value(service_metadata, service_id, "x_maturity", service_x_maturity)
         capture_tag_value(service_metadata, service_id, "service_title", service_title)
         capture_tag_value(service_metadata, service_id, "service_version", service_version)
-        capture_tag_value(service_metadata, service_id, "component", component_type)
+        capture_tag_value(service_metadata, service_id, "component", target_component_type)
         capture_tag_value(service_metadata, service_id, "infores", infores)
         capture_tag_value(service_metadata, service_id, "test_data_location", test_data_location)
         capture_tag_value(service_metadata, service_id, "biolink_version", biolink_version)
@@ -1056,7 +1057,7 @@ def extract_component_test_metadata_from_registry(
     return {
         service_id: details
         for service_id, details in service_metadata.items()
-        if details["trapi_version"] == selected_service_version.setdefault(details["infores"], None)
+        if details["trapi_version"] == selected_service_trapi_version.setdefault(details["infores"], None)
     }
 
 

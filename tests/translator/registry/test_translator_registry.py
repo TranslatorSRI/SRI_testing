@@ -715,7 +715,7 @@ def shared_test_extract_component_test_data_metadata_from_registry(
 ):
     assert component_type in ["KP", "ARA"]
     service_metadata: Dict[str, Dict[str,  Optional[str]]] = \
-        extract_component_test_metadata_from_registry(metadata, component_type=component_type)
+        extract_component_test_metadata_from_registry(metadata, target_component_type=component_type)
 
     # Test expectation of missing 'test_data_location' key => expected missing metadata
     if not service_id:
@@ -1393,7 +1393,7 @@ def test_get_one_specific_target_kp():
     registry_data: Dict = get_the_registry_data()
     # we filter on the 'molepro' since it is used both in the mock and real registry?
     service_metadata = extract_component_test_metadata_from_registry(
-        registry_data, "KP", source="molepro", trapi_version="1.4.0"
+        registry_data, "KP", target_source="molepro", target_trapi_version="1.4.0"
     )
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
@@ -1407,8 +1407,8 @@ def test_get_specific_subset_of_target_kps():
     service_metadata = \
         extract_component_test_metadata_from_registry(
             registry_data, "KP",
-            source="automat-*",
-            x_maturity="staging"
+            target_source="automat-*",
+            target_x_maturity="staging"
         )
     assert len(service_metadata) >= 1, "We're expecting at least one source KP here!"
     for service in service_metadata.values():
@@ -1420,7 +1420,7 @@ def test_get_specific_subset_of_target_kps():
 
 def test_get_translator_ara_test_data_metadata():
     registry_data: Dict = get_the_registry_data()
-    service_metadata = extract_component_test_metadata_from_registry(registry_data=registry_data, component_type="ARA")
+    service_metadata = extract_component_test_metadata_from_registry(registry_data=registry_data, target_component_type="ARA")
     assert len(service_metadata) > 0, \
         "No 'ARA' services found with a 'test_data_location' value in the Translator SmartAPI Registry?"
 
@@ -1429,14 +1429,14 @@ def test_get_translator_ara_test_data_metadata():
 def test_get_one_specific_target_ara():
     registry_data: Dict = get_the_registry_data()
     # we filter on the 'aragon' but this only passes with the REAL registry?
-    service_metadata = extract_component_test_metadata_from_registry(registry_data, "ARA", source=ARA_INFORES)
+    service_metadata = extract_component_test_metadata_from_registry(registry_data, "ARA", target_source=ARA_INFORES)
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
     for service in service_metadata.values():
         assert service["infores"] == ARA_INFORES
         # the 'url' setting should be a list that includes urls from
         # currently the default 'staging' x-maturity servers list
-        assert PRODUCTION_ARA_SERVER_URL in service["url"]
-        assert service["x_maturity"] == "production"
+        assert STAGING_ARA_SERVER_URL in service["url"]
+        assert service["x_maturity"] == "staging"
 
 
 @pytest.mark.skipif(MOCK_REGISTRY, reason="Test needs the REAL Registry")
@@ -1444,7 +1444,7 @@ def test_get_one_specific_target_x_maturity_in_a_target_ara():
     registry_data: Dict = get_the_registry_data()
     # we filter on the 'aragorn' but this only passes with the REAL registry?
     service_metadata = extract_component_test_metadata_from_registry(
-        registry_data, "ARA", source=ARA_INFORES, x_maturity="testing"
+        registry_data, "ARA", target_source=ARA_INFORES, target_x_maturity="testing"
     )
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source ARA here!"
     for service in service_metadata.values():

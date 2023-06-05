@@ -608,10 +608,10 @@ def get_test_data_sources(
     registry_data: Dict = get_the_registry_data()
     service_metadata = extract_component_test_metadata_from_registry(
         registry_data=registry_data,
-        component_type=component_type,
-        source=source,
-        trapi_version=trapi_version,
-        x_maturity=x_maturity
+        target_component_type=component_type,
+        target_source=source,
+        target_trapi_version=trapi_version,
+        target_x_maturity=x_maturity
     )
 
     # Possible CLI override of the target value of
