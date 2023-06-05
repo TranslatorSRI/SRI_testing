@@ -99,7 +99,7 @@ TESTING_ARA_SERVER = {
     'x-maturity': 'testing'
 }
 
-DEVELOPMENT_ARA_SERVER_URL = "https://explanatory-agent.azurewebsites.net/v1.3/"
+DEVELOPMENT_ARA_SERVER_URL = "https://api.bte.ncats.io/v1"
 DEVELOPMENT_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - development',
     'url': DEVELOPMENT_ARA_SERVER_URL,
@@ -883,7 +883,7 @@ def test_extract_kp_test_data_metadata_from_registry(metadata: Dict, service_id:
                                 'url': 'http://www.apache.org/licenses/LICENSE-2.0.html'
                             },
                             'termsOfService': 'https://github.com/RTXteam/RTX/blob/master/LICENSE',
-                            'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                            'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                             'version': f"{DEF_M_M_P_TRAPI}",
                             'x-translator': {
                                 'biolink-version': '3.2.0',
@@ -900,7 +900,7 @@ def test_extract_kp_test_data_metadata_from_registry(metadata: Dict, service_id:
                     }
                 ]
             },
-            f'{ARA_INFORES},{DEF_M_M_P_TRAPI},2.2.11,production',
+            f'{ARA_INFORES},{DEF_M_M_P_TRAPI},3.2.0,production',
             PRODUCTION_ARA_SERVER_URL
         )
     ]
@@ -922,7 +922,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (   # query 1 - minimally 'complete' service dictionary implies that the resource is amenable to testing
             {
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -940,7 +940,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {  # query 2. missing service 'title' - won't return any resource_metadata
                 'info': {
-                    # 'title': f'ARAX Translator Reasoner - TRAPI {CURRENT_DEFAULT_MAJOR_MINOR_PATCH_TRAPI}',
+                    # 'title': f'ARA Translator Reasoner - TRAPI {CURRENT_DEFAULT_MAJOR_MINOR_PATCH_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -956,7 +956,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {  # query 3. missing 'infores' - won't return any resource_metadata
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         # 'infores': f"infores:{ARA_INFORES}",
                     },
@@ -972,7 +972,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {  # query 4. missing 'servers' block - won't return any resource_metadata
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -987,7 +987,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {  # query 5. empty 'servers' block - won't return any resource_metadata
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1003,7 +1003,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {  # query 6. missing 'test_data_location' (i.e. not testable!)
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         # 'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1019,7 +1019,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {   # query 7. testable, simple single testdata URL; 'production' endpoint prioritized
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1035,7 +1035,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {   # query 8. testable, simple single testdata URL; 'staging' endpoint has greatest precedence
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1051,15 +1051,13 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
         (
             {   # query 9. testable, list of URLs, uses only first one; 'production' endpoint prioritized
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': [
-                            ARA_TEST_DATA_URL,
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
+                            ARA_TEST_DATA_URL
                         ]
                     }
                 },
@@ -1067,13 +1065,13 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
 
-            # expected 'url' is currently 'staging' with unclassified list of data urls
-            STAGING_ARA_SERVER_URL
+            # expected 'url' is currently 'production' with unclassified list of data urls
+            PRODUCTION_ARA_SERVER_URL
         ),
         (
             {   # query 10. testable, x-maturity dictionary with default; 'production' endpoint prioritized
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1089,14 +1087,14 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
 
-            # expected 'url' is currently 'staging' since it can use 'default' data
-            STAGING_ARA_SERVER_URL
+            # expected 'url' is currently 'production' since it can use 'default' data
+            PRODUCTION_ARA_SERVER_URL
         ),
         (
             {   # query 11. testable, x-maturity dictionary with 'testing' x-maturity
                 #           but without default; 'testing' endpoint prioritized
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1117,7 +1115,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
             {   # query 12. testable, x-maturity dictionary with 'testing' x-maturity but without default;
                 # but since 'testing' servers endpoint is not specified, cannot test... return None
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1162,14 +1160,12 @@ def test_validate_testable_resource(query: Tuple):
         (  # query 1 - minimally 'complete' service dictionary implies that the resource is amenable to testing
             {
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [DEVELOPMENT_ARA_SERVER]
@@ -1180,14 +1176,12 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 2. missing 'infores' - won't return any resource_metadata
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         # 'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [DEVELOPMENT_ARA_SERVER]
@@ -1198,14 +1192,12 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 3. missing 'servers' block - won't return any resource_metadata
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 }
             },
@@ -1215,14 +1207,12 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 4. empty 'servers' block - won't return any resource_metadata
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [],
@@ -1233,14 +1223,12 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 5. missing 'test_data_location' (i.e. not testable!)
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         # 'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        # 'test_data_location':
-                        #     'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                        #     'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        # 'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [DEVELOPMENT_ARA_SERVER]
@@ -1251,14 +1239,12 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 6. testable, simple single testdata URL; equivalent to all x-maturity environments testable
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': ARA_SERVERS_BLOCK
@@ -1269,14 +1255,12 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 7. testable, simple single testdata URL; servers only have 'staging' and 'development'
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location':
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json',
+                        'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
                 'servers': [STAGING_ARA_SERVER,DEVELOPMENT_ARA_SERVER]
@@ -1287,17 +1271,12 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 8. testable, list of URLs; equivalent to all x-maturity environments testable
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
-                        'test_data_location': [
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json',
-                            'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                            'main/tests/onehop/test_triples/ARA/ARAX/ARAX_Lite.json'
-                        ]
+                        'test_data_location': [ARA_TEST_DATA_URL]
                     }
                 },
                 'servers': ARA_SERVERS_BLOCK
@@ -1308,15 +1287,14 @@ def test_validate_testable_resource(query: Tuple):
         (
             {  # query 9. testable, x-maturity dictionary with default; all environments are testable
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
                     'x-trapi': {
                         'test_data_location': {
                             "default": {
-                                'url': 'https://raw.githubusercontent.com/TranslatorSRI/SRI_testing/' +
-                                       'main/tests/onehop/test_triples/ARA/Unit_Test_ARA/Test_ARA.json'
+                                'url': ARA_TEST_DATA_URL
                             }
                         }
                     }
@@ -1330,7 +1308,7 @@ def test_validate_testable_resource(query: Tuple):
             {  # query 10. testable, x-maturity dictionary with 'testing' x-maturity
                 #           but without 'default'; 'testing' endpoint only is reported testable
                 'info': {
-                    'title': f'ARAX Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
+                    'title': f'ARA Translator Reasoner - TRAPI {DEF_M_M_P_TRAPI}',
                     'x-translator': {
                         'infores': f"infores:{ARA_INFORES}",
                     },
@@ -1457,8 +1435,8 @@ def test_get_one_specific_target_ara():
         assert service["infores"] == ARA_INFORES
         # the 'url' setting should be a list that includes urls from
         # currently the default 'staging' x-maturity servers list
-        assert STAGING_ARA_SERVER_URL in service["url"]
-        assert service["x_maturity"] == "staging"
+        assert PRODUCTION_ARA_SERVER_URL in service["url"]
+        assert service["x_maturity"] == "production"
 
 
 @pytest.mark.skipif(MOCK_REGISTRY, reason="Test needs the REAL Registry")
