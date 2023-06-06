@@ -16,7 +16,8 @@ This suite tests the ability to retrieve given triples, which we know exist, fro
     - [TRAPI and Biolink Versioning](#trapi-and-biolink-versioning)
     - [Translator X-Maturity Environments](#translator-x-maturity-environments)
     - [Test CLI Help](#test-cli-help)
-- [How the Framework works](#how-the-one-hop-tests-work)
+- [Test Results](#test-results)
+- [What do the Validation Tests mean?](#what-do-the-validation-tests-mean)
     - [Validation Code](#validation-code)
     - [Biolink Model Compliance (Test Input Edges)](#biolink-model-compliance-test-input-edges)
     - [Provenance Checking (ARA Level)](#provenance-checking-ara-level)
@@ -88,7 +89,7 @@ more general level.  If, say, there are triples where all that is known is an "a
 
 So the steps for a KP:
 
-1. Copy the KP template from the repository  [templates/KP](templates/KP) into a distinctly named file.
+1. Copy the KP template from the repository  [templates/KP](templates/KP) into a distinctly named file (Note: these templates are not directly used by the SRI Testing harness but just serve as a hint to KP test data curators on how to creat the required JSON test data file).
 2. Edit the copied file to add or remove test data edges using the KP's metaknowledge graph catalog of S-P-O patterns as a guide, and specifying subject and object entries for each triple with a real identifiers that should be retrievable from the KP (Note: update the file to the latest standards as described above)
 3. Publish the resulting file as a JSON resource [dereferenced by a test data location configured as described above](#translator-smartapi-registry-configuration) in the KP's Translator SmartAPI Registry entry.
 
@@ -209,42 +210,58 @@ ARA test templates do not explicitly show the edges to be be tested, but rather,
 
 ## Running the Tests
 
-Tests are implemented with pytest.  To run all tests (from _within_ the `tests/onehop` project subdirectory) simply run:
+This section elaborates further on the information provided in the root project [Getting Started](../../README.md#getting-started) page (you have already read Getting Started, right?). Reiterating the initial setup steps:
+
+```
+git clone https://github.com/TranslatorSRI/SRI_testing
+cd SRI_testing
+poetry install
+poetry shell
+```
+
+configures your poetry (shell) and pytest environment to be ready to run the following tests in various ways  (Note: if you decide to run the tests _outside_ of a poetry shell, then you'll need to prefix the pytest commands  with `poetry run`).
+
+Once again, if you are tempted to run the One Hop tests on **all** of the available KP and ARA resources, you would type the following from *within* the tests/onehop project subfolder:
 
 ```bash
-pytest -vv test_onehops.py
+pytest test_onehops.py
 ```
-Use of the **-vv** Pytest option gives more descriptive output. The full test results are stored in JSON documents which may be stored on the local filing system under the 'test_results' folder (adjacent to the test_onehops.py script) or (or, in MongoDb, if MongoDb is running and properly configured - see the main SRI Testing repository README for details). 
 
-Running tests likely takes quite some time, since all ARA and KP services with test data will trigger a test run.  Thus, frequently you will want to limit the tests run.
+As previously mentioned in the **_Getting Started_** section, such a full test run on **_all_** resources will be very computationally intensive, and also makes a variety of run-time assumptions that may not necessarily meet your needs. Thus, you may wish to constrain the run in various ways, as to be mentioned below.
+
+Also, the raw pytest output will be verbose and opaque to human interpretation. 
+
+However, the full One Hop test results are captured and reformatted into (slightly more) human-readable JSON documents which may either be stored on the local filing system under the 'test_results' folder (adjacent to the test_onehops.py script) or (or, in MongoDb, if [MongoDb is running and properly configured](../../README.md#database-for-the-test-results)). We will review a bit later, the content and various ways in which such JSON result files may be accessed and viewed.
 
 ### Running only the KP tests
 
-To run only KP tests:
+To only run tests on all Translator SmartAPI Registry catalogued KP resources:
 ```
-pytest -vv test_onehops.py::test_trapi_kps
-```
-
-To run KP Tests, but only using one triple from each KP:
-```
-pytest -vv test_onehops.py::test_trapi_kps --one
+pytest test_onehops.py::test_trapi_kps
 ```
 
-To restrict test triples to one accessed from one specific KP in the Translator SmartAPI Registry, KP test data file dereferenced by the [**info.x-trapi.test_data_location**  specification defined in the KP entry in the Translator SmartAPI Registry](https://github.com/NCATSTranslator/translator_extensions#x-trapi) correponding to the KP object id of the Infores CURIE of the target KP, e.g. **`sri-reference-kg`** (for **`infores:sri-reference-kg`**)
+To run KP Tests, but only using one triple from each KP test data file:
 ```
-pytest -vv test_onehops.py --kp_id=<kp infores reference>
+pytest test_onehops.py::test_trapi_kps --one
 ```
 
-e.g.
+To restrict test triples to one accessed from a specific KP resource from the Translator SmartAPI Registry, KP test data file dereferenced by the [**info.x-trapi.test_data_location**  specification defined in the KP entry in the Translator SmartAPI Registry](https://github.com/NCATSTranslator/translator_extensions#x-trapi) corresponding to the KP object id of the Infores CURIE of the target KP, i.e. **`automat-sri-reference-kg`** (for **`infores:automat-sri-reference-kg`**):
+
 ```
-pytest -vv test_onehops.py --kp_id=sri-reference-kg
+pytest test_onehops.py --kp_id=<kp infores reference>
+```
+
+for example:
+
+```
+pytest test_onehops.py --kp_id="automat-sri-reference-kg"
 ```
 
 Note, however, that the KP will also be tested within every ARA that calls it (the default when the `--ara_id` (below) is omitted or empty).  In order to restrict testing solely to the KP(s) specified (and not any ARA calling it), a special **--ara_id** value 'SKIP' needs to be used, namely:
 
 e.g.
 ```
-pytest -vv test_onehops.py --kp_id=molepro --ara_id=SKIP 
+pytest test_onehops.py --kp_id="molepro" --ara_id="SKIP" 
 ```
 
 Will only test the MolePro KP and not any ARA calling MolePro.
@@ -254,11 +271,13 @@ Will only test the MolePro KP and not any ARA calling MolePro.
 Running tests for individual ARAs may be run with the **--ara_id** directive:
 
 ```
-pytest -vv test_onehops.py --ara_id=<ara infores reference>
+pytest test_onehops.py --ara_id=<ara infores reference>
 ```
-e.g.
+
+for example:
+
 ```
-pytest -vv test_onehops.py --ara_id=arax
+pytest test_onehops.py --ara_id="arax"
 ```
 
 This will run tests with test data from all KPs specified in the JSON ARA test configuration file "KPs" section, which also concurrently have valid test data dereferenced by the **info.x-trapi.test_data_location**  specifications defined in the corresponding KP entries.
@@ -266,28 +285,29 @@ This will run tests with test data from all KPs specified in the JSON ARA test c
 Constraining the test to one KP accessed via a given ARA may be achieved by combining the --ara_id and --kp_id directives:
 
 ```
-pytest -vv test_onehops.py --ara_id=<ara infores reference> --kp_id=<kp infores reference>
+pytest test_onehops.py --ara_id=<ara infores reference> --kp_id=<kp infores reference>
 ```
-e.g.
+
+For example:
+
 ```
-pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro
+pytest test_onehops.py --ara_id="arax" --kp_id="molepro"
 ```
 
 ## Translator X-Maturity Environments
 
-To constrain testing to one specific x-maturity environment (say, 'testing'), use the **`--x_maturity`** directive:
+To constrain testing to one specific [X-Maturity environment](https://github.com/NCATSTranslator/TranslatorArchitecture/blob/master/SmartAPIRegistration.md#environments) say, 'staging'), use the **`--x_maturity`** directive:
 
 ```
-pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro --x_maturity=testing
+pytest test_onehops.py --ara_id="arax" --kp_id="molepro" --x_maturity="staging"
 ```
 
 ### Testing Fixed Sets of KP or ARA Services
 
-Either or both of the `--kp_id` or `--ara_id` arguments may be comma delimited list of identifiers, e.g.
+Either or both of the `--kp_id` or `--ara_id` arguments may be comma delimited list of identifiers. For example:
 
-e.g.
 ```
-pytest -vv test_onehops.py --kp_id=sri-reference-kg,molepro
+pytest test_onehops.py --kp_id="sri-reference-kg,molepro"
 ```
 will test both the SRI Reference KG and MolePro knowledge providers.  A list of ARA's may be specified in the same way (in the `--ara_id` flag value).
 
@@ -295,21 +315,19 @@ In addition to exact matching of identifiers, simple wildcard identifier pattern
 
 e.g.
 ```
-pytest -vv test_onehops.py --kp_id=automat-*
+pytest test_onehops.py --kp_id="automat-*"
 ```
-will test all the **automat** KP's listed in the Translator SmartAPI Registry.  
+will test all the **automat** prefixed KP's listed in the Translator SmartAPI Registry.  
 
 Note that a suffix pattern or double sided pattern also works:
 
-e.g.
 ```
-pytest -vv test_onehops.py --kp_id=*-drug-central
+pytest test_onehops.py --kp_id="*-drug-central"
 ```
 will match **automat-drug-central** and
 
-e.g.
 ```
-pytest -vv test_onehops.py --kp_id=service-*-trapi
+pytest test_onehops.py --kp_id="service-*-trapi"
 ```
 will match **service-provider-trapi**.
 
@@ -318,7 +336,7 @@ will match **service-provider-trapi**.
 The tests may be globally constrained to validate against a specified TRAPI and/or Biolink Version, as follows:
 
 ```shell
-pytest -vv test_onehops.py --trapi_version ="1.3" --biolink_version="3.0.3"
+pytest test_onehops.py --trapi_version ="1.4" --biolink_version="3.0.3"
 ```
 
 ## Translator X-Maturity Environments
@@ -326,7 +344,7 @@ pytest -vv test_onehops.py --trapi_version ="1.3" --biolink_version="3.0.3"
 To constrain testing to one specific x-maturity environment (say, 'testing'), use the **`--x_maturity`** directive:
 
 ```
-pytest -vv test_onehops.py --ara_id=arax --kp_id=molepro --x_maturity=testing
+pytest test_onehops.py --ara_id="arax" --kp_id="molepro" --x_maturity="testing"
 ```
 
 ## Test CLI Help
@@ -353,15 +371,49 @@ The above SRI Testing-specific parameters are described as PyTest custom options
   --x_maturity=X_MATURITY
                         Target x_maturity server environment for testing (Default: None).
   
-  --teststyle=TESTSTYLE Which Test to Run?
+  --teststyle=TESTSTYLE Which One Hop unit test to run?
   
   --one                 Only use first edge from each KP file
 
 ```
 
-## What do the Validation Tests mean?
+## Test Results
 
-## How the One Hop Tests are Generated and Run
+The above test runs will produce a somewhat verbose and opaque regular Pytest console output. However, the results are reformatted into a more helpful set of structured JSON files.  These JSON  files may either be captured into a [running instance of a Mongo database](#database-for-the-test-results) or (by default) locally dumped onto the local filing system under the **_tests/onehop/test_results_** subfolder within date time stamp-indexed directories, looking something like the following (specific test run details will differ):
+
+```
+# example of a test run under 'tests/onehop/test_results'
+ls -R1 test_results/2023-06-06_10-44-19
+KP
+test_run_summary.json
+
+test_results/2023-06-06_10-44-19/KP:
+molepro
+
+test_results/2023-06-06_10-44-19/KP/molepro:
+molepro-6-by_object.json
+molepro-6-by_subject.json
+molepro-6-inverse_by_new_subject.json
+molepro-6-raise_object_by_subject.json
+molepro-6-raise_predicate_by_subject.json
+molepro-6.json
+recommendations.json
+resource_summary.json
+```
+
+Briefly, the output files - slightly overlapping in terms of information provided - contain the following information:
+
+- **test_run_summary.json:** top-level summary counts of pass/fail/skip results indexed by KP and/or ARA
+- **resource_summary.json:** detailed resource-specific test results aggregated by test edges
+- **recommendations.json:** detailed resource-specific test results test results merged by validation codes
+- **Set of <KP or ARA resource id>-#.json files:** detailed result summary by test edge, including the original TRAPI Request JSON for each test, generated for the given test edge
+- **Set of <KP or ARA resource id>-#-<test id>.json files:** for individual failed tests, the full TRAPI Response JSON by test edge and unit test name
+
+Note that each type of file is accessible through the [web services API](../../api/README.md)  and the content of the individual JSON files are mainly driven by the target functionality of [the Web Dashboard](../../README.md#testing-engine-and-web-dashboard), which renders the content of these result files in a more human-readable fashion.
+
+Further details about the nature of the unit tests is [described in the following section](#what-do-the-validation-tests-mean). 
+
+## What do the Validation Tests mean?
 
 The overall strategy of the SRI Testing Harness is explained in a [slide presentation here](https://docs.google.com/presentation/d/1p9n-UjMNlhWCyQrbI2GonsQKXz0PFdi4-ydDcrF5_tc).
 

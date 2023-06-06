@@ -76,7 +76,7 @@ recommendations.json
 resource_summary.json
 ```
 
-For full further details about SRI Testing One Hop tests and JSON file results, see the [One Hop tests](./tests/onehop/README.md) documentation.
+For more complete details about SRI Testing One Hop tests and JSON file results, see the full [One Hop tests](./tests/onehop/README.md) documentation.
 
 We again briefly mention here the use of a Mongo database to conveniently manage your test run output; use of the web service programmatic API to retrieve test results; and availability of a web UI Dashboard to view such results in a more convenient human-readable fashion (see below).
 
@@ -138,7 +138,7 @@ docker-compose build
 docker-compose up -d
 ```
 
-Once again, go to  http://localhost/docs to see the service documentation.  Docker logs may be viewed in a streaming fashion by:
+Pointing a web browser to  http://localhost will display the Dashboard web interface to SRI Testing results (test runs on the filing system or in a Mongo database). Concurrently, the docker-compose has started up the web services container delivering the data to the Dashboard. This OpenAPI documentation of this service implementation may be directly viewed via the endpoint http://localhost:8090/docs  (the API paths themselves directly accessed via the endpoint).  Docker logs may be viewed in a streaming fashion by:
 
 ```shell
 docker-compose logs -f

@@ -562,7 +562,7 @@ def pytest_addoption(parser):
         "--x_maturity", action="store", default=None,  # 'testing',
         help='Target x_maturity server environment for testing (Default: None).'
     )
-    parser.addoption("--teststyle", action="store", default='all', help='Which Test to Run?')
+    parser.addoption("--teststyle", action="store", default='all', help='Which One Hop unit test to run?')
     parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
     
 
