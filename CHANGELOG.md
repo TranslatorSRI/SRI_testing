@@ -2,6 +2,9 @@
 
 The SRI Testing harness package is evolving along with progress in TRAPI (including the reasoner-validator package) and Biolink standards within the NCATS Biomedical Knowledge Translator. 
 
+## v2.1.6
+- Troubleshooting chokidar error in Dashboard deployment
+
 ## v2.1.5
 - Updated the Dashboard UI to Node 20 / npm 9.6.6, fixing Docker deployments along the way. Updated UI now working.
 
