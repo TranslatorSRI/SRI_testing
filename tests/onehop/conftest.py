@@ -546,8 +546,9 @@ def pytest_addoption(parser):
     # 'x-translator' Biolink Model release property value of the target resources.
     parser.addoption(
         "--biolink_version", action="store", default=None,
-        help='Biolink Model version to use for validation, overriding' +
-             ' Translator SmartAPI Registry property value ' +
+        help='Biolink Model SemVer-compliant version to use for validation, overriding' +
+             ' Translator SmartAPI Registry property value. Note that a value of this parameter may also' +
+             ' be "suppress" in which case, Biolink Model validation is suppressed during the test run.' +
              '(Default: latest public release).'
     )
     parser.addoption(
@@ -564,7 +565,7 @@ def pytest_addoption(parser):
     )
     parser.addoption("--teststyle", action="store", default='all', help='Which One Hop unit test to run?')
     parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
-    
+
 
 def _fix_path(file_path: str) -> str:
     """
@@ -1051,7 +1052,10 @@ def pytest_generate_tests(metafunc):
     # KP/ARA Biolink Model version may be overridden
     # on the command line; maybe 'None' => no override
     biolink_version = metafunc.config.getoption('biolink_version')
-    logger.debug(f"pytest_generate_tests(): caller specified biolink_version == {str(biolink_version)}")
+    if biolink_version == "suppress":
+        logger.debug(f"pytest_generate_tests(): caller is suppressing Biolink validation!")
+    else:
+        logger.debug(f"pytest_generate_tests(): caller specified biolink_version == {str(biolink_version)}")
 
     # Note: the ARA and KP trapi_version and biolink_version values
     #       may be overridden here by the CLI caller values

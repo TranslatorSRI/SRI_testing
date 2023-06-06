@@ -363,7 +363,7 @@ The above SRI Testing-specific parameters are described as PyTest custom options
   --trapi_version=TRAPI_VERSION
                         TRAPI API version to use for validation, overriding Translator SmartAPI Registry property value (Default: latest public release or ).
   --biolink_version=BIOLINK_VERSION
-                        Biolink Model version to use for validation, overriding Translator SmartAPI Registry property value (Default: latest public release or ).
+                        Biolink Model SemVer-compliant version to use for validation, overriding Translator SmartAPI Registry property value. Note that a value of this parameter may also be "suppress" in which case, Biolink Model validation is suppressed during the test run. (Default: latest public release).
   --kp_id=KP_ID         Knowledge Provider identifier ("KP") targeted for testing (Default: None).
  
   --ara_id=ARA_ID       Autonomous Relay Agent ("ARA") targeted for testing (Default: None).
