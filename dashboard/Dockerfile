@@ -2,7 +2,6 @@ FROM node:20
 WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
-RUN npm audit fix
 COPY . .
 RUN chown -R node /usr/src/app
 EXPOSE 3000

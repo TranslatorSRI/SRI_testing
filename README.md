@@ -97,6 +97,8 @@ The SRI Testing Harness may be run as a Web Service. See [here](api/README.md) f
 
 A nice web interface is available to browse through results of SRI Testing Harness test runs.  [Documentation about this web interface](dashboard/README.md) is available. The interface may also be deployed as a Docker container (see below).
 
+A Translator Reference deployment of the web user interface, hosted by RENCI, is available at https://sri-testing.apps.renci.org.
+
 # Running the System within Docker
 
 The SRI Testing system may also be run within Docker containers, using Docker Compose.
