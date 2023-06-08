@@ -3,20 +3,15 @@ from typing import Optional, Dict, List
 
 from json import dumps
 
-import requests
-
 from reasoner_validator import TRAPIResponseValidator
 from reasoner_validator.versioning import SemVer, SemVerError
 from reasoner_validator.report import ValidationReporter
-from reasoner_validator.trapi import check_trapi_validity
+from reasoner_validator.trapi import call_trapi, check_trapi_validity
 
 import pytest
 
 import logging
 logger = logging.getLogger(__name__)
-
-# For testing, set TRAPI API query POST timeouts to 10 minutes == 600 seconds
-DEFAULT_TRAPI_POST_TIMEOUT = 600.0
 
 # Maximum number of input test edges to scrutinize in
 # TRAPI response knowledge graph, during edge content tests
@@ -25,10 +20,6 @@ TEST_DATA_SAMPLE_SIZE = 10
 # Default is actually specifically 1.3.0 as of September 2022
 # but the reasoner_validator should discern this
 DEFAULT_TRAPI_VERSION = "1.3.0"
-
-
-def _output(json, flat=False):
-    return dumps(json, sort_keys=False, indent=None if flat else 4)
 
 
 class TrapiValidationWarning(UserWarning):
@@ -133,47 +124,6 @@ def generate_test_error_msg_prefix(case: Dict, test_name: str) -> str:
         test_name = "input"
     test_msg_prefix += f"{edge_id}-{test_name}] FAILED"
     return test_msg_prefix
-
-
-async def call_trapi(url: str, trapi_message):
-    """
-    Given an url and a TRAPI message, post the message
-    to the url and return the status and json response.
-
-    :param url:
-    :param trapi_message:
-    :return:
-    """
-    query_url = f'{url}/query'
-
-    # print(f"\ncall_trapi({query_url}):\n\t{dumps(trapi_message, sort_keys=False, indent=4)}", file=stderr, flush=True)
-
-    try:
-        response = requests.post(query_url, json=trapi_message, timeout=DEFAULT_TRAPI_POST_TIMEOUT)
-    except requests.Timeout:
-        # fake response object
-        logger.error(
-            f"call_trapi(\n\turl: '{url}',\n\ttrapi_message: '{_output(trapi_message)}') - Request POST TimeOut?"
-        )
-        response = requests.Response()
-        response.status_code = 408
-    except requests.RequestException as re:
-        # perhaps another unexpected Request failure?
-        logger.error(
-            f"call_trapi(\n\turl: '{url}',\n\ttrapi_message: '{_output(trapi_message)}') - "
-            f"Request POST exception: {str(re)}"
-        )
-        response = requests.Response()
-        response.status_code = 408
-
-    response_json = None
-    if response.status_code == 200:
-        try:
-            response_json = response.json()
-        except Exception as exc:
-            logger.error(f"call_trapi({query_url}) JSON access error: {str(exc)}")
-
-    return {'status_code': response.status_code, 'response_json': response_json}
 
 
 def generate_edge_id(resource_id: str, edge_i: int) -> str:
@@ -601,26 +551,28 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     validator.check_compliance_of_trapi_response(response=response)
                     test_report.merge(validator)
 
-                #
-                # case: Dict contains something like:
-                #
-                #     idx: 0,
-                #     subject_category: 'biolink:SmallMolecule',
-                #     object_category: 'biolink:Disease',
-                #     predicate: 'biolink:treats',
-                #     subject_id: 'CHEBI:3002',  # may have the deprecated key 'subject' here
-                #     object_id: 'MESH:D001249', # may have the deprecated key 'object' here
-                #
-                # the contents for which ought to be returned in
-                # the TRAPI Knowledge Graph, as a Result mapping?
-                #
-                if not case_input_found_in_response(case, response, trapi_version):
-                    subject_id = case['subject'] if 'subject' in case else case['subject_id']
-                    object_id = case['object'] if 'object' in case else case['object_id']
-                    test_edge_id: str = f"{case['idx']}|({subject_id}#{case['subject_category']})" + \
-                                        f"-[{case['predicate']}]->" + \
-                                        f"({object_id}#{case['object_category']})"
-                    test_report.report(
-                        code="error.trapi.response.knowledge_graph.missing_expected_edge",
-                        identifier=test_edge_id
-                    )
+                    #
+                    # case: Dict contains something like:
+                    #
+                    #     idx: 0,
+                    #     subject_category: 'biolink:SmallMolecule',
+                    #     object_category: 'biolink:Disease',
+                    #     predicate: 'biolink:treats',
+                    #     subject_id: 'CHEBI:3002',  # may have the deprecated key 'subject' here
+                    #     object_id: 'MESH:D001249', # may have the deprecated key 'object' here
+                    #
+                    # the contents for which ought to be returned in
+                    # the TRAPI Knowledge Graph, as a Result mapping?
+                    #
+                    if not case_input_found_in_response(case, response, trapi_version):
+                        subject_id = case['subject'] if 'subject' in case else case['subject_id']
+                        object_id = case['object'] if 'object' in case else case['object_id']
+                        test_edge_id: str = f"{case['idx']}|({subject_id}#{case['subject_category']})" + \
+                                            f"-[{case['predicate']}]->" + \
+                                            f"({object_id}#{case['object_category']})"
+                        test_report.report(
+                            code="error.trapi.response.knowledge_graph.missing_expected_edge",
+                            identifier=test_edge_id
+                        )
+                else:
+                    test_report.report(code="error.trapi.response.empty")
