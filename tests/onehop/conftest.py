@@ -833,10 +833,6 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
             for edge_i, edge in enumerate(test_data['edges']):
 
-                # TODO: temporary short-cut to prioritize qualified edges
-                if 'qualifiers' not in edge:
-                    continue
-
                 # We tag each edge internally with its
                 # sequence number, for later convenience
                 edge['idx'] = edge_i
@@ -845,25 +841,6 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 # may be distinct from the underlying
                 # knowledge source being targeted by the test data
                 edge['kp_id'] = f"infores:{kp_id}"
-
-                # Test data may now have Biolink 3 'qualifier' TRAPI query constraints,
-                # i.e. something like the following:
-                #
-                # {
-                #     "subject_category": "biolink:SmallMolecule",
-                #     "object_category": "biolink:Disease",
-                #     "predicate": "biolink:treats",
-                #     "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
-                #     "object_id": "MESH:D001249"     # asthma
-                #     "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
-                #     "qualifiers": [
-                #          {
-                #               "qualifier_type_id": "biolink:causal_mechanism_qualifier"
-                #               "qualifier_value": "inhibition"
-                #          },
-                #          # ...other qualifier constraint type_id/value pairs?
-                #      ]
-                # }
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?
