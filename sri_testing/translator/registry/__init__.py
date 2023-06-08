@@ -7,7 +7,7 @@ from datetime import datetime
 
 import requests
 import yaml
-from reasoner_validator.versioning import SemVer, get_latest_version
+from reasoner_validator.versioning import SemVer
 
 from requests.exceptions import RequestException
 
@@ -98,7 +98,7 @@ def iterate_services_from_registry(registry_data):
     """
     service_status_data = []
     for index, service in enumerate(registry_data['hits']):
-        print(index, service['info']['title'], set_timestamp())
+        # print(index, service['info']['title'], set_timestamp())
         try:
             service_spec = get_spec(service['_meta']['url'])
             for server in service_spec['servers']:
@@ -116,7 +116,7 @@ def iterate_services_from_registry(registry_data):
                 service_paths = [x for x in service['paths'] if 'meta' in x]
                 meta_kg_path = service_paths[0]
                 source_data_packet['server_status'] = get_status(server['url'], meta_kg_path)
-                print(server['url'], meta_kg_path, source_data_packet['server_status'])
+                # print(server['url'], meta_kg_path, source_data_packet['server_status'])
                 service_status_data.append(source_data_packet)
         except Exception as e:
             print(e)

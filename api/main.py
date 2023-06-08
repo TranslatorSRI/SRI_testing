@@ -3,14 +3,13 @@ FastAPI web service wrapper for SRI Testing harness
 (i.e. for reports to a Translator Runtime Status Dashboard)
 """
 from typing import Optional, Dict, List, Generator, Union, Tuple
-
+from sys import stderr
+from os import getenv
 from os.path import dirname, abspath
 
 from pydantic import BaseModel
 
 import uvicorn
-
-import logging
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
@@ -29,6 +28,16 @@ from sri_testing.translator.sri.testing.onehops_test_runner import (
     OneHopTestHarness,
     DEFAULT_WORKER_TIMEOUT
 )
+
+import logging
+
+# SYSLOG_LEVEL: str = getenv("LOGGING_LEVEL", default="WARNING")
+# logging.basicConfig(stream=stderr, level=SYSLOG_LEVEL)
+logger = logging.getLogger(__name__)
+
+# syslog_level_msg = f"Application logging level set to '{SYSLOG_LEVEL}'"
+# logger.info(syslog_level_msg)
+# print(syslog_level_msg, file=stderr)
 
 app = FastAPI()
 
@@ -152,10 +161,6 @@ class TestRunParameters(BaseModel):
     # which implies caller blocking until the data is available
     timeout: Optional[int] = DEFAULT_WORKER_TIMEOUT
 
-    # Python Logger activation handed to Pytest
-    # CLI argument '--log-cli-level', for debugging
-    log: Optional[str] = None
-
 
 class TestRunSession(BaseModel):
 
@@ -242,13 +247,6 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
             biolink_version = test_parameters.biolink_version
             if not _is_valid_version(biolink_version):
                 errors.append(f"'biolink_version' parameter '{biolink_version}' is not a valid SemVer string!")
-
-        if test_parameters.log:
-            log = test_parameters.log
-            try:
-                logging.getLogger().setLevel(log)
-            except (ValueError, TypeError):
-                errors.append(f"'log' parameter '{log}' is not a valid Logging level!")
 
         timeout = test_parameters.timeout if test_parameters.timeout else DEFAULT_WORKER_TIMEOUT
 
