@@ -938,13 +938,13 @@ files = [
 
 [[package]]
 name = "pytest"
-version = "7.3.1"
+version = "7.3.2"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pytest-7.3.1-py3-none-any.whl", hash = "sha256:3799fa815351fea3a5e96ac7e503a96fa51cc9942c3753cda7651b93c1cfa362"},
-    {file = "pytest-7.3.1.tar.gz", hash = "sha256:434afafd78b1d78ed0addf160ad2b77a30d35d4bdf8af234fe621919d9ed15e3"},
+    {file = "pytest-7.3.2-py3-none-any.whl", hash = "sha256:cdcbd012c9312258922f8cd3f1b62a6580fdced17db6014896053d47cddf9295"},
+    {file = "pytest-7.3.2.tar.gz", hash = "sha256:ee990a3cc55ba808b80795a79944756f315c67c12b56abd3ac993a7b8c17030b"},
 ]
 
 [package.dependencies]
@@ -956,7 +956,7 @@ pluggy = ">=0.12,<2.0"
 tomli = {version = ">=1.0.0", markers = "python_version < \"3.11\""}
 
 [package.extras]
-testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
+testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
 
 [[package]]
 name = "pytest-asyncio"
@@ -1103,13 +1103,13 @@ networkx = ["networkx (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "reasoner-validator"
-version = "3.5.6"
+version = "3.5.7"
 description = "Validation tools for Reasoner API"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "reasoner_validator-3.5.6-py3-none-any.whl", hash = "sha256:0fd1ad04f343d81d0b42ad7820bdca3772ef43f3be8d4719ad27b05361429d87"},
-    {file = "reasoner_validator-3.5.6.tar.gz", hash = "sha256:13edf8b594949c1cd2dfa43cf578c671dd0fba2ba43b2fa42e664776528c9323"},
+    {file = "reasoner_validator-3.5.7-py3-none-any.whl", hash = "sha256:d48fa3c0cc3c8ce0f10dce8e45e8bd3e050dbf419f20e86ec580eb2e9e9e8749"},
+    {file = "reasoner_validator-3.5.7.tar.gz", hash = "sha256:ddbb892d68de9cbea87358d9acb13582157423f728925288bde532275fcd3b2f"},
 ]
 
 [package.dependencies]
@@ -1379,4 +1379,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "3fa122020e75fd36715823228692cb7cc66a441b19b39dfd6dcc8359d15b38c0"
+content-hash = "4cffaab1fe0fe98ac0f09abcac777776a350e0adf99a31c9a1c9d47a6f65aa86"

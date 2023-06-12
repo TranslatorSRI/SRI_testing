@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "SRI_Testing"
-version = "2.1.8"
+version = "2.1.9"
 description = "Semantics-driven tests for testing Translator TRAPI Components (KPs and ARAs)"
 authors = [
     "Richard Bruskiewich <richard.bruskiewich@delphinai.com>",
@@ -57,7 +57,7 @@ uvicorn = ">=0.15.0,<0.16.0"
 
 # reasoner-validator should pull in many dependencies
 # also used by SRI Testing, including BMT (which adds some more)
-reasoner-validator = "^3.5.6"
+reasoner-validator = "^3.5.7"
 
 # [tool.poetry.group.dev.dependencies]
 

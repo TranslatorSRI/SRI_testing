@@ -2,6 +2,9 @@
 
 The SRI Testing harness package is evolving along with progress in TRAPI (including the reasoner-validator package) and Biolink standards within the NCATS Biomedical Knowledge Translator. 
 
+## v2.1.9
+- Upgraded to reasoner-validator 3.5.7
+
 ## v2.1.8
 - Upgraded to reasoner-validator 3.5.6
 - TRAPI call method moved to the reasoner-validator.trapi package module in release 3.5.6

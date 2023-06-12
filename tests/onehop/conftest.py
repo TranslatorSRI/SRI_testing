@@ -828,7 +828,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 )
 
             if 'edges' not in test_data:
-                logger.warning(f"Test Data for from '{infores}' has now edges? Weird... skipping!")
+                logger.warning(f"Test Data for from '{infores}' has no edges? Weird... skipping!")
                 continue
 
             for edge_i, edge in enumerate(test_data['edges']):
