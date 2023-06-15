@@ -76,12 +76,12 @@ async def favicon():
 
 class ResourceRegistry(BaseModel):
     message: str = ""
-    KPs: Dict[str, List[str]]
-    ARAs: Dict[str, List[str]]
+    KPs: Dict[str, Dict[str, List[str]]]
+    ARAs: Dict[str, Dict[str, List[str]]]
 
 
 # Treat the registry catalog as an initialized singleton, to enhance application performance
-the_resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
+the_resources: Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]] = \
         OneHopTestHarness.testable_resources_catalog_from_registry()
 
 

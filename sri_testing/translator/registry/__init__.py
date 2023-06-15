@@ -750,7 +750,7 @@ def validate_testable_resource(
 
 def get_testable_resources_from_registry(
         registry_data: Dict
-) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+) -> Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]]:
     """
     Simpler version of the extract_component_test_metadata_from_registry() method,
     that only returns the InfoRes reference identifiers of all testable resources.
@@ -764,8 +764,8 @@ def get_testable_resources_from_registry(
             value list of associated x-maturity environments available for testing.
     """
 
-    kp_ids: Dict[str, List[str]] = dict()
-    ara_ids: Dict[str, List[str]] = dict()
+    kp_ids: Dict[str, Dict[str, List[str]]] = dict()
+    ara_ids: Dict[str, Dict[str, List[str]]] = dict()
 
     for index, service in enumerate(registry_data['hits']):
 
@@ -773,6 +773,8 @@ def get_testable_resources_from_registry(
         component = tag_value(service, "info.x-translator.component")
         if not (component and component in ["KP", "ARA"]):
             continue
+
+        trapi_version: str = tag_value(service, "info.x-trapi.version")
 
         resource: Optional[Tuple[str, List[str]]] = get_testable_resource(index, service)
 
@@ -784,16 +786,22 @@ def get_testable_resources_from_registry(
         if component == "KP":
 
             if infores not in kp_ids:
-                kp_ids[infores] = list()
+                kp_ids[infores] = dict()
 
-            kp_ids[infores].extend(resource[1])
+            if trapi_version not in kp_ids[infores]:
+                kp_ids[infores][trapi_version] = list()
+
+            kp_ids[infores][trapi_version].extend(resource[1])
 
         elif component == "ARA":
 
             if infores not in ara_ids:
-                ara_ids[infores] = list()
+                ara_ids[infores] = dict()
 
-            ara_ids[infores].extend(resource[1])
+            if trapi_version not in ara_ids[infores]:
+                ara_ids[infores][trapi_version] = list()
+
+            ara_ids[infores][trapi_version].extend(resource[1])
 
     return kp_ids, ara_ids
 

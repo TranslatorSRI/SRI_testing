@@ -109,21 +109,6 @@ DEVELOPMENT_ARA_SERVER = {
 ARA_SERVERS_BLOCK = [PRODUCTION_ARA_SERVER, STAGING_ARA_SERVER, TESTING_ARA_SERVER, DEVELOPMENT_ARA_SERVER]
 
 
-def test_get_testable_resources_from_registry():
-    registry_data: Optional[Dict] = get_the_registry_data()
-
-    assert registry_data, "Registry inaccessible?"
-
-    resources: Tuple[Dict[str, List[str]], Dict[str, List[str]]] = \
-        get_testable_resources_from_registry(registry_data)
-
-    assert len(resources) > 0, "No testable resources in the Registry?"
-    assert len(resources[0]) > 0, "No testable KP resources in the Registry?"
-    assert "automat-sri-reference-kg" in resources[0]
-    assert len(resources[1]) > 0, "No testable ARA resources in the Registry?"
-    assert "arax" in resources[1]
-
-
 @pytest.mark.parametrize(
     "query",
     [
@@ -1362,7 +1347,7 @@ def test_get_testable_resource_ids_from_registry():
 
     registry_data: Dict = get_the_registry_data()
 
-    resources: Tuple[Dict[str, List[str]], Dict[str, List[str]]] = \
+    resources: Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]] = \
         get_testable_resources_from_registry(registry_data)
 
     assert resources
@@ -1376,10 +1361,15 @@ def test_get_testable_resource_ids_from_registry():
     # 'molepro' and 'arax' are in both the MOCK and the
     # regular registry so these assertions should pass
     assert "molepro" in resources[0]
-    assert "testing" in resources[0]["molepro"]
-    assert "staging" in resources[0]["molepro"]
-    assert "arax" in resources[1]
-    assert "production" in resources[1]["arax"]
+    assert "1.3.0" in resources[0]["molepro"]
+    assert "1.4.0" in resources[0]["molepro"]
+    assert "testing" in resources[0]["molepro"]["1.4.0"]
+    assert "production" in resources[0]["molepro"]["1.3.0"]
+    assert "biothings-explorer" in resources[1]
+    assert "1.3.0" in resources[1]["biothings-explorer"]
+    assert "1.4.0" in resources[1]["biothings-explorer"]
+    assert "production" in resources[1]["biothings-explorer"]["1.3.0"]
+    assert "staging" in resources[1]["biothings-explorer"]["1.4.0"]
 
 
 def test_get_translator_kp_test_data_metadata():

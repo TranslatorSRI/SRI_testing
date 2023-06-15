@@ -602,9 +602,10 @@ class OneHopTestHarness:
         return resource_summary
 
     @classmethod
-    def testable_resources_catalog_from_registry(cls) -> Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]]:
+    def testable_resources_catalog_from_registry(cls) -> \
+            Optional[Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]]]:
         """
-        Retrieve inventory of testable resources from the Tranlator SmartAPI Registry.
+        Retrieve inventory of testable resources from the Translator SmartAPI Registry.
 
         :return: Optional 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available
                  KPs and ARAs,  with keys from reference ('object') id's of InfoRes CURIES and values that
@@ -617,7 +618,7 @@ class OneHopTestHarness:
             # Oops! Couldn't get any data out of the Registry?
             return None
 
-        resources: Tuple[Dict[str, List[str]], Dict[str, List[str]]] = \
+        resources: Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]] = \
             get_testable_resources_from_registry(registry_data)
 
         return resources
