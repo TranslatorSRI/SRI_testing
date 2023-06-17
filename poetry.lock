@@ -1103,13 +1103,13 @@ networkx = ["networkx (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "reasoner-validator"
-version = "3.5.8"
+version = "3.5.11"
 description = "Validation tools for Reasoner API"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "reasoner_validator-3.5.8-py3-none-any.whl", hash = "sha256:a6aac74226b84050a985c6890201427b84f796a57a857f3bb4c28a831abe37f4"},
-    {file = "reasoner_validator-3.5.8.tar.gz", hash = "sha256:80a89713bb4e3c2be98cd75563e486fdd534b82a65fc39d6181aa83b61e40d24"},
+    {file = "reasoner_validator-3.5.11-py3-none-any.whl", hash = "sha256:8bcd33f0e483020e60ea42f377c7416e778a08be9838d474472ee540562a5037"},
+    {file = "reasoner_validator-3.5.11.tar.gz", hash = "sha256:8c4f8f34694fd03d1a7e3cb0c47e2944ce180aa7725521111f82bc489195f084"},
 ]
 
 [package.dependencies]
@@ -1379,4 +1379,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "236a2e3e76f6de8fc273e4ec269fb78d77d19d81df289a6f9ed05f8face5d10c"
+content-hash = "eba004a5a2cd36d349fc2739ea17eed3168f0186654f64b1ec9a0b1528a06acc"
