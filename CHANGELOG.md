@@ -2,6 +2,9 @@
 
 The SRI Testing harness package is evolving along with progress in TRAPI (including the reasoner-validator package) and Biolink standards within the NCATS Biomedical Knowledge Translator. 
 
+## v2.2.0
+- Upgrade to reasoner-validator 3.6.1 with 'critical' validation errors
+
 ## v2.1.10
 - extracted OneHop test code relating to inverse predicate into get_inverse_predicate() method in BiolinkValidator class
 - various TRAPI edge case validation against Knowledge Graph, moved from SRI Testing harness to TRAPIValidator class

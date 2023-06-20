@@ -179,7 +179,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
         # expropriated by the 'creator' to return error information
         context = output_element.split("|")
         test_report.report(
-            "error.trapi.request.invalid",
+            "critical.trapi.request.invalid",
             identifier=context[1],
             context=context[0],
             reason=output_node_binding
@@ -214,7 +214,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
             # Second sanity check: was the web service (HTTP) call itself successful?
             status_code: int = trapi_response['status_code']
             if status_code != 200:
-                test_report.report("error.trapi.response.unexpected_http_code", identifier=status_code)
+                test_report.report("critical.trapi.response.unexpected_http_code", identifier=status_code)
             else:
                 #########################################################
                 # Looks good so far, so now validate the TRAPI schemata #

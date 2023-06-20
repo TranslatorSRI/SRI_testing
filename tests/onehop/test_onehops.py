@@ -56,7 +56,11 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
     if excluded_test:
         test_report.skip(code="info.excluded", edge_id=edge_id)
     else:
-        test_report.skip(code="error.non_compliant", edge_id=edge_id, messages=test_case['pre-validation'])
+        test_report.skip(
+            code="error.biolink.model.noncompliance",
+            edge_id=edge_id,
+            messages=test_case['pre-validation']
+        )
 
 
 @pytest.mark.asyncio
