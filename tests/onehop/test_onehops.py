@@ -93,7 +93,7 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report,
             excluded_test=True
         )
-    elif UnitTestReport.has_validation_errors("pre-validation", kp_trapi_case):
+    elif UnitTestReport.test_case_has_validation_errors("pre-validation", kp_trapi_case):
         _report_and_skip_edge(
             "KP",
             test=trapi_creator,
@@ -149,7 +149,7 @@ async def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report,
             excluded_test=True
         )
-    elif UnitTestReport.has_validation_errors("pre-validation", ara_trapi_case):
+    elif UnitTestReport.test_case_has_validation_errors("pre-validation", ara_trapi_case):
         _report_and_skip_edge(
             "ARA",
             test=trapi_creator,
