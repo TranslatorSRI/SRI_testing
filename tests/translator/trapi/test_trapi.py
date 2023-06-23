@@ -122,7 +122,7 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
         (
             # query0 - Empty 'nodes'
             "subject",
-            "CHEBI:6801",     # node identifier
+            ["CHEBI:6801"],   # node identifier
             TEST_CASE,        # case
             dict(),           # empty nodes
             False             # outcome
@@ -130,7 +130,7 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
         (
             # query1 - Nodes catalog containing the target (subject) node with complete annotation
             "subject",
-            "CHEBI:6801",     # valid node identifier
+            ["CHEBI:6801"],   # valid node identifier
             TEST_CASE,        # case
             SAMPLE_KG_NODES,  # non-empty sample nodes catalog
             True              # outcome
@@ -138,15 +138,15 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
         (
             # query2 - Nodes catalog containing the target (object) node with missing category
             "object",
-            "MONDO:0005148",   # valid node identifier
-            TEST_CASE,         # case
-            SAMPLE_KG_NODES2,  # sample nodes catalog missing in 'MONDO:0005148'
-            False              # outcome
+            ["MONDO:0005148"],  # valid node identifier
+            TEST_CASE,          # case
+            SAMPLE_KG_NODES2,   # sample nodes catalog missing in 'MONDO:0005148'
+            False               # outcome
         ),
         (
             # query3 - Nodes catalog containing the target (object) node with incorrect category
             "subject",
-            "CHEBI:6801",     # valid node identifier
+            ["CHEBI:6801"],   # valid node identifier
             TEST_CASE2,       # case
             SAMPLE_KG_NODES,  # good sample nodes catalog
             False             # outcome
@@ -155,7 +155,7 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
 )
 def test_case_node_found(
         target,
-        identifier: str,
+        identifier: List[str],
         case: Dict,
         nodes: Dict,
         outcome: bool
