@@ -100,6 +100,7 @@ def _new_kp_recommendation_summary(
         'x_maturity': x_maturity,
         'trapi_version': trapi_version,
         'biolink_version': biolink_version,
+        'critical': dict(),
         'errors': dict(),
         'warnings': dict(),
         'information': dict()
@@ -114,13 +115,10 @@ def _compile_recommendations(
         test_id: str
 ):
     #     "errors": {
-    #       "error.edge.predicate.unknown": [
+    #       "error.knowledge_graph.edge.predicate.unknown": [
     #         {
-    #           "message": {
-    #             "context": "Query Graph",
+    #           "biolink:has_active_component": {
     #             "edge_id": "a--['biolink:has_active_component']->b",
-    #             "predicate": "biolink:has_active_component",
-    #             "code": "error.edge.predicate.unknown"
     #           },
     #           "test_data": {
     #             "subject_category": "biolink:Gene",
@@ -161,6 +159,9 @@ def _compile_recommendations(
                 "test": test_id
             }
             recommendation_summary[message_type][code].append(item)
+
+    if test_report.has_critical():
+        _capture_messages(message_type="critical", messages=test_report.get_critical())
 
     if test_report.has_errors():
         _capture_messages(message_type="errors", messages=test_report.get_errors())

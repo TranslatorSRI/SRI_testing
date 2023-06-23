@@ -49,21 +49,6 @@ class UnitTestReport(ValidationReporter):
             strict_validation=strict_validation
         )
 
-    # def test(self, is_true: bool, message: str, data_dump: Optional[str] = None):
-    #     """
-    #     Error test report.
-    #
-    #     :param is_true: test predicate, triggering error message report if False
-    #     :param code: error message code reported when 'is_true' is False
-    #     :param data_dump: optional extra information about a test failure (e.g. details about the object that failed)
-    #     :raises: AssertionError when 'is_true' flag has value False
-    #     """
-    #     if not is_true:
-    #         logger.error(message)
-    #         if data_dump:
-    #             logger.debug(data_dump)
-    #         self.report(code)
-
     def skip(self, code: str, edge_id: str, messages: Optional[Dict] = None):
         """
         Edge test Pytest skipping wrapper.
@@ -83,13 +68,22 @@ class UnitTestReport(ValidationReporter):
         Pytest Assertion wrapper: assert the Pytest outcome relative
         to the most severe ValidationReporter messages.
         """
-        if self.has_errors():
+        if self.has_critical():
+            critical_msg = self.dump_critical(flat=True)
+            logger.critical(critical_msg)
+            pytest.fail(reason=critical_msg)
+        elif self.has_errors():
+            # we now treat 'soft' errors similar to warnings (below)
             err_msg = self.dump_errors(flat=True)
             logger.error(err_msg)
-            pytest.fail(reason=err_msg)
+            with pytest.warns(TrapiValidationWarning):
+                warnings.warn(
+                    TrapiValidationWarning(err_msg),
+                    TrapiValidationWarning
+                )
         elif self.has_warnings():
             wrn_msg = self.dump_warnings(flat=True)
-            logger.error(wrn_msg)
+            logger.warning(wrn_msg)
             with pytest.warns(TrapiValidationWarning):
                 warnings.warn(
                     TrapiValidationWarning(wrn_msg),
