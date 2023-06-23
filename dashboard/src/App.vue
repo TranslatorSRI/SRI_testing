@@ -209,15 +209,16 @@
                       <SizeProvider>
                         <div class="wrapper" slot-scope="{ width, height }" :style="{ height: height + 'px' }">
                           <SizeObserver>
-                            <strong style="{ marginBottom: 5px }">info/warning/error frequency</strong>
+                            <strong style="{ marginBottom: 5px }">info/warning/error/critical error frequency</strong>
                             <la-cartesian narrow stacked
                                           :bound="[0]"
                                           :data="message_summary_stats[resource_key]"
                                           :width="width"
-                                          :colors="[status_color('passed'), status_color('failed'), status_color('skipped')]">
+                                          :colors="[status_color('passed'), status_color('error'), status_color('failed'), status_color('skipped')]">
                               <la-bar label="warning" prop="warning" :color="status_color('skipped')"></la-bar>
                               <la-bar label="info" prop="info" :color="status_color('passed')"></la-bar>
-                              <la-bar label="error" prop="error" :color="status_color('failed')"></la-bar>
+                              <la-bar label="error" prop="error" :color="status_color('error')"></la-bar>
+                              <la-bar label="critical" prop="critical" :color="status_color('failed')"></la-bar>
                               <la-x-axis class="x-axis" :font-size="10" prop="name"></la-x-axis>
                               <la-y-axis></la-y-axis>
                               <la-tooltip></la-tooltip>
@@ -269,6 +270,10 @@
                         <v-radio
                           label="Pass"
                           value="passed"
+                          ></v-radio>
+                        <v-radio
+                          label="Error"
+                          value="failed"
                           ></v-radio>
                         <v-radio
                           label="Fail"
@@ -334,6 +339,7 @@
                           <h3>{{ formatConcreteEdge(data_table_current_item["spec"]) }}</h3><br>
 
                           <v-chip-group>
+                            <v-chip>{{ stateIcon("critical", icon_only=true) }}&nbsp;Errors: {{ selected_result_message_summary.critical }}</v-chip>
                             <v-chip>{{ stateIcon("errors", icon_only=true) }}&nbsp;Errors: {{ selected_result_message_summary.errors }}</v-chip>
                             <v-chip>{{ stateIcon("warnings", icon_only=true) }}&nbsp;Warnings: {{ selected_result_message_summary.warnings }}</v-chip>
                             <v-chip>{{ stateIcon("information", icon_only=true) }}&nbsp;Information: {{ selected_result_message_summary.information }}</v-chip>
@@ -372,7 +378,7 @@
                             </template>
                             <template v-slot:append="{ item }">
 
-                              <span v-if="['errors', 'warnings', 'information'].includes(item.name)">
+                              <span v-if="['critical', 'errors', 'warnings', 'information'].includes(item.name)">
                                 {{ item.children.length }}
                               </span>
                               <span v-else-if="!!!item.data">
@@ -666,6 +672,7 @@ export default {
         selected_result_message_summary() {
             if (!!!this.data_table_current_item) {
                 return {
+                    "critical": 0,
                     "errors": 0,
                     "warnings": 0,
                     "information": 0,
@@ -798,8 +805,8 @@ export default {
         },
         _headers() {
             return this.headers
-                .concat(['errors', 'information', 'warnings'])
-                .sort(orderByArrayFunc(['spec', 'errors', 'information', 'warnings']))
+                .concat(['critical', 'errors', 'information', 'warnings'])
+                .sort(orderByArrayFunc(['spec', 'critical', 'errors', 'information', 'warnings']))
                 .map(el => ({
                     text: el,
                     value: el,
@@ -823,7 +830,7 @@ export default {
                 ...this.countResultMessages(el),
             }));
             const ___cells = __cells.map(cell =>
-                Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'errors', 'information', 'warnings'])(a, b))));
+                Object.fromEntries(Object.entries(cell).sort(([a, _], [b, __]) => orderByArrayFunc(['spec', 'critical', 'errors', 'information', 'warnings'])(a, b))));
             return ___cells;
         },
         filtered_cells() {
@@ -893,12 +900,12 @@ export default {
     },
     methods: {
         message_summary_for_resource(resource_recommendations) {
-            return ['errors','information','warnings']
+            return ['critical', 'errors','information','warnings']
                     .flatMap(message_type => jp.nodes(resource_recommendations, `$['${message_type}']`))
                     .reduce((acc, el) => Object.assign(acc, el.value), {})
         },
         item_to_treeview_entry(item) {
-            return Object.entries(item).filter(a => !['spec', '_id', 'information', 'errors', 'warnings'].includes(a[0]))
+            return Object.entries(item).filter(a => !['spec', '_id', 'information', 'warnings', 'errors', 'critical'].includes(a[0]))
                 .map(a => ({
                     'name': a[0],
                     'outcome': a[1].outcome,
@@ -958,7 +965,8 @@ export default {
         status_color: (status) =>
             status === "passed" || status === "information" || status === "info" ? "#00ff00"
             : status === "skipped" || status === "warning" ? "#f0e68c"
-            : status === "failed" || status === "error" ? "#f08080"
+            : status === "failed" || status === "error" ? "#ff8000"
+            : status === "critical" ? "#f08080"
             : "#000000",
         denormalize_provider_summary(provider_summary, provider_key) {
             //console.log(provider_summary, provider_summary.results, provider_key)
@@ -1222,10 +1230,14 @@ export default {
         stateIcon (state, icon_only=false) {
             if (state === "passed") {
                 return `✅${!icon_only ? ' Pass' : ''}`
-            } else if (state === "skipped" || state === 'warnings') {
-                return `⚠️${!icon_only ? ' Skip' : ''}`
-            } else if (state === "failed" || state === 'errors') {
-                return `🚫${!icon_only ? ' Fail' : ''}`
+            } else if (state === "skipped") {
+                return `❓${!icon_only ? ' Skip' : ''}`
+            } else if (state === 'warnings') {
+                return `⚠️${!icon_only ? ' Warning' : ''}`
+            } else if (state === 'errors') {
+                return `❗${!icon_only ? ' Error' : ''}`
+            } else if (state === "failed" || state === 'critical') {
+                return `⛔${!icon_only ? ' Fail' : ''}`
             } else if (state === "information" || state === "info") {
                 return `ℹ️${!icon_only ? ' Info': ''}`
             }
@@ -1245,13 +1257,16 @@ export default {
                 let [ left, right ] = item;
                 if (!!right && !!right.validation) {
                     const { validation } = right;
-                    const { information, errors, warnings } = validation;
-                    acc.information += _.uniqBy(information, object_signature).length
-                    acc.errors += _.uniqBy(errors, object_signature).length;
+                    const { information, warnings, errors, critical } = validation;
+                    acc.information += _.uniqBy(information, object_signature).length;
                     acc.warnings += _.uniqBy(warnings, object_signature).length;
+                    acc.errors += _.uniqBy(errors, object_signature).length;
+                    acc.critical += _.uniqBy(critical, object_signature).length;
+
                 }
                 return acc;
             }, {
+                critical: 0,
                 errors: 0,
                 warnings: 0,
                 information: 0,
@@ -1259,6 +1274,7 @@ export default {
         },
         countResultMessagesWithCode(messages) {
             const initial_count = {
+                critical: 0,
                 errors: 0,
                 warnings: 0,
                 information: 0,
@@ -1268,6 +1284,7 @@ export default {
                 if (i.code.startsWith('warning')) a['warnings'] += 1;
                 if (i.code.startsWith('info')) a['information'] += 1;
                 if (i.code.startsWith('error')) a['errors'] += 1;
+                if (i.code.startsWith('critical')) a['critical'] += 1;
                 return a;
             }, initial_count)
         },
@@ -1323,7 +1340,7 @@ function orderByPlaceInArray(iterable, array) {
     if (array.length === 0 || iterable.length === 0) return iterable;
     return iterable.sort(orderByArrayFunc(array))
 }
-// const orderByPlaceInArray_test_case = ['spec', 'information', 'warnings', 'errors']
+// const orderByPlaceInArray_test_case = ['spec', 'information', 'warnings', 'errors', 'critical']
 // console.warn(orderByPlaceInArray([], orderByPlaceInArray_test_case))
 // console.warn(orderByPlaceInArray(orderByPlaceInArray_test_case, orderByPlaceInArray_test_case))
 // console.warn(orderByPlaceInArray(['a', 'b', 'c'], orderByPlaceInArray_test_case))
