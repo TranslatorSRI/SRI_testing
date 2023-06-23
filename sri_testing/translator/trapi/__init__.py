@@ -234,7 +234,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     if test_report.has_critical() or test_report.has_errors():
                         # we skip further validation if (critical) errors found
                         pass
-                    elif "warning.response.knowledge_graph.empty" in test_report.get_warnings():
+                    elif "warning.trapi.response.knowledge_graph.empty" in test_report.get_warnings():
                         # Although allowed in TRAPI calls, the SRI Testing harness does expect
                         # a non-empty result, so we add an error here
                         test_report.report(code="error.trapi.response.knowledge_graph.empty")
