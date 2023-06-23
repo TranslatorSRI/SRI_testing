@@ -227,31 +227,42 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                         trapi_version=trapi_version,
                         biolink_version=biolink_version
                     )
-                    validator.check_compliance_of_trapi_response(response=response)
+                    # We need to suppress 'edges_limit' threshold here to ensure that the
+                    # case_input_found_in_response() below will truly find the test edge!
+                    validator.check_compliance_of_trapi_response(response=response, edges_limit=0)
                     test_report.merge(validator)
-
-                    #
-                    # case: Dict contains something like:
-                    #
-                    #     idx: 0,
-                    #     subject_category: 'biolink:SmallMolecule',
-                    #     object_category: 'biolink:Disease',
-                    #     predicate: 'biolink:treats',
-                    #     subject_id: 'CHEBI:3002',  # may have the deprecated key 'subject' here
-                    #     object_id: 'MESH:D001249', # may have the deprecated key 'object' here
-                    #
-                    # the contents for which ought to be returned in
-                    # the TRAPI Knowledge Graph, as a Result mapping?
-                    #
-                    if not validator.case_input_found_in_response(case, response, trapi_version):
-                        subject_id = case['subject'] if 'subject' in case else case['subject_id']
-                        object_id = case['object'] if 'object' in case else case['object_id']
-                        test_edge_id: str = f"{case['idx']}|({subject_id}#{case['subject_category']})" + \
-                                            f"-[{case['predicate']}]->" + \
-                                            f"({object_id}#{case['object_category']})"
-                        test_report.report(
-                            code="error.trapi.response.knowledge_graph.missing_expected_edge",
-                            identifier=test_edge_id
-                        )
+                    if test_report.has_critical() or test_report.has_errors():
+                        # we skip further validation if (critical) errors found
+                        pass
+                    elif "warning.response.knowledge_graph.empty" in test_report.get_warnings():
+                        # Although allowed in TRAPI calls, the SRI Testing harness does expect
+                        # a non-empty result, so we add an error here
+                        test_report.report(code="error.trapi.response.knowledge_graph.empty")
+                    else:
+                        # If nothing badly wrong with the TRAPI Response to this point, then we also check
+                        # whether the test input edge was returned in the Response Message knowledge graph
+                        #
+                        # case: Dict contains something like:
+                        #
+                        #     idx: 0,
+                        #     subject_category: 'biolink:SmallMolecule',
+                        #     object_category: 'biolink:Disease',
+                        #     predicate: 'biolink:treats',
+                        #     subject_id: 'CHEBI:3002',  # may have the deprecated key 'subject' here
+                        #     object_id: 'MESH:D001249', # may have the deprecated key 'object' here
+                        #
+                        # the contents for which ought to be returned in
+                        # the TRAPI Knowledge Graph, as a Result mapping?
+                        #
+                        if not validator.case_input_found_in_response(case, response, trapi_version):
+                            subject_id = case['subject'] if 'subject' in case else case['subject_id']
+                            object_id = case['object'] if 'object' in case else case['object_id']
+                            test_edge_id: str = f"{case['idx']}|({subject_id}#{case['subject_category']})" + \
+                                                f"-[{case['predicate']}]->" + \
+                                                f"({object_id}#{case['object_category']})"
+                            test_report.report(
+                                code="error.trapi.response.knowledge_graph.missing_expected_edge",
+                                identifier=test_edge_id
+                            )
                 else:
                     test_report.report(code="error.trapi.response.empty")
