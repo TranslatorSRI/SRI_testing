@@ -72,15 +72,14 @@ class UnitTestReport(ValidationReporter):
             critical_msg = self.dump_critical(flat=True)
             logger.critical(critical_msg)
             pytest.fail(reason=critical_msg)
+
         elif self.has_errors():
-            # we now treat 'soft' errors similar to warnings (below)
+            # we now treat 'soft' errors similar to critical errors (above) but
+            # the validation messages will be differentiated on the user interface
             err_msg = self.dump_errors(flat=True)
             logger.error(err_msg)
-            with pytest.warns(TrapiValidationWarning):
-                warnings.warn(
-                    TrapiValidationWarning(err_msg),
-                    TrapiValidationWarning
-                )
+            pytest.fail(reason=err_msg)
+
         elif self.has_warnings():
             wrn_msg = self.dump_warnings(flat=True)
             logger.warning(wrn_msg)
@@ -89,6 +88,7 @@ class UnitTestReport(ValidationReporter):
                     TrapiValidationWarning(wrn_msg),
                     TrapiValidationWarning
                 )
+
         elif self.has_information():
             logger.info(self.dump_info(flat=True))
             pass  # not yet sure what else to do here?
