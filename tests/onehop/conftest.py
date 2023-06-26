@@ -5,6 +5,7 @@ from typing import Optional, Union, List, Set, Dict, Any, Tuple
 from collections import defaultdict
 from copy import deepcopy
 
+from pytest import UsageError
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
@@ -30,9 +31,6 @@ from tests.onehop.util import (
 
 import logging
 logger = logging.getLogger(__name__)
-
-# TODO: temporary circuit breaker for huge edge test data sets
-REASONABLE_NUMBER_OF_TEST_EDGES: int = 100
 
 
 def _new_kp_test_case_summary(trapi_version: str, biolink_version: str) -> Dict[str, Union[int, str, Dict]]:
@@ -565,6 +563,23 @@ def pytest_addoption(parser):
         help='Target x_maturity server environment for testing (Default: None).'
     )
     parser.addoption("--teststyle", action="store", default='all', help='Which One Hop unit test to run?')
+
+    def edge_number_checker(value):
+        msg = "--max_number_of_edges must be an integer equal to or greater than zero!"
+        try:
+            edge_num: int = int(value)
+            if not edge_num >= 0:
+                raise UsageError(msg)
+        except ValueError:
+            raise UsageError(msg)
+
+        return value
+
+    parser.addoption(
+        "--max_number_of_edges", action="store", default=0, type=edge_number_checker,
+        help="Maximum number of test edges to use (default: 0 - use all available test edges)."
+    )
+
     parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
 
 
@@ -794,6 +809,8 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
     edges: List = []
     idlist: List = []
 
+    max_number_of_edges: int = int(metafunc.config.getoption('max_number_of_edges', default=0))
+
     for kp_release, metadata in kp_metadata.items():
 
         kp_id: Optional[str]
@@ -889,10 +906,11 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 idlist.append(edge_id)
 
                 if metafunc.config.getoption('one', default=False):
+                    # functionally identical to max_number_of_edges == 1
                     break
 
                 # Circuit breaker for overly large edge test data sets
-                if edge_i > REASONABLE_NUMBER_OF_TEST_EDGES:
+                if edge_i >= max_number_of_edges > 0:
                     break
 
         print(f"### End of Test Input Edges for KP '{kp_id}' ###")
