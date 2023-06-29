@@ -1126,8 +1126,8 @@ web = ["fastapi (>=0.68,<0.69)", "uvicorn (>=0.15,<0.16)"]
 [package.source]
 type = "git"
 url = "https://github.com/NCATSTranslator/reasoner-validator.git"
-reference = "90540ca"
-resolved_reference = "90540ca4bf289210b79dc7d7690819c7a29a1ca9"
+reference = "e7d765c"
+resolved_reference = "e7d765c96883a6308acfcb263168f6df2f99d86f"
 
 [[package]]
 name = "requests"
@@ -1237,13 +1237,13 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.6.3"
+version = "4.7.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "typing_extensions-4.6.3-py3-none-any.whl", hash = "sha256:88a4153d8505aabbb4e13aacb7c486c2b4a33ca3b3f807914a9b4c844c471c26"},
-    {file = "typing_extensions-4.6.3.tar.gz", hash = "sha256:d91d5919357fe7f681a9f2b5b4cb2a5f1ef0a1e9f59c4d8ff0d3491e05c0ffd5"},
+    {file = "typing_extensions-4.7.0-py3-none-any.whl", hash = "sha256:5d8c9dac95c27d20df12fb1d97b9793ab8b2af8a3a525e68c80e21060c161771"},
+    {file = "typing_extensions-4.7.0.tar.gz", hash = "sha256:935ccf31549830cda708b42289d44b6f74084d616a00be651601a4f968e77c82"},
 ]
 
 [[package]]
@@ -1383,4 +1383,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "806f00580102c7a92bdd591f1d59ecdb76bc90ad49554b579849f32a89462e1c"
+content-hash = "a8086619afe0e4fd1ae85b3bbaece5a402f544aee9008eabb0e58e347c4e0773"

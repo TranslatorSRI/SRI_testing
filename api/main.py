@@ -3,8 +3,6 @@ FastAPI web service wrapper for SRI Testing harness
 (i.e. for reports to a Translator Runtime Status Dashboard)
 """
 from typing import Optional, Dict, List, Generator, Union, Tuple
-from sys import stderr
-from os import getenv
 from os.path import dirname, abspath
 
 from pydantic import BaseModel
@@ -15,6 +13,8 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from reasoner_validator.report import CodeDictionary
+
+from tests.translator.trapi import PATCHED_140_SCHEMA_FILEPATH
 
 from reasoner_validator.versioning import (
     get_latest_version,
@@ -179,7 +179,6 @@ def _is_valid_version(version_string: str):
 
     return True
 
-
 @app.post(
     "/run_tests",
     tags=['run'],
@@ -261,7 +260,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
         ara_id=ara_id,
         kp_id=kp_id,
         x_maturity=x_maturity,
-        trapi_version=trapi_version,
+        trapi_version=PATCHED_140_SCHEMA_FILEPATH,  # temporary local file override of TRAPI version
         biolink_version=biolink_version,
         log=log,
         timeout=timeout

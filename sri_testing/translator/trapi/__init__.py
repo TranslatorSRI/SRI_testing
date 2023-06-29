@@ -223,7 +223,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                     )
                     # We need to suppress 'edges_limit' threshold here to ensure that the
                     # case_input_found_in_response() below will truly find the test edge!
-                    validator.check_compliance_of_trapi_response(response=response, edges_limit=0)
+                    validator.check_compliance_of_trapi_response(response=response, max_kg_edges=0)
                     test_report.merge(validator)
                     if test_report.has_critical() or test_report.has_errors():
                         # we skip further validation if (critical) errors found
