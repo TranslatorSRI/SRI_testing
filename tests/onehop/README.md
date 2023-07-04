@@ -57,26 +57,26 @@ For each KP, we need a file with one triple of each type that the KP can provide
             "subject_category": "biolink:AnatomicalEntity",
             "object_category": "biolink:AnatomicalEntity",
             "predicate": "biolink:subclass_of",
-            "subject": "UBERON:0005453",
-            "object": "UBERON:0035769"
+            "subject_id": "UBERON:0005453",
+            "object_id": "UBERON:0035769"
         },
         {
             "exclude_tests": ["RSE"],
             "subject_category": "biolink:CellularComponent",
             "object_category": "biolink:AnatomicalEntity",
             "predicate": "biolink:subclass_of",
-            "subject": "GO:0005789",
-            "object": "UBERON:0000061"
+            "subject_id": "GO:0005789",
+            "object_id": "UBERON:0000061"
         }
     ]
 }
 ```
 
-For provenance testing, we need to declare the reference ('object') identifier of the KP's InfoRes CURIE as a value of the `infores` JSON tag (mandatory). 
+For provenance testing, we need to declare the reference ('object_id') identifier of the KP's InfoRes CURIE as a value of the `infores` JSON tag (mandatory). 
 
 In addition, the type of knowledge source is declared, by setting the `source_type` JSON tag, to the prefix of the knowledge source type, i.e. `"primary"` for `biolink:primary_knowledge_source` or `"aggregator"` for `biolink:aggregator_knowledge_source`. Note that if the KP is a `biolink:aggregator_knowledge_source`, then the source_type tag-value is optional (since `"aggregator"` is the default value for a KP, if omitted).
 
-This KP provides two kinds of edges for testing: `AnatomicalEntity-subclass_of->AnatomicalEntity` and `CellularComponent-subclass_of->AnatomicalEntity`. For each of these kinds of edges, we have an entry in the file with a specific `subject` and `object`, and from these, we can create a variety of tests.
+This KP provides two kinds of edges for testing: `AnatomicalEntity-subclass_of->AnatomicalEntity` and `CellularComponent-subclass_of->AnatomicalEntity`. For each of these kinds of edges, we have an entry in the file with a specific `subject_id` and `object_id`, and from these, we can create a variety of tests.
 
 To aid KPs in creating these json files, (some time ago) we generated templates in [templates/KP](templates/KP) using the predicates endpoint or SmartAPI Registry MetaKG entries, which contains the edge types (now likely badly out of date).
 
@@ -110,8 +110,8 @@ A couple of examples _**not**_ compliant with the above principles would be a te
             "subject_category": "biolink:NamedThing",
             "object_category": "biolink:NamedThing",
             "predicate": "biolink:related_to",
-            "subject": "biolink:decreases_localization_of",
-            "object": "biolink:localization_decreased_by"
+            "subject_id": "biolink:decreases_localization_of",
+            "object_id": "biolink:localization_decreased_by"
         }
 ```
 ```json
@@ -119,8 +119,8 @@ A couple of examples _**not**_ compliant with the above principles would be a te
             "subject_category": "biolink:NamedThing",
             "object_category": "biolink:PathologicalEntityMixin",
             "predicate": "biolink:related_to",
-            "subject": "UniProtKB:O15516",
-            "object": "MESH:D004781"
+            "subject_id": "UniProtKB:O15516",
+            "object_id": "MESH:D004781"
         }
 ```
 3. Note that the second example above also illustrates another issue: that `subject` and `object` identifiers need to have CURIE prefix (xmlns) namespaces that map onto the corresponding category classes (i.e. are specified in the Biolink Model `id_prefixes` for the given category).  This will be highlighted as a validation warning by the SRI Testing, but simply follows from the observation (above) the **UniProtKB** doesn't specifically map to `biolink:NamedThing` and **MESH** doesn't specifically map to a mixin (let alone `biolink:PathologicalEntityMixin`).
