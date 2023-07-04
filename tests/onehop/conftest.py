@@ -576,8 +576,8 @@ def pytest_addoption(parser):
         return value
 
     parser.addoption(
-        "--max_number_of_edges", action="store", default=0, type=edge_number_checker,
-        help="Maximum number of test edges to use (default: 0 - use all available test edges)."
+        "--max_number_of_edges", action="store", default=100, type=edge_number_checker,
+        help="Maximum number of test edges to use (default: use up to 100 available test edges)."
     )
 
     parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
@@ -809,7 +809,7 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
     edges: List = []
     idlist: List = []
 
-    max_number_of_edges: int = int(metafunc.config.getoption('max_number_of_edges', default=0))
+    max_number_of_edges: int = int(metafunc.config.getoption('max_number_of_edges', default=100))
 
     for kp_release, metadata in kp_metadata.items():
 

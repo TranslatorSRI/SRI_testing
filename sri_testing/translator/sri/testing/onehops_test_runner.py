@@ -213,6 +213,7 @@ class OneHopTestHarness:
             x_maturity: Optional[str] = None,
             trapi_version: Optional[str] = None,
             biolink_version: Optional[str] = None,
+            max_number_of_edges: Optional[int] = None,
             one: bool = False,
             log: Optional[str] = None,
             timeout: Optional[int] = None
@@ -229,6 +230,7 @@ class OneHopTestHarness:
         :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)
+        :param max_number_of_edges: Optional[int], Only use 'max_number_of_edges' edges from each KP (default: 100).
         :param one: bool, Only use first edge from each KP file (default: False if omitted).
         :param log: Optional[str], desired Python logger level label (default: None, implying default logger)
         :param timeout: Optional[int], worker process timeout in seconds (defaults to about 120 seconds
@@ -256,6 +258,7 @@ class OneHopTestHarness:
         self._command_line += f" --kp_id=\"{kp_id}\"" if kp_id else ""
         self._command_line += f" --ara_id=\"{ara_id}\"" if ara_id else ""
         self._command_line += f" --x_maturity=\"{x_maturity}\"" if x_maturity else ""
+        self._command_line += f" --max_number_of_edges=\"{max_number_of_edges}\"" if max_number_of_edges else ""
         self._command_line += " --one" if one else ""
 
         logger.debug(f"OneHopTestHarness.run() command line: {self._command_line}")

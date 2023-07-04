@@ -157,9 +157,16 @@ class TestRunParameters(BaseModel):
     # specified Biolink Model version (Default: None)..
     biolink_version: Optional[str] = None
 
+    # (Optional) number of test edges to process from
+    # each KP test edge data input file (Note: system default is 100)
+    max_number_of_edges: Optional[int] = None
+
     # Worker Process data access timeout; defaults to DEFAULT_WORKER_TIMEOUT
     # which implies caller blocking until the data is available
     timeout: Optional[int] = DEFAULT_WORKER_TIMEOUT
+
+    # Python logging framework spec, e.g. DEBUG, INFO, etc.
+    log: Optional[str] = None
 
 
 class TestRunSession(BaseModel):
@@ -168,7 +175,7 @@ class TestRunSession(BaseModel):
     errors: Optional[List[str]] = None
 
 
-def _is_valid_version(version_string: str):
+def _is_valid_version_spec(version_string: str):
     try:
         SemVer.from_string(version_string)
     except SemVerUnderspecified:
@@ -178,6 +185,7 @@ def _is_valid_version(version_string: str):
         return False
 
     return True
+
 
 @app.post(
     "/run_tests",
@@ -208,6 +216,8 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     - **x_maturity**: Optional[str], **x_maturity** environment target for test run (system chooses if not specified)
     - **trapi_version**: Optional[str], possible TRAPI version overriding Translator SmartAPI 'Registry' specification.
     - **biolink_version**: Optional[str], possible Biolink Model version overriding Registry specification.
+    - **max_number_of_edges**: Optional[int], number of test edges to process from  each KP test edge data input file
+                                             (Note: system default is 100)
     - **timeout**: Optional[int], query timeout
     - **log**: Optional[str], Python log setting (i.e. "DEBUG", "INFO", etc)
     \f
@@ -220,6 +230,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     x_maturity: Optional[str] = None
     trapi_version: Optional[str] = None
     biolink_version: Optional[str] = None
+    max_number_of_edges: Optional[int] = None
     log: Optional[str] = None
     timeout: int = DEFAULT_WORKER_TIMEOUT
 
@@ -237,17 +248,25 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
         if test_parameters.trapi_version:
             trapi_version = test_parameters.trapi_version
-            if not _is_valid_version(trapi_version):
+            if not _is_valid_version_spec(trapi_version):
                 errors.append(f"'trapi_version' parameter '{trapi_version}' is not a valid SemVer string!")
             else:
                 trapi_version = get_latest_version(test_parameters.trapi_version)
 
         if test_parameters.biolink_version:
             biolink_version = test_parameters.biolink_version
-            if not _is_valid_version(biolink_version):
+            if not _is_valid_version_spec(biolink_version):
                 errors.append(f"'biolink_version' parameter '{biolink_version}' is not a valid SemVer string!")
 
+        if test_parameters.max_number_of_edges:
+            max_number_of_edges = test_parameters.max_number_of_edges
+
         timeout = test_parameters.timeout if test_parameters.timeout else DEFAULT_WORKER_TIMEOUT
+
+        if test_parameters.log:
+            log = test_parameters.log.upper()
+            if log not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+                errors.append(f"'log' parameter '{log}' is not a valid Python logging specification!")
 
     if errors:
         return TestRunSession(test_run_id="Invalid Parameters - test run not started...", errors=errors)
@@ -260,8 +279,9 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
         ara_id=ara_id,
         kp_id=kp_id,
         x_maturity=x_maturity,
-        trapi_version=PATCHED_140_SCHEMA_FILEPATH,  # temporary local file override of TRAPI version
+        trapi_version=trapi_version,
         biolink_version=biolink_version,
+        max_number_of_edges=max_number_of_edges,
         log=log,
         timeout=timeout
     )
