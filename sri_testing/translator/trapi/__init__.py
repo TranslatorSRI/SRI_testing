@@ -36,7 +36,6 @@ class UnitTestReport(ValidationReporter):
             test_name: str,
             trapi_version: str,
             biolink_version: str,
-            sources: Optional[Dict] = None,
             strict_validation: Optional[bool] = None
     ):
         error_msg_prefix = generate_test_error_msg_prefix(test_case, test_name=test_name)
@@ -45,7 +44,6 @@ class UnitTestReport(ValidationReporter):
             prefix=error_msg_prefix,
             trapi_version=trapi_version,
             biolink_version=biolink_version,
-            sources=sources,
             strict_validation=strict_validation
         )
 
