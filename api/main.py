@@ -3,19 +3,18 @@ FastAPI web service wrapper for SRI Testing harness
 (i.e. for reports to a Translator Runtime Status Dashboard)
 """
 from typing import Optional, Dict, List, Generator, Union, Tuple
-
 from os.path import dirname, abspath
 
 from pydantic import BaseModel
 
 import uvicorn
 
-import logging
-
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from reasoner_validator.report import CodeDictionary
+
+from tests.translator.trapi import PATCHED_140_SCHEMA_FILEPATH
 
 from reasoner_validator.versioning import (
     get_latest_version,
@@ -29,6 +28,16 @@ from sri_testing.translator.sri.testing.onehops_test_runner import (
     OneHopTestHarness,
     DEFAULT_WORKER_TIMEOUT
 )
+
+import logging
+
+# SYSLOG_LEVEL: str = getenv("LOGGING_LEVEL", default="WARNING")
+# logging.basicConfig(stream=stderr, level=SYSLOG_LEVEL)
+logger = logging.getLogger(__name__)
+
+# syslog_level_msg = f"Application logging level set to '{SYSLOG_LEVEL}'"
+# logger.info(syslog_level_msg)
+# print(syslog_level_msg, file=stderr)
 
 app = FastAPI()
 
@@ -67,12 +76,12 @@ async def favicon():
 
 class ResourceRegistry(BaseModel):
     message: str = ""
-    KPs: Dict[str, List[str]]
-    ARAs: Dict[str, List[str]]
+    KPs: Dict[str, Dict[str, List[str]]]
+    ARAs: Dict[str, Dict[str, List[str]]]
 
 
 # Treat the registry catalog as an initialized singleton, to enhance application performance
-the_resources: Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]] = \
+the_resources: Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]] = \
         OneHopTestHarness.testable_resources_catalog_from_registry()
 
 
@@ -148,12 +157,15 @@ class TestRunParameters(BaseModel):
     # specified Biolink Model version (Default: None)..
     biolink_version: Optional[str] = None
 
+    # (Optional) number of test edges to process from
+    # each KP test edge data input file (Note: system default is 100)
+    max_number_of_edges: Optional[int] = None
+
     # Worker Process data access timeout; defaults to DEFAULT_WORKER_TIMEOUT
     # which implies caller blocking until the data is available
     timeout: Optional[int] = DEFAULT_WORKER_TIMEOUT
 
-    # Python Logger activation handed to Pytest
-    # CLI argument '--log-cli-level', for debugging
+    # Python logging framework spec, e.g. DEBUG, INFO, etc.
     log: Optional[str] = None
 
 
@@ -163,7 +175,7 @@ class TestRunSession(BaseModel):
     errors: Optional[List[str]] = None
 
 
-def _is_valid_version(version_string: str):
+def _is_valid_version_spec(version_string: str):
     try:
         SemVer.from_string(version_string)
     except SemVerUnderspecified:
@@ -204,6 +216,8 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     - **x_maturity**: Optional[str], **x_maturity** environment target for test run (system chooses if not specified)
     - **trapi_version**: Optional[str], possible TRAPI version overriding Translator SmartAPI 'Registry' specification.
     - **biolink_version**: Optional[str], possible Biolink Model version overriding Registry specification.
+    - **max_number_of_edges**: Optional[int], number of test edges to process from  each KP test edge data input file
+                                             (Note: system default is 100)
     - **timeout**: Optional[int], query timeout
     - **log**: Optional[str], Python log setting (i.e. "DEBUG", "INFO", etc)
     \f
@@ -216,6 +230,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
     x_maturity: Optional[str] = None
     trapi_version: Optional[str] = None
     biolink_version: Optional[str] = None
+    max_number_of_edges: Optional[int] = None
     log: Optional[str] = None
     timeout: int = DEFAULT_WORKER_TIMEOUT
 
@@ -233,24 +248,25 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
 
         if test_parameters.trapi_version:
             trapi_version = test_parameters.trapi_version
-            if not _is_valid_version(trapi_version):
+            if not _is_valid_version_spec(trapi_version):
                 errors.append(f"'trapi_version' parameter '{trapi_version}' is not a valid SemVer string!")
             else:
                 trapi_version = get_latest_version(test_parameters.trapi_version)
 
         if test_parameters.biolink_version:
             biolink_version = test_parameters.biolink_version
-            if not _is_valid_version(biolink_version):
+            if not _is_valid_version_spec(biolink_version):
                 errors.append(f"'biolink_version' parameter '{biolink_version}' is not a valid SemVer string!")
 
-        if test_parameters.log:
-            log = test_parameters.log
-            try:
-                logging.getLogger().setLevel(log)
-            except (ValueError, TypeError):
-                errors.append(f"'log' parameter '{log}' is not a valid Logging level!")
+        if test_parameters.max_number_of_edges:
+            max_number_of_edges = test_parameters.max_number_of_edges
 
         timeout = test_parameters.timeout if test_parameters.timeout else DEFAULT_WORKER_TIMEOUT
+
+        if test_parameters.log:
+            log = test_parameters.log.upper()
+            if log not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+                errors.append(f"'log' parameter '{log}' is not a valid Python logging specification!")
 
     if errors:
         return TestRunSession(test_run_id="Invalid Parameters - test run not started...", errors=errors)
@@ -265,6 +281,7 @@ async def run_tests(test_parameters: Optional[TestRunParameters] = None) -> Test
         x_maturity=x_maturity,
         trapi_version=trapi_version,
         biolink_version=biolink_version,
+        max_number_of_edges=max_number_of_edges,
         log=log,
         timeout=timeout
     )

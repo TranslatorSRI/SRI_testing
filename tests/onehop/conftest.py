@@ -5,6 +5,7 @@ from typing import Optional, Union, List, Set, Dict, Any, Tuple
 from collections import defaultdict
 from copy import deepcopy
 
+from pytest import UsageError
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
@@ -30,9 +31,6 @@ from tests.onehop.util import (
 
 import logging
 logger = logging.getLogger(__name__)
-
-# TODO: temporary circuit breaker for huge edge test data sets
-REASONABLE_NUMBER_OF_TEST_EDGES: int = 100
 
 
 def _new_kp_test_case_summary(trapi_version: str, biolink_version: str) -> Dict[str, Union[int, str, Dict]]:
@@ -100,6 +98,7 @@ def _new_kp_recommendation_summary(
         'x_maturity': x_maturity,
         'trapi_version': trapi_version,
         'biolink_version': biolink_version,
+        'critical': dict(),
         'errors': dict(),
         'warnings': dict(),
         'information': dict()
@@ -114,13 +113,10 @@ def _compile_recommendations(
         test_id: str
 ):
     #     "errors": {
-    #       "error.edge.predicate.unknown": [
+    #       "error.knowledge_graph.edge.predicate.unknown": [
     #         {
-    #           "message": {
-    #             "context": "Query Graph",
+    #           "biolink:has_active_component": {
     #             "edge_id": "a--['biolink:has_active_component']->b",
-    #             "predicate": "biolink:has_active_component",
-    #             "code": "error.edge.predicate.unknown"
     #           },
     #           "test_data": {
     #             "subject_category": "biolink:Gene",
@@ -161,6 +157,9 @@ def _compile_recommendations(
                 "test": test_id
             }
             recommendation_summary[message_type][code].append(item)
+
+    if test_report.has_critical():
+        _capture_messages(message_type="critical", messages=test_report.get_critical())
 
     if test_report.has_errors():
         _capture_messages(message_type="errors", messages=test_report.get_errors())
@@ -546,8 +545,9 @@ def pytest_addoption(parser):
     # 'x-translator' Biolink Model release property value of the target resources.
     parser.addoption(
         "--biolink_version", action="store", default=None,
-        help='Biolink Model version to use for validation, overriding' +
-             ' Translator SmartAPI Registry property value ' +
+        help='Biolink Model SemVer-compliant version to use for validation, overriding' +
+             ' Translator SmartAPI Registry property value. Note that a value of this parameter may also' +
+             ' be "suppress" in which case, Biolink Model validation is suppressed during the test run.' +
              '(Default: latest public release).'
     )
     parser.addoption(
@@ -563,8 +563,25 @@ def pytest_addoption(parser):
         help='Target x_maturity server environment for testing (Default: None).'
     )
     parser.addoption("--teststyle", action="store", default='all', help='Which One Hop unit test to run?')
+
+    def edge_number_checker(value):
+        msg = "--max_number_of_edges must be an integer equal to or greater than zero!"
+        try:
+            edge_num: int = int(value)
+            if not edge_num >= 0:
+                raise UsageError(msg)
+        except ValueError:
+            raise UsageError(msg)
+
+        return value
+
+    parser.addoption(
+        "--max_number_of_edges", action="store", default=100, type=edge_number_checker,
+        help="Maximum number of test edges to use (default: use up to 100 available test edges)."
+    )
+
     parser.addoption("--one", action="store_true", help="Only use first edge from each KP file")
-    
+
 
 def _fix_path(file_path: str) -> str:
     """
@@ -792,6 +809,8 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
     edges: List = []
     idlist: List = []
 
+    max_number_of_edges: int = int(metafunc.config.getoption('max_number_of_edges', default=100))
+
     for kp_release, metadata in kp_metadata.items():
 
         kp_id: Optional[str]
@@ -827,14 +846,10 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 )
 
             if 'edges' not in test_data:
-                logger.warning(f"Test Data for from '{infores}' has now edges? Weird... skipping!")
+                logger.warning(f"Test Data for from '{infores}' has no edges? Weird... skipping!")
                 continue
 
             for edge_i, edge in enumerate(test_data['edges']):
-
-                # TODO: temporary short-cut to prioritize qualified edges
-                if 'qualifiers' not in edge:
-                    continue
 
                 # We tag each edge internally with its
                 # sequence number, for later convenience
@@ -844,25 +859,6 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 # may be distinct from the underlying
                 # knowledge source being targeted by the test data
                 edge['kp_id'] = f"infores:{kp_id}"
-
-                # Test data may now have Biolink 3 'qualifier' TRAPI query constraints,
-                # i.e. something like the following:
-                #
-                # {
-                #     "subject_category": "biolink:SmallMolecule",
-                #     "object_category": "biolink:Disease",
-                #     "predicate": "biolink:treats",
-                #     "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
-                #     "object_id": "MESH:D001249"     # asthma
-                #     "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
-                #     "qualifiers": [
-                #          {
-                #               "qualifier_type_id": "biolink:causal_mechanism_qualifier"
-                #               "qualifier_value": "inhibition"
-                #          },
-                #          # ...other qualifier constraint type_id/value pairs?
-                #      ]
-                # }
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?
@@ -910,10 +906,11 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
                 idlist.append(edge_id)
 
                 if metafunc.config.getoption('one', default=False):
+                    # functionally identical to max_number_of_edges == 1
                     break
 
                 # Circuit breaker for overly large edge test data sets
-                if edge_i > REASONABLE_NUMBER_OF_TEST_EDGES:
+                if edge_i >= max_number_of_edges > 0:
                     break
 
         print(f"### End of Test Input Edges for KP '{kp_id}' ###")
@@ -1051,7 +1048,10 @@ def pytest_generate_tests(metafunc):
     # KP/ARA Biolink Model version may be overridden
     # on the command line; maybe 'None' => no override
     biolink_version = metafunc.config.getoption('biolink_version')
-    logger.debug(f"pytest_generate_tests(): caller specified biolink_version == {str(biolink_version)}")
+    if biolink_version == "suppress":
+        logger.debug(f"pytest_generate_tests(): caller is suppressing Biolink validation!")
+    else:
+        logger.debug(f"pytest_generate_tests(): caller specified biolink_version == {str(biolink_version)}")
 
     # Note: the ARA and KP trapi_version and biolink_version values
     #       may be overridden here by the CLI caller values

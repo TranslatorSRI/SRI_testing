@@ -2,3 +2,4 @@
 /test-database/
 /file-report-unit-test-database/
 /mongo-report-unit-test-database/
+test_trapi_1*.yaml

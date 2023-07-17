@@ -7,7 +7,7 @@ from datetime import datetime
 
 import requests
 import yaml
-from reasoner_validator.versioning import SemVer, get_latest_version
+from reasoner_validator.versioning import SemVer
 
 from requests.exceptions import RequestException
 
@@ -98,7 +98,7 @@ def iterate_services_from_registry(registry_data):
     """
     service_status_data = []
     for index, service in enumerate(registry_data['hits']):
-        print(index, service['info']['title'], set_timestamp())
+        # print(index, service['info']['title'], set_timestamp())
         try:
             service_spec = get_spec(service['_meta']['url'])
             for server in service_spec['servers']:
@@ -116,7 +116,7 @@ def iterate_services_from_registry(registry_data):
                 service_paths = [x for x in service['paths'] if 'meta' in x]
                 meta_kg_path = service_paths[0]
                 source_data_packet['server_status'] = get_status(server['url'], meta_kg_path)
-                print(server['url'], meta_kg_path, source_data_packet['server_status'])
+                # print(server['url'], meta_kg_path, source_data_packet['server_status'])
                 service_status_data.append(source_data_packet)
         except Exception as e:
             print(e)
@@ -750,7 +750,7 @@ def validate_testable_resource(
 
 def get_testable_resources_from_registry(
         registry_data: Dict
-) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+) -> Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]]:
     """
     Simpler version of the extract_component_test_metadata_from_registry() method,
     that only returns the InfoRes reference identifiers of all testable resources.
@@ -764,8 +764,8 @@ def get_testable_resources_from_registry(
             value list of associated x-maturity environments available for testing.
     """
 
-    kp_ids: Dict[str, List[str]] = dict()
-    ara_ids: Dict[str, List[str]] = dict()
+    kp_ids: Dict[str, Dict[str, List[str]]] = dict()
+    ara_ids: Dict[str, Dict[str, List[str]]] = dict()
 
     for index, service in enumerate(registry_data['hits']):
 
@@ -773,6 +773,8 @@ def get_testable_resources_from_registry(
         component = tag_value(service, "info.x-translator.component")
         if not (component and component in ["KP", "ARA"]):
             continue
+
+        trapi_version: str = tag_value(service, "info.x-trapi.version")
 
         resource: Optional[Tuple[str, List[str]]] = get_testable_resource(index, service)
 
@@ -784,16 +786,22 @@ def get_testable_resources_from_registry(
         if component == "KP":
 
             if infores not in kp_ids:
-                kp_ids[infores] = list()
+                kp_ids[infores] = dict()
 
-            kp_ids[infores].extend(resource[1])
+            if trapi_version not in kp_ids[infores]:
+                kp_ids[infores][trapi_version] = list()
+
+            kp_ids[infores][trapi_version].extend(resource[1])
 
         elif component == "ARA":
 
             if infores not in ara_ids:
-                ara_ids[infores] = list()
+                ara_ids[infores] = dict()
 
-            ara_ids[infores].extend(resource[1])
+            if trapi_version not in ara_ids[infores]:
+                ara_ids[infores][trapi_version] = list()
+
+            ara_ids[infores][trapi_version].extend(resource[1])
 
     return kp_ids, ara_ids
 

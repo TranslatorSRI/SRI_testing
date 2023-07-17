@@ -213,6 +213,7 @@ class OneHopTestHarness:
             x_maturity: Optional[str] = None,
             trapi_version: Optional[str] = None,
             biolink_version: Optional[str] = None,
+            max_number_of_edges: Optional[int] = None,
             one: bool = False,
             log: Optional[str] = None,
             timeout: Optional[int] = None
@@ -229,6 +230,7 @@ class OneHopTestHarness:
         :param x_maturity: Optional[str], x_maturity environment target for test run (system chooses if not specified)
         :param trapi_version: Optional[str], TRAPI version assumed for test run (default: None)
         :param biolink_version: Optional[str], Biolink Model version used in test run (default: None)
+        :param max_number_of_edges: Optional[int], Only use 'max_number_of_edges' edges from each KP (default: 100).
         :param one: bool, Only use first edge from each KP file (default: False if omitted).
         :param log: Optional[str], desired Python logger level label (default: None, implying default logger)
         :param timeout: Optional[int], worker process timeout in seconds (defaults to about 120 seconds
@@ -256,6 +258,7 @@ class OneHopTestHarness:
         self._command_line += f" --kp_id=\"{kp_id}\"" if kp_id else ""
         self._command_line += f" --ara_id=\"{ara_id}\"" if ara_id else ""
         self._command_line += f" --x_maturity=\"{x_maturity}\"" if x_maturity else ""
+        self._command_line += f" --max_number_of_edges=\"{max_number_of_edges}\"" if max_number_of_edges else ""
         self._command_line += " --one" if one else ""
 
         logger.debug(f"OneHopTestHarness.run() command line: {self._command_line}")
@@ -602,9 +605,10 @@ class OneHopTestHarness:
         return resource_summary
 
     @classmethod
-    def testable_resources_catalog_from_registry(cls) -> Optional[Tuple[Dict[str, List[str]], Dict[str, List[str]]]]:
+    def testable_resources_catalog_from_registry(cls) -> \
+            Optional[Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]]]:
         """
-        Retrieve inventory of testable resources from the Tranlator SmartAPI Registry.
+        Retrieve inventory of testable resources from the Translator SmartAPI Registry.
 
         :return: Optional 2-Tuple(Dict[ara_id*, List[str], Dict[kp_id*, List[str]) inventory of available
                  KPs and ARAs,  with keys from reference ('object') id's of InfoRes CURIES and values that
@@ -617,7 +621,7 @@ class OneHopTestHarness:
             # Oops! Couldn't get any data out of the Registry?
             return None
 
-        resources: Tuple[Dict[str, List[str]], Dict[str, List[str]]] = \
+        resources: Tuple[Dict[str, Dict[str, List[str]]], Dict[str, Dict[str, List[str]]]] = \
             get_testable_resources_from_registry(registry_data)
 
         return resources

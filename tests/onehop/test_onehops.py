@@ -56,7 +56,11 @@ def _report_and_skip_edge(scope: str, test, test_case: Dict, test_report: UnitTe
     if excluded_test:
         test_report.skip(code="info.excluded", edge_id=edge_id)
     else:
-        test_report.skip(code="error.non_compliant", edge_id=edge_id, messages=test_case['pre-validation'])
+        test_report.skip(
+            code="error.biolink.model.noncompliance",
+            edge_id=edge_id,
+            messages=test_case['pre-validation']
+        )
 
 
 @pytest.mark.asyncio
@@ -74,11 +78,7 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         test_case=kp_trapi_case,
         test_name=trapi_creator.__name__,
         trapi_version=kp_trapi_case['trapi_version'],
-        biolink_version=kp_trapi_case['biolink_version'],
-        sources={
-                "kp_source": kp_trapi_case['kp_source'],
-                "kp_source_type": kp_trapi_case['kp_source_type']
-        }
+        biolink_version=kp_trapi_case['biolink_version']
     )
 
     if in_excluded_tests(test=trapi_creator, test_case=kp_trapi_case):
@@ -89,7 +89,7 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report,
             excluded_test=True
         )
-    elif UnitTestReport.has_validation_errors("pre-validation", kp_trapi_case):
+    elif UnitTestReport.test_case_has_validation_errors("pre-validation", kp_trapi_case):
         _report_and_skip_edge(
             "KP",
             test=trapi_creator,
@@ -130,12 +130,7 @@ async def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
         test_case=ara_trapi_case,
         test_name=trapi_creator.__name__,
         trapi_version=ara_trapi_case['trapi_version'],
-        biolink_version=ara_trapi_case['biolink_version'],
-        sources={
-                "ara_source": ara_trapi_case['ara_source'],
-                "kp_source": ara_trapi_case['kp_source'],
-                "kp_source_type": ara_trapi_case['kp_source_type'],
-        }
+        biolink_version=ara_trapi_case['biolink_version']
     )
     if in_excluded_tests(test=trapi_creator, test_case=ara_trapi_case):
         _report_and_skip_edge(
@@ -145,7 +140,7 @@ async def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
             test_report=results_bag.unit_test_report,
             excluded_test=True
         )
-    elif UnitTestReport.has_validation_errors("pre-validation", ara_trapi_case):
+    elif UnitTestReport.test_case_has_validation_errors("pre-validation", ara_trapi_case):
         _report_and_skip_edge(
             "ARA",
             test=trapi_creator,

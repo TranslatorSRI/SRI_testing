@@ -5,9 +5,9 @@ import logging
 from typing import Tuple, Dict, List
 from copy import deepcopy
 import pytest
+from reasoner_validator import TRAPIResponseValidator
 
-from sri_testing.translator.trapi import generate_test_error_msg_prefix, constrain_trapi_request_to_kp, \
-    case_input_found_in_response, case_node_found, case_result_found, case_edge_bindings
+from sri_testing.translator.trapi import generate_test_error_msg_prefix, constrain_trapi_request_to_kp
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
         (
             # query0 - Empty 'nodes'
             "subject",
-            "CHEBI:6801",     # node identifier
+            ["CHEBI:6801"],   # node identifier
             TEST_CASE,        # case
             dict(),           # empty nodes
             False             # outcome
@@ -130,7 +130,7 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
         (
             # query1 - Nodes catalog containing the target (subject) node with complete annotation
             "subject",
-            "CHEBI:6801",     # valid node identifier
+            ["CHEBI:6801"],   # valid node identifier
             TEST_CASE,        # case
             SAMPLE_KG_NODES,  # non-empty sample nodes catalog
             True              # outcome
@@ -138,15 +138,15 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
         (
             # query2 - Nodes catalog containing the target (object) node with missing category
             "object",
-            "MONDO:0005148",   # valid node identifier
-            TEST_CASE,         # case
-            SAMPLE_KG_NODES2,  # sample nodes catalog missing in 'MONDO:0005148'
-            False              # outcome
+            ["MONDO:0005148"],  # valid node identifier
+            TEST_CASE,          # case
+            SAMPLE_KG_NODES2,   # sample nodes catalog missing in 'MONDO:0005148'
+            False               # outcome
         ),
         (
             # query3 - Nodes catalog containing the target (object) node with incorrect category
             "subject",
-            "CHEBI:6801",     # valid node identifier
+            ["CHEBI:6801"],   # valid node identifier
             TEST_CASE2,       # case
             SAMPLE_KG_NODES,  # good sample nodes catalog
             False             # outcome
@@ -155,12 +155,13 @@ SAMPLE_KG_NODES2["MONDO:0005148"].pop("categories")
 )
 def test_case_node_found(
         target,
-        identifier: str,
+        identifier: List[str],
         case: Dict,
         nodes: Dict,
         outcome: bool
 ):
-    assert case_node_found(target, identifier, case, nodes) is outcome
+    validator: TRAPIResponseValidator = TRAPIResponseValidator()
+    assert validator.case_node_found(target, identifier, case, nodes) is outcome
 
 
 SAMPLE_KG_EDGES = {
@@ -287,7 +288,8 @@ SAMPLE_TRAPI_1_4_0_RESPONSE_1 = {
 }
 
 SAMPLE_TRAPI_1_4_0_RESPONSE_2 = deepcopy(SAMPLE_TRAPI_1_4_0_RESPONSE_1)
-SAMPLE_TRAPI_1_4_0_RESPONSE_2["message"]["results"][0]["analyses"][0]["edge_bindings"] = SAMPLE_INCOMPLETE_EDGE_BINDING_1
+SAMPLE_TRAPI_1_4_0_RESPONSE_2["message"]["results"][0]["analyses"][0]["edge_bindings"] = \
+    SAMPLE_INCOMPLETE_EDGE_BINDING_1
 
 
 @pytest.mark.parametrize(
@@ -318,7 +320,8 @@ def test_case_edge_bindings(
         data: Dict,
         outcome: bool
 ):
-    assert case_edge_bindings(
+    validator: TRAPIResponseValidator = TRAPIResponseValidator()
+    assert validator.case_edge_bindings(
             target_edge_id=target_edge_id,
             data=data
     ) is outcome
@@ -367,7 +370,7 @@ def test_case_edge_bindings(
             "1.4.0",
             True
         )
-        # The query 1-3 test identically in 1.4.0 so we don't repeat them here.
+        # The query 1-3 test identically in 1.4.0, so we don't repeat them here.
         # The material difference is the context of the edge_bindings validation,
         # but this difference is invisible at the unit testing level.
     ]
@@ -380,7 +383,8 @@ def test_case_result_found(
         trapi_version: str,
         outcome: bool
 ):
-    assert case_result_found(
+    validator: TRAPIResponseValidator = TRAPIResponseValidator()
+    assert validator.case_result_found(
             subject_id=subject_id,
             object_id=object_id,
             edge_id=edge_id,
@@ -510,4 +514,5 @@ def test_case_input_found_in_response(
         trapi_version: str,
         outcome: bool
 ):
-    assert case_input_found_in_response(case, response, trapi_version) is outcome
+    validator: TRAPIResponseValidator = TRAPIResponseValidator()
+    assert validator.case_input_found_in_response(case, response, trapi_version) is outcome

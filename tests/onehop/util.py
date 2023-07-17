@@ -5,7 +5,7 @@ from typing import Set, Dict, List, Tuple, Optional
 
 from bmt import utils
 from reasoner_validator.versioning import SemVer
-from reasoner_validator.biolink import get_biolink_model_toolkit
+from reasoner_validator.biolink import get_biolink_model_toolkit, BiolinkValidator, TRAPIGraphType
 from sri_testing.translator.sri.testing.util import ontology_kp
 
 
@@ -225,25 +225,19 @@ def inverse_by_new_subject(request):
     :return: Tuple, (trapi_request, output_element, output_node_binding);
              if trapi_request is None, then error details returned in two other tuple elements
     """
-    tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
+    predicate = request['predicate']
     context: str = f"inverse_by_new_subject|predicate '{str(request['predicate'])}')"
-    original_predicate_element = tk.get_element(request['predicate'])
-    if not original_predicate_element:
-        reason: str = "is an unknown element?"
-        return None, context, reason
-    elif original_predicate_element['symmetric']:
-        transformed_predicate = request['predicate']
-    else:
-        transformed_predicate_name = tk.get_inverse(original_predicate_element.name)
-        if transformed_predicate_name is None:
-            transformed_predicate = None
-        else:
-            tp = tk.get_element(transformed_predicate_name)
-            transformed_predicate = utils.format_element(tp)
+
+    validator: BiolinkValidator = \
+        BiolinkValidator(
+            TRAPIGraphType.Knowledge_Graph,
+            biolink_version=request['biolink_version']
+        )
+    inverse_predicate = validator.get_inverse_predicate(predicate)
 
     # Not everything has an inverse (it should, and it will, but it doesn't right now)
-    if transformed_predicate is None:
-        reason: str = "does not have an inverse?"
+    if inverse_predicate is None:
+        reason: str = "is an unknown or has no inverse?"
         return None, context, reason
 
     # probably don't need to worry here but just-in-case
@@ -252,7 +246,7 @@ def inverse_by_new_subject(request):
     transformed_request.update({
         "subject_category": request['object_category'],
         "object_category": request['subject_category'],
-        "predicate": transformed_predicate,
+        "predicate": inverse_predicate,
         "subject":
             request["object_id"] if "object_id" in request else request["object"],
         "object":
@@ -426,16 +420,18 @@ def raise_predicate_by_subject(request):
     :return: Tuple, (trapi_request, output_element, output_node_binding);
              if trapi_request is None, then error details returned in two other tuple elements
     """
+    predicate = request['predicate']
+
     tk = get_biolink_model_toolkit(biolink_version=request['biolink_version'])
     transformed_request = request.copy()  # there's no depth to request, so it's ok
 
-    if request['predicate'] != 'biolink:related_to':
-        original_predicate_element = tk.get_element(request['predicate'])
+    if predicate != 'biolink:related_to':
+        original_predicate_element = tk.get_element(predicate)
         if original_predicate_element:
             original_predicate_element = asdict(original_predicate_element)
         else:
             original_predicate_element = dict()
-            original_predicate_element['name'] = request['predicate']
+            original_predicate_element['name'] = predicate
             original_predicate_element['is_a'] = None
         if original_predicate_element['is_a'] is None:
             # This element may be a mixin or abstract, without any parent?
