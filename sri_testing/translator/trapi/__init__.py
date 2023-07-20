@@ -1,5 +1,6 @@
 import warnings
 from typing import Optional, Dict
+from sys import stderr
 
 from reasoner_validator import TRAPIResponseValidator
 from reasoner_validator.report import ValidationReporter
@@ -177,7 +178,6 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
             reason=output_node_binding
         )
     else:
-        # query use cases pertain to a particular TRAPI version
         trapi_version = case['trapi_version']
         biolink_version = case['biolink_version']
 
@@ -215,6 +215,21 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                 response: Optional[Dict] = trapi_response['response_json']
 
                 if response:
+
+                    # Report 'trapi_version' and 'biolink_version' recorded
+                    # in the 'response_json' (if the tags are provided)
+                    if 'schema_version' not in response:
+                        test_report.report(code="warning.trapi.response.schema_version.missing")
+                    else:
+                        trapi_version: str = response['schema_version'] if not trapi_version else trapi_version
+                        print(f"execute_trapi_lookup() using TRAPI version: '{trapi_version}'", file=stderr)
+
+                    if 'biolink_version' not in response:
+                        test_report.report(code="warning.trapi.response.biolink_version.missing")
+                    else:
+                        biolink_version: str = response['biolink_version'] if not biolink_version else biolink_version
+                        print(f"execute_trapi_lookup() using Biolink Model version: '{biolink_version}'", file=stderr)
+
                     validator: TRAPIResponseValidator = TRAPIResponseValidator(
                         trapi_version=trapi_version,
                         biolink_version=biolink_version
