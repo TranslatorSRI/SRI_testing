@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "SRI_Testing"
-version = "2.2.3"
+version = "2.2.0"
 description = "Semantics-driven tests for testing Translator TRAPI Components (KPs and ARAs)"
 authors = [
     "Richard Bruskiewich <richard.bruskiewich@delphinai.com>",
@@ -57,8 +57,8 @@ uvicorn = ">=0.15.0,<0.16.0"
 
 # reasoner-validator should pull in many dependencies
 # also used by SRI Testing, including BMT (which adds some more)
-reasoner-validator = { git = "https://github.com/NCATSTranslator/reasoner-validator.git", rev = "5d356db" }
-#reasoner-validator = "^3.7.5"
+#reasoner-validator = { git = "https://github.com/NCATSTranslator/reasoner-validator.git", rev = "5d356db" }
+reasoner-validator = "^3.8.8"
 
 # [tool.poetry.group.dev.dependencies]
 
