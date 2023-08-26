@@ -226,7 +226,7 @@ def inverse_by_new_subject(request):
              if trapi_request is None, then error details returned in two other tuple elements
     """
     predicate = request['predicate']
-    context: str = f"inverse_by_new_subject|predicate '{str(request['predicate'])}')"
+    context: str = f"inverse_by_new_subject|predicate '{str(request['predicate'])}'"
 
     validator: BiolinkValidator = \
         BiolinkValidator(
