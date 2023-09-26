@@ -9,6 +9,7 @@ from pytest import UsageError
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
+from reasoner_validator.message import MESSAGE_PARTITION, SCOPED_MESSAGES
 from reasoner_validator.versioning import get_latest_version
 
 from sri_testing.translator.registry import (
@@ -114,19 +115,23 @@ def _compile_recommendations(
 ):
     #     "errors": {
     #       "error.knowledge_graph.edge.predicate.unknown": [
-    #         {
-    #           "biolink:has_active_component": {
-    #             "edge_id": "a--['biolink:has_active_component']->b",
-    #           },
-    #           "test_data": {
-    #             "subject_category": "biolink:Gene",
-    #             "object_category": "biolink:CellularComponent",
-    #             "predicate": "biolink:active_in",
-    #             "subject_id": "ZFIN:ZDB-GENE-060825-345",
-    #             "object_id": "GO:0042645"
-    #           },
-    #           "test": "inverse_by_new_subject"
-    #         }
+    #             {
+    #                 "message": {
+    #                     "infores:chebi -> infores:molepro -> infores:arax": {
+    #                             "biolink:has_active_component": {
+    #                                 "edge_id": "a--['biolink:has_active_component']->b",
+    #                             }
+    #                     }
+    #                 },
+    #                 "test_data": {
+    #                     "subject_category": "biolink:Gene",
+    #                     "object_category": "biolink:CellularComponent",
+    #                     "predicate": "biolink:active_in",
+    #                     "subject_id": "ZFIN:ZDB-GENE-060825-345",
+    #                     "object_id": "GO:0042645"
+    #                 },
+    #                 "test": "inverse_by_new_subject"
+    #             }
     #       ],
     # ...
     #    }
@@ -147,12 +152,14 @@ def _compile_recommendations(
     # Validation messages are a dictionary with validation_code as keys and values which
     # are a (possibly empty) list of dictionaries with optional (variable key) parameters.
     # Leveraging function closure here to inject content into the recommendation_summary
-    def _capture_messages(message_type: str, messages: Dict[str, Optional[List[Dict[str, str]]]]):
-        for code, entries in messages.items():
+    def _capture_messages(message_type: str, messages: MESSAGE_PARTITION):
+        code: str  # message 'code' as indexing key
+        scoped_messages: SCOPED_MESSAGES
+        for code, scoped_messages in messages.items():
             if code not in recommendation_summary[message_type]:
                 recommendation_summary[message_type][code] = list()
             item: Dict = {
-                "message": entries,
+                "message": scoped_messages,
                 "test_data": test_data,
                 "test": test_id
             }
