@@ -5,7 +5,7 @@ import logging
 from typing import Tuple, Dict, List
 from copy import deepcopy
 import pytest
-from reasoner_validator import TRAPIResponseValidator
+from reasoner_validator.validator import TRAPIResponseValidator
 
 from sri_testing.translator.trapi import generate_test_error_msg_prefix, constrain_trapi_request_to_kp
 

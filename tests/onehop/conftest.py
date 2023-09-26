@@ -8,7 +8,7 @@ from copy import deepcopy
 from pytest import UsageError
 from pytest_harvest import get_session_results_dct
 
-from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
+from reasoner_validator.biolink import BiolinkValidator
 from reasoner_validator.message import MESSAGE_PARTITION, SCOPED_MESSAGES
 from reasoner_validator.versioning import get_latest_version
 
@@ -869,11 +869,8 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?
-                biolink_validator: BiolinkValidator = \
-                    check_biolink_model_compliance_of_input_edge(
-                        edge,
-                        biolink_version=kpjson['biolink_version']
-                    )
+                biolink_validator: BiolinkValidator = BiolinkValidator(biolink_version=kpjson['biolink_version'])
+                biolink_validator.check_biolink_model_compliance_of_input_edge(edge)
                 if biolink_validator.has_messages():
                     # defer reporting of errors to higher level of test harness
                     edge['pre-validation'] = biolink_validator.get_messages()
@@ -1007,11 +1004,8 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
 
                     # Resetting the Biolink Model version here may have the peculiar side effect of some
                     # KP edge test data now becoming non-compliant with the 'new' ARA Biolink Model version?
-                    biolink_validator: BiolinkValidator = \
-                        check_biolink_model_compliance_of_input_edge(
-                            edge,
-                            biolink_version=arajson['biolink_version']
-                        )
+                    biolink_validator: BiolinkValidator = BiolinkValidator(biolink_version=arajson['biolink_version'])
+                    biolink_validator.check_biolink_model_compliance_of_input_edge(edge)
                     if biolink_validator.has_messages():
                         # defer reporting of errors to higher level of test harness
                         edge['pre-validation'] = biolink_validator.get_messages()

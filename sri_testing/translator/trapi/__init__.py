@@ -2,9 +2,9 @@ import warnings
 from typing import Optional, Dict
 from sys import stderr
 
-from reasoner_validator import TRAPIResponseValidator
+from reasoner_validator.validator import TRAPIResponseValidator
 from reasoner_validator.report import ValidationReporter
-from reasoner_validator.trapi import call_trapi, check_trapi_validity
+from reasoner_validator.trapi import call_trapi, TRAPISchemaValidator
 
 import pytest
 
@@ -35,16 +35,12 @@ class UnitTestReport(ValidationReporter):
             self,
             test_case: Dict,
             test_name: str,
-            trapi_version: str,
-            biolink_version: str,
             strict_validation: Optional[bool] = None
     ):
         error_msg_prefix = generate_test_error_msg_prefix(test_case, test_name=test_name)
         ValidationReporter.__init__(
             self,
             prefix=error_msg_prefix,
-            trapi_version=trapi_version,
-            biolink_version=biolink_version,
             strict_validation=strict_validation
         )
 
@@ -182,7 +178,9 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
         biolink_version = case['biolink_version']
 
         # sanity check: verify first that the TRAPI request is well-formed by the creator(case)
-        test_report.merge(check_trapi_validity(trapi_request, trapi_version=trapi_version))
+        validator: TRAPISchemaValidator = TRAPISchemaValidator(trapi_version=trapi_version)
+        validator.validate(trapi_request, component="Query")
+        test_report.merge(validator)
         if not test_report.has_messages():
             # if no messages are reported, then continue with the validation
 
@@ -209,8 +207,7 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
                 test_report.report("critical.trapi.response.unexpected_http_code", identifier=status_code)
             else:
                 #########################################################
-                # Looks good so far, so now validate the TRAPI schemata #
-                # and the Biolink "Semantic" compliance of the response #
+                # Looks good so far, so now validate the TRAPI response #
                 #########################################################
                 response: Optional[Dict] = trapi_response['response_json']
 
