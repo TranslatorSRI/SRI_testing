@@ -41,14 +41,6 @@ For each KP, we need a file with one triple of each type that the KP can provide
 
 ```json
 { 
-    #
-    # Deprecated: the original 'url' field is deprecated and now ignored.
-    # Rather, the target endpoint for testing now comes from the 
-    # Translator SmartAPI Registry entry for the specified KP or ARA resource
-    # (see the Translator SmartAPI Registry Configuration comments above)
-    #
-    # "url": "https://automat.renci.org/ontological-hierarchy/1.3",
-    
     "source_type": "primary",
     "infores": "automat",
     "exclude_tests": ["RPBS"],
@@ -162,18 +154,16 @@ The KP test edge format is [being extended to specify Biolink version 3 qualifie
             "subject_category": "biolink:SmallMolecule",  
             "object_category": "biolink:Disease",
             "predicate": "biolink:treats",
-            "subject_id": "CHEBI:3002",     # beclomethasone dipropionate
-            "object_id": "MESH:D001249"     # asthma
+            "subject_id": "CHEBI:3002",
+            "object_id": "MESH:D001249",
             "association": "biolink:ChemicalToDiseaseOrPhenotypicFeatureAssociation",
             "qualifiers": [
                  {
-                      "qualifier_type_id": "biolink:causal_mechanism_qualifier"
+                      "qualifier_type_id": "biolink:causal_mechanism_qualifier",
                       "qualifier_value": "inhibition"
-                 },
-                 # ...other qualifier constraint type_id/value pairs?
+                 }
              ]
-        },
-        # ...other test edges
+        }
    ]
 }
 ```
@@ -184,12 +174,6 @@ For each ARA, we want to ensure that it is able to extract information correctly
 
 ```json
 {
-    
-    #
-    # Deprecated: the 'url' field is no longer used to set the endpoint (see Registry comments above)
-    #
-    # "url": "https://aragorn.renci.org/1.3",
-    
     "infores": "aragorn",   
     "KPs": [
         "infores:automat-panther",
