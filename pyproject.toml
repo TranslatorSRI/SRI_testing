@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "SRI_Testing"
-version = "2.2.0"
-description = "Semantics-driven tests for testing Translator TRAPI Components (KPs and ARAs)"
+version = "3.0.0"
+description = "One Hop TRAPI mediated semantics-driven tests for testing Translator TRAPI Components (KPs and ARAs)"
 authors = [
     "Richard Bruskiewich <richard.bruskiewich@delphinai.com>",
     "Chris Bizon <bizon.renci.org>",

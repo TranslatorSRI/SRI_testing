@@ -2,6 +2,9 @@
 
 The SRI Testing harness package is evolving along with progress in TRAPI (including the reasoner-validator package) and Biolink standards within the NCATS Biomedical Knowledge Translator. 
 
+## v3.0.0
+- Pruning the release 2# down to size as the SRI Testing 'lite' version, branch code-named 'Hoplite' (an ancient Greek civilian soldier). Hoplite is essentially lacking most of the TRAPI schema and Biolink Model validation of TRAPI Responses and mainly validates that test input edges are rediscovered in the TRAPI Response results.
+
 ## v2.2.0
 - Upgrade to reasoner-validator 3.9.4: fixed methods moved into validation classes
 - Upgrade to reasoner-validator 3.7.1: added 'sources' of validation messages to reports
