@@ -155,7 +155,6 @@ docker-compose -f run-mongodb.yaml down
 
 Of course, the above `docker-compose` commands may be overridden by the user to suit their needs. Note that the docker implementation assumes the use of uvicorn (installed as a dependency).
 
-## Limitations (and Future Work?)
+## Release 3.0.0 'HopLite' release
 
-- SRI Testing uses the reasoner-validator library which uses specific versions of the Biolink Model Toolkit. See the [list of reasoner-validator limitations](https://github.com/NCATSTranslator/reasoner-validator/blob/master/README.md#code-limitations-implied-future-work) for further details (e.g. why is my canonical predicate in my Biolink 2.4.8 compliant knowledge graph tagged as non-compliant?)
-
+'HopLite' (named after an ancient Greek civilian soldier) is essentially SRI_Testing lacking the TRAPI schema and Biolink Model validation of TRAPI Responses and simply verifies that test input edges are recovered in the TRAPI Response results.  Setting the environment variable 'FULL_VALIDATION' to any non-empty value (default: None == 'HopLite' run) triggers the original 'full' validation.
