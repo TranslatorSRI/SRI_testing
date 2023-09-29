@@ -12,6 +12,7 @@ from reasoner_validator.biolink import BiolinkValidator
 from reasoner_validator.message import MESSAGE_PARTITION, SCOPED_MESSAGES
 from reasoner_validator.versioning import get_latest_version
 
+from sri_testing import FULL_VALIDATION
 from sri_testing.translator.registry import (
     get_remote_test_data_file,
     get_the_registry_data,
@@ -249,7 +250,10 @@ def pytest_sessionfinish(session):
 
     session_results = get_session_results_dct(session)
 
-    test_run_summary: Dict = dict()
+    # tag test run summary with the scope of validation: 'full' or 'light'
+    test_run_summary: Dict = {
+        "mode": "FullComplianceValidation" if FULL_VALIDATION else "HopLite"
+    }
     resource_summaries: Dict = dict()
     recommendation_summaries: Dict = dict()
     case_details: Dict = dict()

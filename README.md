@@ -158,3 +158,5 @@ Of course, the above `docker-compose` commands may be overridden by the user to 
 ## Release 3.0.0 'HopLite' release
 
 'HopLite' (named after an ancient Greek civilian soldier) is essentially SRI_Testing lacking the TRAPI schema and Biolink Model validation of TRAPI Responses and simply verifies that test input edges are recovered in the TRAPI Response results.  Setting the environment variable 'FULL_VALIDATION' to any non-empty value (default: None == 'HopLite' run) triggers the original 'full' validation.
+
+The test run summary (JSON) file has a 'mode' flag indicating either "FullComplianceValidation" or "HopLite".
