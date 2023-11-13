@@ -149,20 +149,20 @@ def constrain_trapi_request_to_kp(trapi_request: Dict, kp_source: str) -> Dict:
     return trapi_request
 
 
-async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport):
+async def execute_trapi_lookup(case, creator, results_bag):
     """
     Method to execute a TRAPI lookup, using the 'creator' test template.
 
     :param case: input data test case
     :param creator: unit test-specific query message creator
-    :param rbag: dictionary of results
-    :param test_report: UnitTestReport(ValidationReporter), class wrapper object for asserting and reporting errors
+    :param results_bag: dictionary of results
 
     :return: None
     """
     trapi_request: Optional[Dict]
     output_element: Optional[str]
     output_node_binding: Optional[str]
+    test_report = results_bag.unit_test_report
 
     trapi_request, output_element, output_node_binding = creator(case)
 
@@ -201,8 +201,8 @@ async def execute_trapi_lookup(case, creator, rbag, test_report: UnitTestReport)
             trapi_response = await call_trapi(case['url'], trapi_request)
 
             # Record the raw TRAPI query input and output for later test harness reference
-            rbag.request = trapi_request
-            rbag.response = trapi_response
+            results_bag.request = trapi_request
+            results_bag.response = trapi_response
 
             # Second sanity check: was the web service (HTTP) call itself successful?
             status_code: int = trapi_response['status_code']

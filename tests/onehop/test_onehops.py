@@ -98,8 +98,7 @@ async def test_trapi_kps(kp_trapi_case, trapi_creator, results_bag):
         await execute_trapi_lookup(
             case=kp_trapi_case,
             creator=trapi_creator,
-            rbag=results_bag,
-            test_report=results_bag.unit_test_report
+            results_bag=results_bag
         )
         results_bag.unit_test_report.assert_test_outcome()
 
@@ -147,7 +146,6 @@ async def test_trapi_aras(ara_trapi_case, trapi_creator, results_bag):
         await execute_trapi_lookup(
             case=ara_trapi_case,
             creator=trapi_creator,
-            rbag=results_bag,
-            test_report=results_bag.unit_test_report
+            results_bag=results_bag
         )
         results_bag.unit_test_report.assert_test_outcome()
