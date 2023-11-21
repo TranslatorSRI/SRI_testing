@@ -8,7 +8,7 @@ from copy import deepcopy
 from pytest import UsageError
 from pytest_harvest import get_session_results_dct
 
-from reasoner_validator.biolink import check_biolink_model_compliance_of_input_edge, BiolinkValidator
+from reasoner_validator.biolink import BiolinkValidator
 from reasoner_validator.versioning import get_latest_version
 
 from sri_testing.translator.registry import (
@@ -862,14 +862,15 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?
-                biolink_validator: BiolinkValidator = \
-                    check_biolink_model_compliance_of_input_edge(
-                        edge,
-                        biolink_version=kpjson['biolink_version']
-                    )
-                if biolink_validator.has_messages():
+                validator: BiolinkValidator = BiolinkValidator(
+                    prefix="SRI Testing Test Edges",
+                    trapi_version=kpjson['trapi_version'],
+                    biolink_version=kpjson['biolink_version']
+                )
+                validator.check_biolink_model_compliance_of_input_edge(edge)
+                if validator.has_messages():
                     # defer reporting of errors to higher level of test harness
-                    edge['pre-validation'] = biolink_validator.get_messages()
+                    edge['pre-validation'] = validator.get_messages()
 
                 edge['ks_test_data_location'] = test_data['location']
 

@@ -58,7 +58,7 @@ uvicorn = ">=0.15.0,<0.16.0"
 # reasoner-validator should pull in many dependencies
 # also used by SRI Testing, including BMT (which adds some more)
 #reasoner-validator = { git = "https://github.com/NCATSTranslator/reasoner-validator.git", rev = "e7d765c" }
-reasoner-validator = "^3.7.4"
+reasoner-validator = "^3.8.10"
 
 # [tool.poetry.group.dev.dependencies]
 

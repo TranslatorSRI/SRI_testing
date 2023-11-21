@@ -13,24 +13,24 @@ files = [
 
 [[package]]
 name = "anyio"
-version = "3.7.1"
+version = "4.0.0"
 description = "High level compatibility layer for multiple asynchronous event loop implementations"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "anyio-3.7.1-py3-none-any.whl", hash = "sha256:91dee416e570e92c64041bd18b900d1d6fa78dff7048769ce5ac5ddad004fbb5"},
-    {file = "anyio-3.7.1.tar.gz", hash = "sha256:44a3c9aba0f5defa43261a8b3efb97891f2bd7d804e0e1f56419befa1adfc780"},
+    {file = "anyio-4.0.0-py3-none-any.whl", hash = "sha256:cfdb2b588b9fc25ede96d8db56ed50848b0b649dca3dd1df0b11f683bb9e0b5f"},
+    {file = "anyio-4.0.0.tar.gz", hash = "sha256:f7ed51751b2c2add651e5747c891b47e26d2a21be5d32d9311dfe9692f3e5d7a"},
 ]
 
 [package.dependencies]
-exceptiongroup = {version = "*", markers = "python_version < \"3.11\""}
+exceptiongroup = {version = ">=1.0.2", markers = "python_version < \"3.11\""}
 idna = ">=2.8"
 sniffio = ">=1.1"
 
 [package.extras]
-doc = ["Sphinx", "packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme (>=1.2.2)", "sphinxcontrib-jquery"]
-test = ["anyio[trio]", "coverage[toml] (>=4.5)", "hypothesis (>=4.0)", "mock (>=4)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
-trio = ["trio (<0.22)"]
+doc = ["Sphinx (>=7)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)"]
+test = ["anyio[trio]", "coverage[toml] (>=7)", "hypothesis (>=4.0)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
+trio = ["trio (>=0.22)"]
 
 [[package]]
 name = "asgiref"
@@ -1220,13 +1220,13 @@ networkx = ["networkx (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "reasoner-validator"
-version = "3.8.8"
+version = "3.8.10"
 description = "Validation tools for Reasoner API"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "reasoner_validator-3.8.8-py3-none-any.whl", hash = "sha256:8b2f0c9cc21a99a36cf37059da2634e7436c04262e82be899a101e1131f7aafe"},
-    {file = "reasoner_validator-3.8.8.tar.gz", hash = "sha256:08936fc9122e0eb728d9a3747336b7c9d23d800b2922b107402ce1d55ead7fbb"},
+    {file = "reasoner_validator-3.8.10-py3-none-any.whl", hash = "sha256:044f6bf6fb9c086ed97a4eecd3d5df255476fcc012df80870c0d972f2396d45b"},
+    {file = "reasoner_validator-3.8.10.tar.gz", hash = "sha256:cb1a1641c5f68a983a24d8cf892ec5ec1389b24be025629895a6e5d437334398"},
 ]
 
 [package.dependencies]
@@ -1498,4 +1498,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "7e4655c6f749e46fc4386eb2b9b134a02a000bb4ac512e19eb088e442cfe9957"
+content-hash = "9b623ebde6e61d9c6ffb525c8c93525c92fd70ab0d7761208458fcc7960d9b1e"

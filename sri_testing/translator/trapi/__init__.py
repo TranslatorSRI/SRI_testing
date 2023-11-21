@@ -1,7 +1,7 @@
 import warnings
 from typing import Optional, Dict
 
-from reasoner_validator import TRAPIResponseValidator
+from reasoner_validator.validator import TRAPIResponseValidator
 from reasoner_validator.report import ValidationReporter
 from reasoner_validator.trapi import call_trapi, check_trapi_validity
 
