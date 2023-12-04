@@ -85,13 +85,6 @@ PRODUCTION_ARA_SERVER = {
     'x-maturity': 'production'
 }
 
-PROUCTION_ARA_SERVER_URL = "https://bte.transltr.io/v1"
-PRODUCTION_ARA_SERVER = {
-    'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-    'url': PROUCTION_ARA_SERVER_URL,
-    'x-maturity': 'production'
-}
-
 TESTING_ARA_SERVER_URL = "https://bte.test.transltr.io/v1"
 TESTING_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - staging',
@@ -1028,10 +1021,10 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [ DEVELOPMENT_ARA_SERVER, PRODUCTION_ARA_SERVER ]
+                'servers': [DEVELOPMENT_ARA_SERVER, PRODUCTION_ARA_SERVER]
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            PROUCTION_ARA_SERVER_URL  # expected 'url' is 'staging'
+            PRODUCTION_ARA_SERVER_URL  # expected 'url' is 'production'
         ),
         (
             {   # query 9. testable, list of URLs, uses only first one; 'production' endpoint prioritized
@@ -1420,8 +1413,8 @@ def test_get_one_specific_target_ara():
     for service in service_metadata.values():
         assert service["infores"] == ARA_INFORES
         # the 'url' setting should be a list that includes urls from
-        # currently the default 'staging' x-maturity servers list
-        assert PROUCTION_ARA_SERVER_URL in service["url"]
+        # currently the default 'production' x-maturity servers list
+        assert PRODUCTION_ARA_SERVER_URL in service["url"]
         assert service["x_maturity"] == "production"
 
 
