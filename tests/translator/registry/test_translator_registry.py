@@ -85,11 +85,11 @@ PRODUCTION_ARA_SERVER = {
     'x-maturity': 'production'
 }
 
-STAGING_ARA_SERVER_URL = "https://bte.ci.transltr.io/v1"
-STAGING_ARA_SERVER = {
+PROUCTION_ARA_SERVER_URL = "https://bte.transltr.io/v1"
+PRODUCTION_ARA_SERVER = {
     'description': f'ARA TRAPI {DEF_M_M_TRAPI} endpoint - testing',
-    'url': STAGING_ARA_SERVER_URL,
-    'x-maturity': 'staging'
+    'url': PROUCTION_ARA_SERVER_URL,
+    'x-maturity': 'production'
 }
 
 TESTING_ARA_SERVER_URL = "https://bte.test.transltr.io/v1"
@@ -106,7 +106,7 @@ DEVELOPMENT_ARA_SERVER = {
     'x-maturity': 'development'
 }
 
-ARA_SERVERS_BLOCK = [PRODUCTION_ARA_SERVER, STAGING_ARA_SERVER, TESTING_ARA_SERVER, DEVELOPMENT_ARA_SERVER]
+ARA_SERVERS_BLOCK = [PRODUCTION_ARA_SERVER, PRODUCTION_ARA_SERVER, TESTING_ARA_SERVER, DEVELOPMENT_ARA_SERVER]
 
 
 @pytest.mark.parametrize(
@@ -752,9 +752,9 @@ def shared_test_extract_component_test_data_metadata_from_registry(
                     }
                 ]
             },
-            f'molepro,{DEF_M_M_P_TRAPI},3.2.0,staging',  # KP test_data_location, converted to Github raw data link
-            # 'staging' endpoint url preferred for testing, as of 18 May 2023 (TODO: not stable, will likely change!)
-            f"{STAGING_KP_BASEURL}{DEF_M_M_TRAPI}"
+            f'molepro,{DEF_M_M_P_TRAPI},3.2.0,production',  # KP test_data_location, converted to Github raw data link
+            # 'production' endpoint url preferred for testing
+            f"{PRODUCTION_KP_BASEURL}{DEF_M_M_TRAPI}"
         ),
         (   # Query 1 - Empty "hits" List
             {
@@ -1028,10 +1028,10 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [ DEVELOPMENT_ARA_SERVER, STAGING_ARA_SERVER ]
+                'servers': [ DEVELOPMENT_ARA_SERVER, PRODUCTION_ARA_SERVER ]
             },       # service
             True,    # True if expecting that resource_metadata is not None; False otherwise
-            STAGING_ARA_SERVER_URL  # expected 'url' is 'staging'
+            PROUCTION_ARA_SERVER_URL  # expected 'url' is 'staging'
         ),
         (
             {   # query 9. testable, list of URLs, uses only first one; 'production' endpoint prioritized
@@ -1112,7 +1112,7 @@ def test_extract_ara_test_data_metadata_from_registry(metadata: Dict, service_id
                         }
                     }
                 },
-                'servers': [PRODUCTION_ARA_SERVER,STAGING_ARA_SERVER,DEVELOPMENT_ARA_SERVER]
+                'servers': [PRODUCTION_ARA_SERVER,PRODUCTION_ARA_SERVER,DEVELOPMENT_ARA_SERVER]
             },      # service
             False,  # True if expecting that resource_metadata is not None; False otherwise
             ""      # expected 'url'
@@ -1248,10 +1248,10 @@ def test_validate_testable_resource(query: Tuple):
                         'test_data_location': ARA_TEST_DATA_URL
                     }
                 },
-                'servers': [STAGING_ARA_SERVER,DEVELOPMENT_ARA_SERVER]
+                'servers': [PRODUCTION_ARA_SERVER, DEVELOPMENT_ARA_SERVER]
             },
             ARA_INFORES,
-            ["staging", "development"]
+            ["production", "development"]
         ),
         (
             {  # query 8. testable, list of URLs; equivalent to all x-maturity environments testable
@@ -1326,7 +1326,7 @@ def test_validate_testable_resource(query: Tuple):
                         }
                     }
                 },
-                'servers': [PRODUCTION_ARA_SERVER, STAGING_ARA_SERVER, DEVELOPMENT_ARA_SERVER]
+                'servers': [PRODUCTION_ARA_SERVER, PRODUCTION_ARA_SERVER, DEVELOPMENT_ARA_SERVER]
             },
             None,
             [""]
@@ -1361,15 +1361,11 @@ def test_get_testable_resource_ids_from_registry():
     # 'molepro' and 'arax' are in both the MOCK and the
     # regular registry so these assertions should pass
     assert "molepro" in resources[0]
-    assert "1.3.0" in resources[0]["molepro"]
     assert "1.4.0" in resources[0]["molepro"]
-    assert "testing" in resources[0]["molepro"]["1.4.0"]
-    assert "production" in resources[0]["molepro"]["1.3.0"]
+    assert "production" in resources[0]["molepro"]["1.4.0"]
     assert "biothings-explorer" in resources[1]
-    assert "1.3.0" in resources[1]["biothings-explorer"]
     assert "1.4.0" in resources[1]["biothings-explorer"]
-    assert "production" in resources[1]["biothings-explorer"]["1.3.0"]
-    assert "staging" in resources[1]["biothings-explorer"]["1.4.0"]
+    assert "production" in resources[1]["biothings-explorer"]["1.4.0"]
 
 
 def test_get_translator_kp_test_data_metadata():
@@ -1388,8 +1384,8 @@ def test_get_one_specific_target_kp():
     assert len(service_metadata) == 1, "We're expecting at least one but not more than one source KP here!"
     for service in service_metadata.values():
         assert service["infores"] == "molepro"
-        assert service["x_maturity"] == "staging"
-        assert f"https://molepro-trapi.ci.transltr.io/molepro/trapi/v1.4" in service["url"]
+        assert service["x_maturity"] == "production"
+        assert f"https://molepro-trapi.transltr.io/molepro/trapi/v1.4" in service["url"]
 
 
 def test_get_specific_subset_of_target_kps():
@@ -1425,8 +1421,8 @@ def test_get_one_specific_target_ara():
         assert service["infores"] == ARA_INFORES
         # the 'url' setting should be a list that includes urls from
         # currently the default 'staging' x-maturity servers list
-        assert STAGING_ARA_SERVER_URL in service["url"]
-        assert service["x_maturity"] == "staging"
+        assert PROUCTION_ARA_SERVER_URL in service["url"]
+        assert service["x_maturity"] == "production"
 
 
 @pytest.mark.skipif(MOCK_REGISTRY, reason="Test needs the REAL Registry")

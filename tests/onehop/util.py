@@ -5,7 +5,7 @@ from typing import Set, Dict, List, Tuple, Optional
 
 from bmt import utils
 from reasoner_validator.versioning import SemVer
-from reasoner_validator.biolink import get_biolink_model_toolkit, BiolinkValidator, TRAPIGraphType
+from reasoner_validator.biolink import get_biolink_model_toolkit, BiolinkValidator
 from sri_testing.translator.sri.testing.util import ontology_kp
 
 
@@ -226,13 +226,9 @@ def inverse_by_new_subject(request):
              if trapi_request is None, then error details returned in two other tuple elements
     """
     predicate = request['predicate']
-    context: str = f"inverse_by_new_subject|predicate '{str(request['predicate'])}')"
+    context: str = f"inverse_by_new_subject|predicate '{str(request['predicate'])}'"
 
-    validator: BiolinkValidator = \
-        BiolinkValidator(
-            TRAPIGraphType.Knowledge_Graph,
-            biolink_version=request['biolink_version']
-        )
+    validator: BiolinkValidator = BiolinkValidator(biolink_version=request['biolink_version'])
     inverse_predicate = validator.get_inverse_predicate(predicate)
 
     # Not everything has an inverse (it should, and it will, but it doesn't right now)
@@ -247,9 +243,9 @@ def inverse_by_new_subject(request):
         "subject_category": request['object_category'],
         "object_category": request['subject_category'],
         "predicate": inverse_predicate,
-        "subject":
+        "subject_id":
             request["object_id"] if "object_id" in request else request["object"],
-        "object":
+        "object_id":
             request["subject_id"] if "subject_id" in request else request["subject"]
     })
 

@@ -9,8 +9,10 @@ from pytest import UsageError
 from pytest_harvest import get_session_results_dct
 
 from reasoner_validator.biolink import BiolinkValidator
+from reasoner_validator.message import MESSAGE_PARTITION, SCOPED_MESSAGES
 from reasoner_validator.versioning import get_latest_version
 
+from sri_testing import FULL_VALIDATION
 from sri_testing.translator.registry import (
     get_remote_test_data_file,
     get_the_registry_data,
@@ -114,19 +116,23 @@ def _compile_recommendations(
 ):
     #     "errors": {
     #       "error.knowledge_graph.edge.predicate.unknown": [
-    #         {
-    #           "biolink:has_active_component": {
-    #             "edge_id": "a--['biolink:has_active_component']->b",
-    #           },
-    #           "test_data": {
-    #             "subject_category": "biolink:Gene",
-    #             "object_category": "biolink:CellularComponent",
-    #             "predicate": "biolink:active_in",
-    #             "subject_id": "ZFIN:ZDB-GENE-060825-345",
-    #             "object_id": "GO:0042645"
-    #           },
-    #           "test": "inverse_by_new_subject"
-    #         }
+    #             {
+    #                 "message": {
+    #                     "infores:chebi -> infores:molepro -> infores:arax": {
+    #                             "biolink:has_active_component": {
+    #                                 "edge_id": "a--['biolink:has_active_component']->b",
+    #                             }
+    #                     }
+    #                 },
+    #                 "test_data": {
+    #                     "subject_category": "biolink:Gene",
+    #                     "object_category": "biolink:CellularComponent",
+    #                     "predicate": "biolink:active_in",
+    #                     "subject_id": "ZFIN:ZDB-GENE-060825-345",
+    #                     "object_id": "GO:0042645"
+    #                 },
+    #                 "test": "inverse_by_new_subject"
+    #             }
     #       ],
     # ...
     #    }
@@ -147,12 +153,14 @@ def _compile_recommendations(
     # Validation messages are a dictionary with validation_code as keys and values which
     # are a (possibly empty) list of dictionaries with optional (variable key) parameters.
     # Leveraging function closure here to inject content into the recommendation_summary
-    def _capture_messages(message_type: str, messages: Dict[str, Optional[List[Dict[str, str]]]]):
-        for code, entries in messages.items():
+    def _capture_messages(message_type: str, messages: MESSAGE_PARTITION):
+        code: str  # message 'code' as indexing key
+        scoped_messages: SCOPED_MESSAGES
+        for code, scoped_messages in messages.items():
             if code not in recommendation_summary[message_type]:
                 recommendation_summary[message_type][code] = list()
             item: Dict = {
-                "message": entries,
+                "message": scoped_messages,
                 "test_data": test_data,
                 "test": test_id
             }
@@ -242,7 +250,10 @@ def pytest_sessionfinish(session):
 
     session_results = get_session_results_dct(session)
 
-    test_run_summary: Dict = dict()
+    # tag test run summary with the scope of validation: 'full' or 'light'
+    test_run_summary: Dict = {
+        "mode": "FullComplianceValidation" if FULL_VALIDATION else "HopLite"
+    }
     resource_summaries: Dict = dict()
     recommendation_summaries: Dict = dict()
     case_details: Dict = dict()
@@ -862,15 +873,11 @@ def generate_trapi_kp_tests(metafunc, kp_metadata) -> List:
 
                 # We can already do some basic Biolink Model validation here of the
                 # S-P-O contents of the edge being input from the current triples file?
-                validator: BiolinkValidator = BiolinkValidator(
-                    prefix="SRI Testing Test Edges",
-                    trapi_version=kpjson['trapi_version'],
-                    biolink_version=kpjson['biolink_version']
-                )
-                validator.check_biolink_model_compliance_of_input_edge(edge)
-                if validator.has_messages():
+                biolink_validator: BiolinkValidator = BiolinkValidator(biolink_version=kpjson['biolink_version'])
+                biolink_validator.check_biolink_model_compliance_of_input_edge(edge)
+                if biolink_validator.has_messages():
                     # defer reporting of errors to higher level of test harness
-                    edge['pre-validation'] = validator.get_messages()
+                    edge['pre-validation'] = biolink_validator.get_messages()
 
                 edge['ks_test_data_location'] = test_data['location']
 
@@ -1001,11 +1008,8 @@ def generate_trapi_ara_tests(metafunc, kp_edges, ara_metadata):
 
                     # Resetting the Biolink Model version here may have the peculiar side effect of some
                     # KP edge test data now becoming non-compliant with the 'new' ARA Biolink Model version?
-                    biolink_validator: BiolinkValidator = \
-                        check_biolink_model_compliance_of_input_edge(
-                            edge,
-                            biolink_version=arajson['biolink_version']
-                        )
+                    biolink_validator: BiolinkValidator = BiolinkValidator(biolink_version=arajson['biolink_version'])
+                    biolink_validator.check_biolink_model_compliance_of_input_edge(edge)
                     if biolink_validator.has_messages():
                         # defer reporting of errors to higher level of test harness
                         edge['pre-validation'] = biolink_validator.get_messages()

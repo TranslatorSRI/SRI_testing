@@ -2,8 +2,11 @@
 
 The SRI Testing harness package is evolving along with progress in TRAPI (including the reasoner-validator package) and Biolink standards within the NCATS Biomedical Knowledge Translator. 
 
+## v3.0.0
+- Pruning the release 2# down to size as the SRI Testing 'lite' version, branch code-named 'Hoplite' (an ancient Greek civilian soldier). 'Hoplite' is essentially lacking the TRAPI schema and Biolink Model validation of TRAPI Responses and simply verifies that test input edges are recovered in the TRAPI Response results.  Setting the environment variable 'FULL_VALIDATION' to any non-empty value (default: None) triggers the original 'full' validation. The Test Run Summary JSON report has a 'mode' tag set accordingly either to value "FullComplianceValidation" or "HopLite".
+
 ## v2.2.0
-- Upgrade to reasoner-validator 3.8.8
+- Upgrade to reasoner-validator 3.9.4: fixed methods moved into validation classes
 - Upgrade to reasoner-validator 3.7.1: added 'sources' of validation messages to reports
 - Upgrade to reasoner-validator 3.6.2 with additional repair of SRI Testing test edge validation in Response
 - Upgrade to reasoner-validator 3.6.1 with 'critical' validation errors
@@ -11,8 +14,6 @@ The SRI Testing harness package is evolving along with progress in TRAPI (includ
 - various TRAPI edge case validation against Knowledge Graph, moved from SRI Testing harness to TRAPIValidator class
 - Upgraded to reasoner-validator 3.5.8 containing the above code
 - refactored SRI Testing code to suit
-- Upgraded to reasoner-validator 3.5.7
-- Upgraded to reasoner-validator 3.5.6
 - TRAPI call method moved to the reasoner-validator.trapi package module in release 3.5.6
 
 ## v2.1.7
